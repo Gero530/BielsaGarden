@@ -1,10 +1,12 @@
 """
 Efectos visuales que no interactúan con nada: una animación que se reproduce
 una vez en un lugar (ej: las ratas de Kenny) y un destello que se desvanece
-(ej: el área de la explosión).
+(ej: el área de la explosión), y el balde que el Imán le arranca a un zombie.
 """
+import math
 import pygame
 from ui.sprites import draw_sprite, anim_duration
+from entities.zombies import draw_bucket
 
 
 class SpriteEffect:
@@ -47,3 +49,41 @@ class Flash:
         overlay = pygame.Surface(self.rect.size, pygame.SRCALPHA)
         pygame.draw.rect(overlay, (*self.color, a), overlay.get_rect(), border_radius=14)
         surface.blit(overlay, self.rect.topleft)
+
+
+class FlyingMetal:
+    """
+    El balde que el Imán le saca a un zombie: vuela en un arco corto desde la
+    cabeza del zombie hasta las puntas del imán, achicándose y girando. Al llegar
+    avisa al Imán, que pasa a mostrarlo pegado en su sprite.
+    """
+    DURACION = 0.4
+
+    def __init__(self, start, magnet):
+        self.start = start
+        self.magnet = magnet
+        self.t = 0.0
+        self.alive = True
+
+    def target(self):
+        cx, cy = self.magnet.rect.center
+        return (cx + self.magnet.PUNTAS[0], cy + self.magnet.PUNTAS[1])
+
+    def update(self, dt, world):
+        self.t += dt
+        if self.t >= self.DURACION:
+            self.alive = False
+            if self.magnet.alive:
+                self.magnet.catch_metal()
+
+    def draw(self, surface):
+        u = min(1.0, self.t / self.DURACION)
+        e = 1 - (1 - u) ** 2                      # sale rápido y frena al pegarse
+        (x0, y0), (x1, y1) = self.start, self.target()
+        x = x0 + (x1 - x0) * e
+        y = y0 + (y1 - y0) * e - math.sin(math.pi * u) * 40
+        scale = 1.0 + (0.56 - 1.0) * e          # termina del tamaño del balde del sprite
+        img = pygame.Surface((48, 40), pygame.SRCALPHA)
+        draw_bucket(img, (24, 18), scale)
+        img = pygame.transform.rotate(img, u * 360)
+        surface.blit(img, img.get_rect(center=(int(x), int(y))))

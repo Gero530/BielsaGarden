@@ -9,6 +9,11 @@ SCREEN_H = 600
 FPS = 60
 TITLE = "Plantas vs Zombies - pygame"
 
+# Música del menú (assets/musica/intro.mp3). La intro está sincronizada con esta canción.
+MUSICA_MENU = "musica/intro.mp3"
+MUSICA_VOLUMEN = 0.7
+MUSICA_DURACION = 26.28      # segundos que dura la canción (después vuelve a empezar)
+
 # --- Grilla (5 filas x 9 columnas, como el original) ---
 GRID_ROWS = 5
 GRID_COLS = 9
@@ -62,7 +67,7 @@ PLANT_DATA = {
         "primer_sol": 6.0,         # el primero sale antes
     },
     "lanzaguisantes": {
-        "nombre": "Lanzaguis.",
+        "nombre": "Stan",
         "costo": 100,
         "vida": 300,
         "recarga": 7.5,
@@ -70,7 +75,7 @@ PLANT_DATA = {
         "dano": 20,
     },
     "nuez": {
-        "nombre": "Nuez",
+        "nombre": "Butters",
         "costo": 50,
         "vida": 4000,
         "recarga": 20.0,
@@ -99,6 +104,16 @@ PLANT_DATA = {
         "vida": 300,
         "recarga": 30.0,
     },
+    # Imán: como el Magnetoseta. Le saca el balde (u otro objeto de metal) al zombie más
+    # cercano dentro de su alcance; después se queda con el balde pegado mientras recarga
+    "iman": {
+        "nombre": "Imán",
+        "costo": 100,
+        "vida": 300,
+        "recarga": 7.5,
+        "alcance": 260,            # px desde el centro de su casilla (~3 casillas a la redonda)
+        "recarga_iman": 15.0,      # segundos hasta poder volver a atraer
+    },
 }
 
 # --- Zombies ---
@@ -112,4 +127,7 @@ ZOMBIE_DATA = {
 
 # --- Proyectiles ---
 GUISANTE_VEL = 320
+# Bola de nieve de Stan: el zombie golpeado camina y come más lento durante un rato
+NIEVE_RALENTIZA = 0.5     # multiplica velocidad, mordida y animación (0.5 = a la mitad)
+NIEVE_DURACION = 4.0      # segundos que dura la ralentización (cada golpe la renueva)
 IKE_VEL = 360             # px/s horizontales de Ike en el aire (define cuánto dura el vuelo)

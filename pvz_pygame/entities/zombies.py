@@ -2,19 +2,23 @@
 Zombies. Avanzan por su fila hacia la izquierda; si tienen una planta
 delante se frenan y la comen. La armadura (cono/cubeta) absorbe daño antes
 que el cuerpo.
+Las bolas de nieve de Stan los ralentizan (caminan, comen y se animan más
+lento) y se ven celestes mientras dura.
 Si muerden a Toallin quedan hipnotizados: se dan vuelta, se ponen violetas y
 caminan hacia la derecha mordiendo a los zombies que encuentren.
 """
 import random
 import pygame
-from settings import ZOMBIE_DATA, SCREEN_W, CELL_H
+from settings import ZOMBIE_DATA, SCREEN_W, CELL_H, NIEVE_RALENTIZA
 HIPNO_TINTE = (190, 130, 255)     # color que se multiplica sobre el sprite hipnotizado
 HIPNO_ALCANCE = 36                 # a qué distancia (px) muerde a otro zombie
+NIEVE_TINTE = (150, 200, 255)      # celeste mientras está ralentizado por la nieve de Stan
 from ui.sprites import draw_sprite, has_sprite
 
 
 class Zombie:
     key = "normal"
+    metal = False              # True: lleva un objeto de metal que el Imán le puede sacar
     # Sprite del cuerpo. Cono y cubeta usan el mismo cuerpo y dibujan el accesorio encima.
     # Si algún día hacés un sprite propio para cada uno, cambiá esta clave en su clase.
     sprite_key = "zombie_normal"
@@ -36,6 +40,19 @@ class Zombie:
         self.t = random.random() * 2
         self.hypno = False         # True: pelea de nuestro lado
         self.stun = 0.0            # frenado un instante porque un hipnotizado lo está mordiendo
+        self.slow = 0.0            # segundos que le quedan ralentizado (bola de nieve de Stan)
+
+    @property
+    def slow_factor(self):
+        return NIEVE_RALENTIZA if self.slow > 0 else 1.0
+
+    @property
+    def cur_speed(self):
+        """Velocidad real en este momento (con la ralentización aplicada)."""
+        return self.speed * self.slow_factor
+
+    def slow_down(self, duration):
+        self.slow = max(self.slow, duration)
 
     @property
     def rect(self):
@@ -50,6 +67,19 @@ class Zombie:
         self.hp -= amount
         if self.hp <= 0:
             self.alive = False
+
+    def can_lose_metal(self):
+        return self.alive and not self.hypno and self.metal and self.armor > 0
+
+    def metal_pos(self):
+        """Centro del objeto de metal en pantalla (de donde sale volando hacia el Imán)."""
+        return (int(self.x) - 4, self.y_top + 4)
+
+    def remove_metal(self):
+        """El Imán le arranca el objeto: pierde toda la armadura y sigue como un zombie normal."""
+        self.metal = False
+        self.armor = 0
+        self.max_armor = 0       # la barra de vida pasa a medir solo el cuerpo
 
     def hypnotize(self):
         self.hypno = True
@@ -66,16 +96,18 @@ class Zombie:
                 break
         if victim is not None:
             self.eating = True
-            victim.take_damage(self.dps * dt)
+            victim.take_damage(self.dps * self.slow_factor * dt)
             victim.stun = 0.15          # el mordido se queda quieto mientras lo comen
         else:
             self.eating = False
-            self.x += self.speed * dt
+            self.x += self.cur_speed * dt
             if self.x > SCREEN_W + 60:  # salió de la pantalla
                 self.alive = False
 
     def update(self, dt, world):
-        self.t += dt
+        self.t += dt * self.slow_factor       # ralentizado: también se anima más lento
+        if self.slow > 0:
+            self.slow -= dt
         if self.hit_flash > 0:
             self.hit_flash -= dt
 
@@ -98,10 +130,10 @@ class Zombie:
                 self.hypnotize()
                 return
             self.eating = True
-            target.take_damage(self.dps * dt)
+            target.take_damage(self.dps * self.slow_factor * dt)
         else:
             self.eating = False
-            self.x -= self.speed * dt
+            self.x -= self.cur_speed * dt
 
     # --- Dibujo ---
     def draw(self, surface):
@@ -115,7 +147,8 @@ class Zombie:
         cx, cy = int(self.x), self.y_top + CELL_H - 48
         # Hipnotizado: el sprite se espeja (mira a la derecha) y se tiñe de violeta
         lado = 1 if self.hypno else -1
-        flip, tint = self.hypno, (HIPNO_TINTE if self.hypno else None)
+        flip = self.hypno
+        tint = HIPNO_TINTE if self.hypno else (NIEVE_TINTE if self.slow > 0 else None)
         if self.eating:
             # Mordiendo: frame quieto y un pequeño cabeceo hacia adelante
             dx = 3 * lado if int(self.t * 8) % 2 == 0 else 0
@@ -143,7 +176,7 @@ class Zombie:
         if self.eating:
             sway = 4 if int(self.t * 8) % 2 == 0 else 0
 
-        skin = (150, 180, 130)
+        skin = (150, 200, 230) if self.slow > 0 else (150, 180, 130)
         coat = (90, 80, 70)
         if self.hit_flash > 0:
             skin = (230, 240, 220)
@@ -195,14 +228,25 @@ class ConeZombie(Zombie):
 
 class BucketZombie(Zombie):
     key = "cubeta"
+    metal = True
 
     def draw_armor(self, surface, head):
         if self.armor > 0:
             x, y = head
-            color = (175, 180, 190) if self.armor > self.max_armor / 2 else (130, 135, 140)
-            pygame.draw.rect(surface, color, (x - 16, y - 30, 32, 24), border_radius=3)
-            pygame.draw.rect(surface, (90, 95, 100), (x - 16, y - 30, 32, 24), 2, border_radius=3)
-            pygame.draw.line(surface, (90, 95, 100), (x - 18, y - 8), (x + 18, y - 8), 3)
+            draw_bucket(surface, (x, y - 18), 1.0, golpeado=self.armor <= self.max_armor / 2)
+
+
+def draw_bucket(surface, center, scale=1.0, golpeado=False):
+    """El balde de la cubeta. También lo usa el balde que sale volando hacia el Imán."""
+    x, y = center
+    w, h = max(4, int(32 * scale)), max(3, int(24 * scale))
+    color = (130, 135, 140) if golpeado else (175, 180, 190)
+    r = pygame.Rect(0, 0, w, h)
+    r.center = (int(x), int(y))
+    pygame.draw.rect(surface, color, r, border_radius=3)
+    pygame.draw.rect(surface, (90, 95, 100), r, max(1, int(2 * scale)), border_radius=3)
+    pygame.draw.line(surface, (90, 95, 100), (r.x - int(2 * scale), r.bottom),
+                     (r.right + int(2 * scale), r.bottom), max(1, int(3 * scale)))
 
 
 ZOMBIE_CLASSES = {cls.key: cls for cls in (NormalZombie, ConeZombie, BucketZombie)}

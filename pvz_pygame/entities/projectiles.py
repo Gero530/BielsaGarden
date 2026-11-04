@@ -1,7 +1,7 @@
-"""Proyectiles: el guisante (recto) e Ike (en arco, lo patea Kyle)."""
+"""Proyectiles: el guisante (recto), la bola de nieve de Stan (recta, ralentiza) e Ike (en arco, lo patea Kyle)."""
 import pygame
 from ui.sprites import draw_sprite
-from settings import GUISANTE_VEL, IKE_VEL, SCREEN_W
+from settings import GUISANTE_VEL, IKE_VEL, SCREEN_W, NIEVE_DURACION
 
 
 class Pea:
@@ -20,9 +20,12 @@ class Pea:
         # Golpea al primer zombie vivo de su fila que toque
         for z in world.zombies:
             if z.alive and not z.hypno and z.row == self.row and z.rect.left <= self.x <= z.rect.right:
-                z.take_damage(self.damage)
+                self.hit(z)
                 self.alive = False
                 return
+
+    def hit(self, zombie):
+        zombie.take_damage(self.damage)
 
     def draw(self, surface):
         c = (int(self.x), int(self.y))
@@ -30,6 +33,20 @@ class Pea:
             return
         pygame.draw.circle(surface, (40, 120, 30), c, 9)
         pygame.draw.circle(surface, (120, 220, 80), c, 7)
+
+
+class Snowball(Pea):
+    """Bola de nieve de Stan: va recta como el guisante y además ralentiza al zombie."""
+
+    def hit(self, zombie):
+        zombie.take_damage(self.damage)
+        zombie.slow_down(NIEVE_DURACION)
+
+    def draw(self, surface):
+        c = (int(self.x), int(self.y))
+        if draw_sprite(surface, "bola_nieve", c):
+            return
+        pygame.draw.circle(surface, (255, 255, 255), c, 7)
 
 
 class Ike:
@@ -51,7 +68,7 @@ class Ike:
         dist = abs(target.x - x)
         self.T = min(1.6, max(0.5, dist / IKE_VEL + 0.15))      # duración del vuelo
         # Los zombies caminan: apunta a donde van a estar al aterrizar
-        avance = 0.0 if (target.eating or target.hypno) else target.speed * self.T
+        avance = 0.0 if (target.eating or target.hypno) else target.cur_speed * self.T
         self.x1 = max(x + 30, target.x - avance)
         self.y1 = grid.row_center_y(self.row) - 6                # altura del torso
         self.ground = grid.row_center_y(self.row) + 40           # donde se dibuja la sombra

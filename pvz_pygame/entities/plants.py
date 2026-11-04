@@ -11,8 +11,8 @@ import random
 import pygame
 from settings import PLANT_DATA, SCREEN_W
 from settings import CELL_W, CELL_H
-from entities.projectiles import Pea, Ike
-from entities.effects import SpriteEffect, Flash
+from entities.projectiles import Snowball, Ike
+from entities.effects import SpriteEffect, Flash, FlyingMetal
 from entities.sun import Sun
 from ui.sprites import draw_sprite, has_sprite, anim_duration, SPRITES
 
@@ -84,76 +84,93 @@ class Sunflower(Plant):
 
 
 class Peashooter(Plant):
-  key = 'lanzaguisantes'
-  # Clave en ui/sprites.py (SPRITES) -> apunta a plantas/cartman_disparo.png
-  ANIM_DISPARO = 'lanzaguisantes_disparo'
-  FRAME_SALIDA = 2  # frame de la animación en que sale el guisante (0 = primero)
-  BOCA = (
-      30,
-      -15,
-  )  # posición de la boca del cañón respecto al centro de la celda
+    """
+    Stan. Tira bolas de nieve que hacen daño y ralentizan al zombie (como el
+    lanzaguisantes de hielo). Quieto con stan_idle; cuando aparece un zombie en
+    su fila se queda en pose de tiro (stan_disparo) y lanza cada `cadencia` s.
+    """
+    key = "lanzaguisantes"
+    ANIM_ALERTA = "lanzaguisantes_alerta"    # primer frame de stan_disparo: bola en la mano
+    ANIM_DISPARO = "lanzaguisantes_disparo"  # stan_disparo completo
+    FRAME_SALIDA = 3   # frame de la animación en que sale la bola (0 = primero)
+    BOCA = (39, 19)    # de dónde sale la bola respecto al centro de la celda (su mano)
 
-  def __init__(self, row, col, grid):
-    super().__init__(row, col, grid)
-    self.timer = 0.6  # pequeño delay antes del primer disparo
-    self.shoot_t = None  # tiempo dentro de la animación de disparo (None = en reposo)
-    self.pea_pending = False  # el guisante todavía no salió en este disparo
+    def __init__(self, row, col, grid):
+        super().__init__(row, col, grid)
+        self.timer = 0.6          # pequeño delay antes del primer disparo
+        self.shoot_t = None       # tiempo dentro de la animación de disparo (None = sin tirar)
+        self.pea_pending = False  # la bola todavía no salió en este disparo
+        self.alert = False        # hay un zombie en la fila
 
-  def sprite_state(self):
-    if self.shoot_t is not None:
-      return self.ANIM_DISPARO, self.shoot_t
-    return self.key, self.t
+    def sprite_state(self):
+        if self.shoot_t is not None:
+            return self.ANIM_DISPARO, self.shoot_t
+        if self.alert and has_sprite(self.ANIM_ALERTA):
+            return self.ANIM_ALERTA, 0.0
+        return self.key, self.t
 
-  def spawn_pea(self, world):
-    world.projectiles.append(
-        Pea(
-            self.rect.centerx + self.BOCA[0],
-            self.rect.centery + self.BOCA[1],
-            self.row,
-            self.data['dano'],
-        )
-    )
+    def spawn_pea(self, world):
+        world.projectiles.append(
+            Snowball(self.rect.centerx + self.BOCA[0], self.rect.centery + self.BOCA[1],
+                     self.row, self.data["dano"]))
 
-  def has_target(self, world):
-    """Solo dispara si hay un zombie en su fila, delante y dentro de la pantalla."""
-    for z in world.zombies:
-      if z.alive and not z.hypno and z.row == self.row and self.rect.centerx < z.x < SCREEN_W:
-        return True
-    return False
+    def has_target(self, world):
+        """Solo dispara si hay un zombie en su fila, delante y dentro de la pantalla."""
+        for z in world.zombies:
+            if z.alive and not z.hypno and z.row == self.row and self.rect.centerx < z.x < SCREEN_W:
+                return True
+        return False
 
-  def update(self, dt, world):
-    super().update(dt, world)
+    def update(self, dt, world):
+        super().update(dt, world)
+        self.alert = self.has_target(world)
 
-    # Animación de disparo en curso
-    if self.shoot_t is not None:
-      self.shoot_t += dt
-      fps = SPRITES[self.ANIM_DISPARO]['fps']
-      if self.pea_pending and self.shoot_t >= self.FRAME_SALIDA / fps:
-        self.pea_pending = False
-        self.spawn_pea(world)
-      if self.shoot_t >= anim_duration(self.ANIM_DISPARO):
-        self.shoot_t = None
+        # Animación de disparo en curso
+        if self.shoot_t is not None:
+            self.shoot_t += dt
+            fps = SPRITES[self.ANIM_DISPARO]["fps"]
+            if self.pea_pending and self.shoot_t >= self.FRAME_SALIDA / fps:
+                self.pea_pending = False
+                self.spawn_pea(world)
+            if self.shoot_t >= anim_duration(self.ANIM_DISPARO):
+                self.shoot_t = None
 
-    self.timer -= dt
-    if self.timer <= 0 and self.has_target(world):
-      self.timer = self.data['cadencia']
-      if has_sprite(self.ANIM_DISPARO):
-        self.shoot_t = 0.0  # arranca la animación; el guisante sale en FRAME_SALIDA
-        self.pea_pending = True
-      else:
-        self.spawn_pea(world)  # sin sprite: dispara al instante
+        self.timer -= dt
+        if self.timer <= 0 and self.alert and self.shoot_t is None:
+            self.timer = self.data["cadencia"]
+            if has_sprite(self.ANIM_DISPARO):
+                self.shoot_t = 0.0  # arranca la animación; la bola sale en FRAME_SALIDA
+                self.pea_pending = True
+            else:
+                self.spawn_pea(world)  # sin sprite: dispara al instante
 
 
 class WallNut(Plant):
+    """
+    Butters. Muro con mucha vida: quieto muestra butters_idle y, mientras los
+    zombies lo están mordiendo, butters_comido (llorando).
+    """
     key = "nuez"
+    ANIM_COMIDO = "nuez_comido"
+    MARGEN_MORDIDA = 0.2    # segundos sin mordiscos para volver a la pose quieta
+
+    def __init__(self, row, col, grid):
+        super().__init__(row, col, grid)
+        self.eaten_t = 0.0      # > 0 mientras lo están comiendo
+
+    def take_damage(self, amount):
+        super().take_damage(amount)
+        self.eaten_t = self.MARGEN_MORDIDA   # los zombies lo dañan en cada frame que muerden
+
+    def update(self, dt, world):
+        super().update(dt, world)
+        if self.eaten_t > 0:
+            self.eaten_t -= dt
 
     def sprite_state(self):
-        frac = self.hp / self.max_hp
-        if frac > 2 / 3:
-            return "nuez", self.t
-        if frac > 1 / 3:
-            return "nuez_agrietada", self.t
-        return "nuez_mordida", self.t
+        if self.eaten_t > 0 and has_sprite(self.ANIM_COMIDO):
+            return self.ANIM_COMIDO, self.t
+        return self.key, self.t
 
 
 class Catapult(Plant):
@@ -275,7 +292,76 @@ class Toallin(Plant):
     hipnotiza = True
 
 
-PLANT_CLASSES = {cls.key: cls for cls in (Sunflower, Peashooter, WallNut, Catapult, Kenny, Toallin)}
+class Magnet(Plant):
+    """
+    Imán (como el Magnetoseta). Cuando un zombie con un objeto de metal (el balde
+    de la cubeta) entra en su alcance, levanta el imán, se lo arranca y el balde
+    vuela hasta las puntas. Se queda con el balde pegado (que se va deshaciendo)
+    mientras recarga; después vuelve a estar listo. El cono no es de metal.
+    Estados: "listo" -> "atrae" -> (vuela el balde) -> "cargado" -> "listo"
+    """
+    key = "iman"
+    ANIM_ATRAE = "iman_atrae"
+    ANIM_CARGADO = "iman_cargado"
+    PUNTAS = (40, 28)    # dónde queda pegado el balde respecto al centro de la celda
+
+    def __init__(self, row, col, grid):
+        super().__init__(row, col, grid)
+        self.state = "listo"
+        self.state_t = 0.0
+        self.target = None
+        self.recharge = 0.0
+
+    def find_target(self, world):
+        """El zombie con metal más cercano dentro del alcance (en cualquier fila)."""
+        cx, cy = self.rect.center
+        best, best_d = None, self.data["alcance"]
+        for z in world.zombies:
+            if not z.can_lose_metal() or z.x > SCREEN_W:
+                continue
+            zy = world.grid.row_center_y(z.row)
+            d = math.hypot(z.x - cx, zy - cy)
+            if d <= best_d:
+                best, best_d = z, d
+        return best
+
+    def catch_metal(self):
+        """Llamado por FlyingMetal cuando el balde llega a las puntas del imán."""
+        self.state = "cargado"
+        self.recharge = self.data["recarga_iman"]
+
+    def update(self, dt, world):
+        super().update(dt, world)
+        self.state_t += dt
+        if self.state == "listo":
+            self.target = self.find_target(world)
+            if self.target is not None:
+                self.state, self.state_t = "atrae", 0.0
+        elif self.state == "atrae":
+            if self.state_t >= anim_duration(self.ANIM_ATRAE) and self.target is not None:
+                if self.target.can_lose_metal():
+                    start = self.target.metal_pos()
+                    self.target.remove_metal()
+                    world.effects.append(FlyingMetal(start, self))
+                    self.target = None          # queda esperando a que llegue el balde
+                else:                           # murió o lo perdió en el medio: vuelve a buscar
+                    self.state, self.target = "listo", None
+        elif self.state == "cargado":
+            self.recharge -= dt
+            if self.recharge <= 0:
+                self.state, self.state_t = "listo", 0.0
+
+    def sprite_state(self):
+        if self.state == "atrae":
+            return self.ANIM_ATRAE, self.state_t
+        if self.state == "cargado":
+            # 3 etapas del balde (entero, mordido, casi deshecho) según cuánto falta
+            u = 1 - self.recharge / self.data["recarga_iman"]
+            return self.ANIM_CARGADO, float(min(2, int(u * 3)))
+        return self.key, self.t
+
+
+PLANT_CLASSES = {cls.key: cls for cls in (Sunflower, Peashooter, WallNut, Catapult, Kenny, Toallin, Magnet)}
 
 
 def create_plant(key, row, col, grid):

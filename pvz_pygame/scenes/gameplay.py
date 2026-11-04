@@ -258,6 +258,9 @@ class GameplayScene(Scene):
             pr.draw(surface)
         for e in self.effects:
             e.draw(surface)
+        # Timmy cuando sale disparado (y su grito) va por encima de plantas y zombies
+        for m in self.mowers:
+            m.draw_overlay(surface)
 
         self.hud.draw(surface, self.sun, self.selected, self.waves.progress, self.level["nombre"])
 

@@ -24,9 +24,11 @@ class Game:
         self.running = True
         self.scene = None
 
+        self.intro_done = False     # la intro del menú se ve una sola vez por ejecución
+
         # Import aquí para evitar imports circulares (las escenas importan Game)
-        from scenes.menu import MenuScene
-        self.change_scene(MenuScene(self))
+        from scenes.loading import LoadingScene
+        self.change_scene(LoadingScene(self))
 
     def change_scene(self, new_scene):
         self.scene = new_scene

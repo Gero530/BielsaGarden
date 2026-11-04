@@ -33,8 +33,11 @@ ESCALA_BASE = 2   # 1 px dibujado = 2 px en pantalla
 SPRITES = {
     # Plantas (frames de 40x48)
     "girasol":                {"archivo": "plantas/cartman_cocinando.png",     "frame_w": 32, "frame_h": 24, "fps": 6, "mult": 1.5, "dy_px": 13},   # Cartman cocinando chili (generador de soles)
-    "lanzaguisantes":         {"archivo": "plantas/cartman_idle.png",         "frame_w": 26, "frame_h": 24, "fps": 4, "seq": [0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 1, 1], "mult": 1.5, "dy_px": 13},
-    "lanzaguisantes_disparo": {"archivo": "plantas/cartman_disparo.png", "frame_w": 26, "frame_h": 24, "fps": 8, "loop": False, "mult": 1.5, "dy_px": 13},
+    # Stan (lanzaguisantes de nieve). stan_disparo.png: 0-1 prepara la bola, 2 gira, 3 la tira.
+    # En el frame 3 se borró la bola (la dibuja el proyectil); la original está en stan_disparo_original.png
+    "lanzaguisantes":         {"archivo": "plantas/stan_idle.png",             "frame_w": 40, "frame_h": 40, "fps": 4, "seq": [0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 1, 1], "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    "lanzaguisantes_alerta":  {"archivo": "plantas/stan_disparo.png",          "frame_w": 40, "frame_h": 40, "fps": 1, "frames": [0], "mult": 1.5, "dy_px": 7},
+    "lanzaguisantes_disparo": {"archivo": "plantas/stan_disparo.png",          "frame_w": 40, "frame_h": 40, "fps": 8, "loop": False, "mult": 1.5, "dy_px": 7},
     # Kyle (catapulta). kyle_completo.png: 0-1 de frente, 2 de perfil quieto, 3-6 patada
     "kyle":                   {"archivo": "plantas/kyle_idle.png",             "frame_w": 38, "frame_h": 38, "fps": 4, "seq": [0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 1, 1], "dx": 6.5, "mult": 1.5, "dy_px": 22, "icon_dy": 6},
     "kyle_perfil":            {"archivo": "plantas/kyle_completo.png",         "frame_w": 38, "frame_h": 38, "fps": 1, "frames": [2], "dx": 6.5, "mult": 1.5, "dy_px": 22},
@@ -44,16 +47,26 @@ SPRITES = {
     "kenny_ratas":            {"archivo": "plantas/kenny_explosion.png",       "frame_w": 32, "frame_h": 32, "fps": 12, "frames": list(range(5, 30)), "loop": False, "mult": 1.5, "dy_px": 19},
     # Toallin (hipnoseta)
     "toallin":                {"archivo": "plantas/toallin_idle.png",          "frame_w": 32, "frame_h": 32, "fps": 4, "dx": 2, "mult": 1.5, "dy_px": 7, "icon_dy": -4},
-    "nuez":                   {"archivo": "plantas/nuez_idle.png",              "frame_w": 40, "frame_h": 48, "fps": 6},
-    "nuez_agrietada":         {"archivo": "plantas/nuez_agrietada.png",         "frame_w": 40, "frame_h": 48, "fps": 6},
-    "nuez_mordida":           {"archivo": "plantas/nuez_mordida.png",           "frame_w": 40, "frame_h": 48, "fps": 6},
+    # Butters (nuez). Quieto mientras nadie lo toca; llora cuando lo están mordiendo
+    "nuez":                   {"archivo": "plantas/butters_idle.png",          "frame_w": 40, "frame_h": 40, "fps": 2, "seq": [0, 0, 0, 1], "mult": 1.5, "dy_px": 7, "icon_dy": -3},
+    "nuez_comido":            {"archivo": "plantas/butters_comido.png",        "frame_w": 40, "frame_h": 40, "fps": 8, "dx": 2, "mult": 1.5, "dy_px": -5},
     # Zombies (frames de 32x48, mirando a la izquierda, pies en el borde inferior)
     "zombie_normal":          {"archivo": "zombies/zombie_normal_caminar.png",  "frame_w": 32, "frame_h": 48, "fps": 6},
+    # Imán (como el Magnetoseta). iman_completo.png: 0-2 reposo (2 = brillito, 1 = parpadeo),
+    # 3-5 atrae (sale el campo magnético), 6-8 con el balde pegado, cada vez más deshecho
+    "iman":                   {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 4, "frames": [0, 1, 2], "seq": [0, 0, 0, 0, 0, 2, 0, 0, 0, 1], "dx": -3, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    "iman_atrae":             {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 10, "frames": [3, 4, 5], "loop": False, "dx": -3, "mult": 1.5, "dy_px": 4},
+    "iman_cargado":           {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 1, "frames": [6, 7, 8], "loop": False, "dx": -3, "mult": 1.5, "dy_px": 4},
+    # Timmy (podadora). Por ahora un solo frame; el movimiento lo agrega world/lawnmower.py.
+    # Si dibujás tiras animadas, cambiá "archivo" (y "fps") de estas dos claves.
+    "podadora":               {"archivo": "podadora/timmy_idle.png",           "frame_w": 40, "frame_h": 40, "fps": 4, "mult": 1.5, "dy_px": 4},
+    "podadora_activa":        {"archivo": "podadora/timmy_idle.png",           "frame_w": 40, "frame_h": 40, "fps": 8, "mult": 1.5, "dy_px": 4},
     # Unidad de energía: el dedo con resplandor (reemplaza al sol)
     "dedo":                   {"archivo": "soles/dedo_energia.png",            "frame_w": 32, "frame_h": 32, "fps": 4, "mult": 1.5},
     # Proyectiles. ike_volando.png: 0 de frente, 1 salida, 2 inclinado, 3-5 girando, 6 cayendo
     "ike":                    {"archivo": "proyectiles/ike_volando.png",        "frame_w": 38, "frame_h": 38, "fps": 1, "mult": 1.5},
     "guisante":               {"archivo": "proyectiles/guisante.png",           "frame_w": 40, "frame_h": 48, "fps": 1},
+    "bola_nieve":             {"archivo": "proyectiles/bola_nieve.png",         "frame_w": 6, "frame_h": 6, "fps": 1, "mult": 1.5},
 }
 
 _cache = {}   # (clave, factor) -> lista de frames escalados

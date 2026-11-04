@@ -10,7 +10,7 @@ LEVEL = {
     "nombre": "Nivel 1 - El jardín",
     "sol_inicial": 150,
     "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
-    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin"],
+    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman"],
 
     "oleadas": [
         (20,  "normal", 2),          # el primero va por el medio

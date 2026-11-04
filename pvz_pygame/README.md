@@ -13,7 +13,7 @@ python main.py
 
 | Acción | Control |
 |---|---|
-| Elegir planta | Clic en la carta (o teclas `1` a `6`) |
+| Elegir planta | Clic en la carta (o teclas `1` a `7`) |
 | Plantar | Clic en una celda libre del césped |
 | Pala (quitar planta) | Clic en "Pala" (o tecla `S`) y luego en la planta |
 | Juntar energía | Clic sobre el dedo brillante |
@@ -27,10 +27,11 @@ python main.py
 | Planta | Costo | Vida | Qué hace |
 |---|---|---|---|
 | Chef (Cartman cocinando) | 50 | 300 | Cocina chili y suelta un dedo de energía (25 de sol) cada 18 s; el primero a los 6 s. Es el generador (antes era el Girasol) |
-| Lanzaguisantes | 100 | 300 | Dispara guisantes (20 de daño) cada 1,4 s si hay un zombie en su fila |
-| Nuez | 50 | 4000 | Muro que frena zombies |
+| Stan | 100 | 300 | Como el lanzaguisantes de hielo: cuando hay un zombie en su fila se pone en pose de tiro y le tira bolas de nieve (20 de daño) cada 1,4 s. El zombie golpeado queda celeste y camina y come a la mitad de velocidad durante 4 s |
+| Butters | 50 | 4000 | Como la nuez: muro que frena zombies. Quieto mientras nadie lo toca y llora mientras se lo están comiendo |
 | Kyle | 100 | 300 | Catapulta: cuando hay un zombie en su fila se da vuelta y patea a Ike, que vuela en arco y cae sobre el zombie (20 de daño, igual que el guisante) cada 1,4 s |
 | Kenny | 150 | — | Como la cereza: explota al plantarlo (~0,5 s) y hace 1800 de daño en un área de 3x3 casillas. Después aparecen las ratas (solo decoración) |
+| Imán | 100 | 300 | Como el Magnetoseta: cuando un zombie con un objeto de metal (el balde de la cubeta) entra en su alcance (~3 casillas a la redonda, cualquier fila), le arranca el balde, que sale volando hasta el imán. El zombie sigue como uno normal. Se queda con el balde pegado (que se va deshaciendo) durante 15 s de recarga. El cono no es de metal |
 | Toallin | 75 | 300 | Como la hipnoseta: el zombie que lo muerde se lo come y queda hipnotizado (violeta, camina a la derecha y muerde a los zombies que encuentra) |
 
 **Zombies**
@@ -41,7 +42,7 @@ python main.py
 | Cono | 200 | 370 |
 | Cubeta | 200 | 1100 |
 
-**Nivel 1**: 16 zombies en ~3 minutos, con oleada final. Cada fila tiene un cortacésped de un solo uso.
+**Nivel 1**: 16 zombies en ~3 minutos, con oleada final. Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -60,13 +61,13 @@ scenes/
 world/
   grid.py            Grilla 5x9: celdas, colocación de plantas, dibujo del césped
   wave_manager.py    Suelta zombies según el horario del nivel
-  lawnmower.py       Cortacéspedes
+  lawnmower.py       Cortacéspedes (Timmy): se mece esperando, traquetea y levanta polvo al salir
 
 entities/
-  plants.py          Plant + Chef (Cartman cocinando, clave `girasol`), Lanzaguisantes (Cartman), Nuez, Kyle, Kenny, Toallin
+  plants.py          Plant + Chef (Cartman cocinando, clave `girasol`), Stan (lanzaguisantes, clave `lanzaguisantes`), Butters (nuez, clave `nuez`), Kyle, Kenny, Toallin, Imán
   zombies.py         Zombie + Normal, Cono, Cubeta
-  projectiles.py     Guisante e Ike (proyectil en arco)
-  effects.py         Efectos visuales: animación suelta (ratas de Kenny) y destello del área
+  projectiles.py     Guisante, bola de nieve de Stan (ralentiza) e Ike (proyectil en arco)
+  effects.py         Efectos visuales: animación suelta (ratas de Kenny) destello del área y balde volando hacia el Imán
   sun.py             Sol (recurso)
 
 ui/
@@ -122,3 +123,26 @@ levels/
 
 Mientras muerde, el zombie usa el primer frame con un cabeceo hacia adelante. Si después dibujás una
 animación de comer, agregala como `zombie_normal_comer` y la conecto.
+
+## Intro y menú
+
+Al ejecutar `python main.py` pasa esto, en orden:
+
+1. **Pantalla de carga** (`scenes/loading.py`): "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio.
+2. **Intro** (`scenes/menu.py` + `ui/intro_art.py`): estilo la intro de South Park en pixel art. Se acerca la cabeza de Stan y caen la calle, los cuerpos y las cabezas de Cartman, Kyle, Stan y Kenny en la parada del bus. Está sincronizada con la canción `assets/musica/intro.mp3`.
+3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
+
+Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR la música se apaga con un fundido y empieza la partida.
+
+Cosas que se pueden tocar:
+
+| Qué | Dónde |
+|---|---|
+| Volumen de la música | `MUSICA_VOLUMEN` en `settings.py` |
+| Cambiar la canción | reemplazar `assets/musica/intro.mp3` y ajustar `MUSICA_DURACION` en `settings.py` |
+| Cuándo aterriza cada cabeza | `KIDS` (`head_t`, `body_t`) en `ui/intro_art.py` |
+| Orden y lugar de los chicos | `KIDS` (`x`) en `ui/intro_art.py` |
+| Botones (textos, posición) | `BOTONES` y `BTN_Y` en `scenes/menu.py` |
+| Sprites de los chicos | `assets/plantas/cartman_idle.png`, `kyle_idle.png`, `kenny_explosion.png` y `assets/personajes/stan_idle.png` (se usa el frame 0 de cada uno) |
+
+La canción va a 145 BPM (un pulso cada 0,414 s) y los momentos clave de la intro caen sobre esos pulsos: Kenny en el pulso 5, Stan en el 6 y Cartman en el 7 (justo en la pausa de la canción).
