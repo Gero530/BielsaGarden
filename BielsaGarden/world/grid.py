@@ -7,31 +7,33 @@ import pygame
 from settings import GRID_ROWS, GRID_COLS, CELL_W, CELL_H, GRID_X, GRID_Y, COLORS, SCREEN_W, SCREEN_H
 from ui.sprites import ASSETS_DIR
 
-# Imagen de fondo del jardín. Se escala para llenar la pantalla (250x150 -> x4 = 1000x600).
-# El césped tiene que coincidir con la grilla: en la imagen de 250x150 empieza en (45, 25)
-# y cada celda mide 20x24. Si el archivo no existe, se dibuja el fondo con colores planos.
+# Imagen de fondo por defecto. Cada nivel puede tener la suya ("fondo" en levels/level_X.py;
+# las genera tools/fondos.py a partir de esta). Se escala para llenar la pantalla
+# (250x150 -> x4 = 1000x600). El césped tiene que coincidir con la grilla: en la imagen de
+# 250x150 empieza en (45, 25) y cada celda mide 20x24. Si el archivo no existe, se dibuja el
+# fondo con colores planos.
 FONDO = "fondos/jardin.png"
 
-_fondo_cache = None
+_fondo_cache = {}
 
 
-def load_background():
-    """Carga el fondo una sola vez (se reutiliza al reintentar el nivel)."""
-    global _fondo_cache
-    if _fondo_cache is None:
-        path = os.path.join(ASSETS_DIR, FONDO)
+def load_background(fondo=FONDO):
+    """Carga cada fondo una sola vez (se reutiliza al reintentar el nivel)."""
+    if fondo not in _fondo_cache:
+        path = os.path.join(ASSETS_DIR, fondo)
         if os.path.exists(path):
             img = pygame.image.load(path).convert()
             # scale (vecino más cercano) y no smoothscale, para que el pixel art quede nítido
-            _fondo_cache = pygame.transform.scale(img, (SCREEN_W, SCREEN_H))
+            _fondo_cache[fondo] = pygame.transform.scale(img, (SCREEN_W, SCREEN_H))
         else:
             print(f"[fondo] No se encontró {path}; se usa el fondo con colores planos.")
-            _fondo_cache = False
-    return _fondo_cache or None
+            _fondo_cache[fondo] = False
+    return _fondo_cache[fondo] or None
 
 
 class Grid:
-    def __init__(self):
+    def __init__(self, fondo=FONDO):
+        self.fondo = fondo
         self.rows = GRID_ROWS
         self.cols = GRID_COLS
         self.rect = pygame.Rect(GRID_X, GRID_Y, GRID_COLS * CELL_W, GRID_ROWS * CELL_H)
@@ -88,7 +90,7 @@ class Grid:
 
     # --- Dibujo ---
     def draw(self, surface):
-        fondo = load_background()
+        fondo = load_background(self.fondo)
         if fondo is not None:
             surface.blit(fondo, (0, 0))
             return

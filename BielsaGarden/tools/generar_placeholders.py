@@ -111,11 +111,13 @@ def picante():
 
 def picante_fuego():
     """6 frames de 26x32 (una casilla a x3): la llamarada que cubre cada casilla de la cruz."""
+    # Colores de la explosión de assets/plantas/picante.png (rojo, naranja, amarillo y centro blanco)
+    rojo, naranja, amarillo, blanco, oscuro = (220, 30, 10), (255, 140, 0), (255, 220, 0), (255, 255, 255), (90, 20, 10)
     frames = []
     alturas = (8, 18, 28, 30, 22, 10)
     for i, alto in enumerate(alturas):
         s = nuevo(26, 32)
-        for k, (col, enc) in enumerate(((ROJO, 0), (NARANJA, 4), (AMARILLO, 9))):
+        for k, (col, enc) in enumerate(((rojo, 0), (naranja, 4), (amarillo, 9), (blanco, 13))):
             a = max(0, alto - enc * 2)
             if a <= 0:
                 continue
@@ -123,7 +125,7 @@ def picante_fuego():
                 x = 2 + enc // 2 + j * (7 - enc // 4)
                 h = max(2, a - ((j + i) % 2) * 5)
                 pygame.draw.ellipse(s, col, (x, 31 - h, 9 - enc // 3, h))
-        frames.append(contorno(s, ROJO_OSC))
+        frames.append(contorno(s, oscuro))
     return tira(frames)
 
 

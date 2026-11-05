@@ -17,7 +17,10 @@ HIPNO_ALCANCE = 36                 # a qué distancia (px) muerde a otro zombie
 NIEVE_TINTE = (150, 200, 255)      # celeste mientras está ralentizado por la nieve de Stan
 CONGELADO_TINTE = (110, 160, 255)  # azul mientras está congelado por la charla de Mr. Mackey
 from ui.sprites import draw_sprite, has_sprite, anim_duration, frame_index, SPRITES
-ADELANTE_ATAQUE = (0, 1, 2, 3, 3, 2, 1, 0)   # cuánto se estira la cabeza al morder (igual que ATACAR en tools/generar_vecinos.py)
+# Cuánto se corre la cabeza (adelante, abajo) en cada frame de atacar y de caminar, en píxeles de
+# dibujo (igual que ATQ y CAM_CABEZA_DY en tools/zombies_pixel.py): el cono y el balde la siguen.
+CABEZA_ATAQUE = ((0, 0), (2, 1), (3, 1), (4, 2), (3, 1), (1, 0))
+CABEZA_CAMINAR = (0, 1, 1, 0, 0, 1, 1, 0)
 
 
 class Zombie:
@@ -259,11 +262,11 @@ class Zombie:
         lado = 1 if flip else -1
         tint = HIPNO_TINTE if self.hypno else (CONGELADO_TINTE if self.congelado > 0
                                                else (NIEVE_TINTE if self.slow > 0 else None))
-        dx = 3 * lado if self.eating and int(self.t * 8) % 2 == 0 else 0     # cabeceo al morder
-        draw_sprite(surface, key, (cx + dx, cy), 1.0, t, flash=self.hit_flash > 0, flip=flip, tint=tint)
-        # Cono / balde sobre la cabeza; al morder siguen a la cabeza que se estira
-        adel = ADELANTE_ATAQUE[frame_index(key, t) % 8] * 2 if key.endswith("_atacar") else 0
-        self.draw_armor(surface, (cx + (4 + adel) * lado + dx, self.y_top + 36 - self.lift))
+        draw_sprite(surface, key, (cx, cy), 1.0, t, flash=self.hit_flash > 0, flip=flip, tint=tint)
+        # Cono / balde sobre la cabeza; siguen a la cabeza cuando sube y baja o se estira para morder
+        i = frame_index(key, t)
+        adel, baja = CABEZA_ATAQUE[i % 6] if key.endswith("_atacar") else (0, CABEZA_CAMINAR[i % 8])
+        self.draw_armor(surface, (cx + (9 + adel * 2) * lado, self.y_top + 22 + baja * 2 - self.lift))
         if not self.airborne:
             self.draw_health_bar(surface)
 
@@ -279,7 +282,7 @@ class Zombie:
         scale = f / (2 * cfg.get("mult", 1.0))
         draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), scale, None)
         if f == 2:
-            self.draw_armor(surface, (midbottom[0] - 4, self.y_top + 36))
+            self.draw_armor(surface, (midbottom[0] - 9, self.y_top + 22))
 
     def draw_health_bar(self, surface):
         r = self.rect
@@ -374,6 +377,11 @@ class AlienZombie(Zombie):
         if self.hit_flash > 0:
             self.hit_flash -= dt
         if self.state == "camina":
+            planta = self.plant_ahead(world)
+            self.eating = planta is not None and planta.alive and not getattr(planta, "pisable", False)
+            if self.eating:                 # una planta le corta el paso: se la come
+                self.bite(planta, dt)
+                return
             self.x -= self.cur_speed * dt
             if self.x <= self.stop_x:
                 self.x = self.stop_x
@@ -395,7 +403,8 @@ class AlienZombie(Zombie):
         tint = NIEVE_TINTE if self.slow > 0 else None
         fl = self.hit_flash > 0
         if self.state == "camina":
-            draw_sprite(surface, "alien", (cx, cy), 1.0, self.t, flash=fl, tint=tint)
+            key = "alien_atacar" if self.eating and has_sprite("alien_atacar") else "alien"
+            draw_sprite(surface, key, (cx, cy), 1.0, self.t, flash=fl, tint=tint)
         elif self.state == "boton":
             draw_sprite(surface, "alien_boton", (cx, cy), 1.0, self.boton_t, flash=fl, tint=tint)
         else:
@@ -428,11 +437,11 @@ class DoorZombie(Zombie):
     metal = True
 
     def sprite_state(self):
-        key = self.sprite_key if self.shield > 0 else "zombie_normal"
+        key = self.sprite_key if self.shield > 0 else "zombie_puerta_sin"
         return key, (None if self.eating else self.t)
 
     def metal_pos(self):
-        return (int(self.x) - 22, self.y_top + 50)
+        return (int(self.x) - 19, self.y_top + 62)
 
     def remove_metal(self):
         self.metal = False
@@ -544,7 +553,7 @@ class LadderZombie(Zombie):
 
     def sprite_state(self):
         if self.placing is not None:
-            return self.sprite_key, None
+            return "zombie_escalera_colocar", self.placing[0]
         key = self.sprite_key if self.ladder else "zombie_escalera_sin"
         return key, (None if self.eating else self.t)
 
@@ -595,6 +604,11 @@ class BungeeZombie(Zombie):
                 self.airborne = False
                 self.lift = 0
         return True
+
+    def sprite_state(self):
+        if self.fase == "cae":
+            return "zombie_bungee_bajar", self.ft
+        return super().sprite_state()
 
     @staticmethod
     def bloqueada(grid, row, col):
@@ -734,6 +748,7 @@ class GiantZombie(Zombie):
         super().__init__(row, grid)
         self.golpe = None            # [tiempo, planta] mientras levanta el poste
         self.tiene_mini = True
+        self.lanzando = None         # tiempo de la animación de revolear al enano
 
     @property
     def rect(self):
@@ -747,13 +762,24 @@ class GiantZombie(Zombie):
     def atacar_hipnotizado(self, rival, dt, world):
         self.on_plant(rival, world)      # al hipnotizado también lo aplasta de un golpe
 
+    FRAME_LANZA = 3              # frame de zombie_gigante_lanzar en que suelta al enano
+
     def special(self, dt, world):
-        if self.tiene_mini and self.hp <= self.max_hp * self.data["lanza_mini"] \
+        if self.lanzando is not None:
+            self.lanzando += dt * self.slow_factor
+            suelta = self.FRAME_LANZA / SPRITES["zombie_gigante_lanzar"]["fps"] if has_sprite("zombie_gigante_lanzar") else 0
+            if self.tiene_mini and self.lanzando >= suelta:
+                self.tiene_mini = False
+                mini = create_zombie("mini", self.row, world.grid)
+                mini.lanzar(self.x - 10, random.uniform(GRID_X + 30, GRID_X + CELL_W * 2))
+                world.zombies.append(mini)
+            if self.lanzando >= max(suelta, anim_duration("zombie_gigante_lanzar")):
+                self.lanzando = None
+            return True
+        if self.tiene_mini and self.golpe is None and self.hp <= self.max_hp * self.data["lanza_mini"] \
                 and GRID_X + CELL_W * 3 < self.x < SCREEN_W - 20:
-            self.tiene_mini = False
-            mini = create_zombie("mini", self.row, world.grid)
-            mini.lanzar(self.x - 10, random.uniform(GRID_X + 30, GRID_X + CELL_W * 2))
-            world.zombies.append(mini)
+            self.lanzando = 0.0
+            return True
         if self.golpe is None:
             return False
         self.golpe[0] += dt * self.slow_factor
@@ -767,6 +793,8 @@ class GiantZombie(Zombie):
 
     def sprite_state(self):
         suf = "" if self.tiene_mini else "_sin"          # después de lanzar al mini, sin él en la espalda
+        if self.lanzando is not None:
+            return "zombie_gigante_lanzar", self.lanzando
         if self.golpe is not None:
             return "zombie_gigante_golpe" + suf, self.golpe[0]
         return self.sprite_key + suf, self.t

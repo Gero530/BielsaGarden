@@ -440,16 +440,26 @@ class Picante(Plant):
     """
     key = "picante"
     ANIM_FUEGO = "picante_fuego"
+    ANIM_EXPLOTA = "picante_explota"
+    FRAME_DANO = 1               # frame de picante_explota (el 16 de la tira) en que quema la cruz
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
         self.age = 0.0
+        self.exploto = False
 
     def take_damage(self, amount):
         pass                     # explota antes de que lo coman
 
+    @property
+    def encendido(self):
+        """Segundos que tarda en encenderse (frames 1 a 14)."""
+        return anim_duration(self.key) or 0.6
+
     def sprite_state(self):
-        return self.key, self.age
+        if self.age < self.encendido:
+            return self.key, self.age
+        return self.ANIM_EXPLOTA, self.age - self.encendido
 
     def explode(self, world):
         g = world.grid
@@ -461,7 +471,9 @@ class Picante(Plant):
             en_col = col_rect.left - 20 < z.x < col_rect.right + 20     # el cuerpo toca la columna
             if en_fila or en_col:
                 z.take_damage(self.data["dano"], frontal=False)
-        cells = [(self.row, c) for c in range(g.cols)] + [(r, self.col) for r in range(g.rows) if r != self.row]
+        # En su propia casilla va la explosión del sprite; el fuego, en el resto de la cruz
+        cells = [(self.row, c) for c in range(g.cols) if c != self.col] + \
+                [(r, self.col) for r in range(g.rows) if r != self.row]
         if has_sprite(self.ANIM_FUEGO):
             for r, c in cells:
                 world.effects.append(SpriteEffect(self.ANIM_FUEGO, g.cell_rect(r, c).center))
@@ -473,8 +485,12 @@ class Picante(Plant):
     def update(self, dt, world):
         super().update(dt, world)
         self.age += dt
-        if self.age >= (anim_duration(self.key) or 0.6):
+        explota = has_sprite(self.ANIM_EXPLOTA)
+        dano = self.encendido + (self.FRAME_DANO / SPRITES[self.ANIM_EXPLOTA]["fps"] if explota else 0)
+        if not self.exploto and self.age >= dano:
             self.explode(world)
+            self.exploto = True
+        if self.exploto and self.age >= self.encendido + (anim_duration(self.ANIM_EXPLOTA) if explota else 0):
             self.alive = False
 
 
@@ -487,8 +503,9 @@ class Aplastadora(Plant):
     Estados: listo -> prepara -> salto -> aterriza -> listo (con enfriamiento)
     """
     key = "aplastadora"
-    ANIM_SALTO = "aplastadora_salto"   # frames: 0-1 prepara, 2 sube, 3 cae, 4 aplasta
-    ATERRIZA = 0.35                    # segundos que se ve aplastando
+    ANIM_SALTO = "aplastadora_salto"   # frames: 0 quieto, 1-2 se agacha, 3 salta, 4 en el aire, 5 cae, 6 aplasta, 7 se recupera
+    ANIM_CANSADA = "aplastadora_cansada"
+    ATERRIZA = 0.5                     # segundos que se ve aplastando y recuperándose (frames 6 y 7)
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
@@ -497,6 +514,12 @@ class Aplastadora(Plant):
         self.cooldown = 0.5
         self.from_center = self.rect.center
         self.target_col = None
+        self.cansada = False             # en recarga después de un salto
+
+    def sprite_state(self):
+        if self.cansada and has_sprite(self.ANIM_CANSADA):
+            return self.ANIM_CANSADA, self.t
+        return self.key, self.t
 
     def take_damage(self, amount):
         if self.state == "listo":       # en el aire no la pueden morder
@@ -526,6 +549,7 @@ class Aplastadora(Plant):
             if self.cooldown > 0:
                 self.cooldown -= dt
             else:
+                self.cansada = False
                 self.target_col = self.pick_target(world)
                 if self.target_col is not None:
                     self.state, self.st = "prepara", 0.0
@@ -555,20 +579,22 @@ class Aplastadora(Plant):
         elif self.state == "aterriza" and self.st >= self.ATERRIZA:
             self.state = "listo"
             self.cooldown = self.data["recarga_salto"]
+            self.cansada = True
 
     def draw(self, surface):
         if self.state == "listo":
             return super().draw(surface)
         cx, cy = self.rect.center
-        if self.state == "prepara":
-            frame = 0 if self.st < self.data["preparacion"] / 2 else 1
-        elif self.state == "salto":
+        if self.state == "prepara":            # frames 1 a 3 de la tira: quieto y se agacha
+            frame = min(2, int(self.st / self.data["preparacion"] * 3))
+        elif self.state == "salto":            # 4 a 6: salta, en el aire, cae (el código lo lleva de casilla)
             u = min(1.0, self.st / self.data["salto"])
-            frame = 2 if u < 0.5 else 3
-            cx = int(self.from_center[0] + (cx - self.from_center[0]) * u)
-            cy = int(cy - math.sin(math.pi * u) * 90)
-        else:
-            frame = 4
+            frame = 3 + min(2, int(u * 3))
+            if self.from_center != self.rect.center:      # en su propia casilla salta sin moverse
+                cx = int(self.from_center[0] + (cx - self.from_center[0]) * u)
+                cy = int(cy - math.sin(math.pi * u) * 90)
+        else:                                  # 7 aplasta (ahí ya hizo el daño), 8 se recupera
+            frame = 6 if self.st < self.ATERRIZA / 2 else 7
         if not draw_sprite(surface, self.ANIM_SALTO, (cx, cy), 1.0, frame=frame):
             pygame.draw.ellipse(surface, (70, 170, 60), (cx - 30, cy - 20, 60, 50))
 
@@ -587,7 +613,8 @@ def create_plant(key, row, col, grid):
 # ----------------------------------------------------------------------
 def draw_plant_icon(surface, key, center, scale=1.0, plant=None):
     # Si hay sprite en assets/ se usa ese; si no, el dibujo con formas de abajo
-    if draw_sprite(surface, key, center, scale, None if plant is None else plant.t):
+    fijo = SPRITES.get(key, {}).get("icono") if plant is None else None
+    if draw_sprite(surface, key, center, scale, None if plant is None else plant.t, frame=fijo):
         return
 
     x, y = center

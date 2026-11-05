@@ -18,7 +18,7 @@ from ui.hud import HUD, draw_shovel, dither
 from ui.pixel_font import draw_pixel_text
 from world.wave_manager import TXT_HORDA, TXT_FINAL
 from levels import LEVELS
-from levels.dialogos import DIALOGOS
+from levels.dialogos import ANTES_DEL_NIVEL, AL_GANAR, AL_PERDER
 from ui.dialogo import Dialogo
 from ui.sprites import draw_sprite
 from ui.button import CartelButton, ancho_tablon, tablon
@@ -40,7 +40,7 @@ class GameplayScene(Scene):
         self.level_index = level_index
         self.level = LEVELS[level_index]
 
-        self.grid = Grid()
+        self.grid = Grid(self.level.get("fondo", "fondos/jardin.png"))
         self.zombies = []
         self.projectiles = []
         self.effects = []             # animaciones sueltas (ratas de Kenny, destellos)
@@ -86,17 +86,25 @@ class GameplayScene(Scene):
             self.siguiente_paso()
 
     def crear_dialogo(self, tipo):
-        """tipo: "intro", "victoria" o "derrota". None si el nivel no tiene ese diálogo."""
-        mensajes = DIALOGOS.get(self.level["id"], {}).get(tipo)
-        return Dialogo(mensajes) if mensajes else None
+        """tipo: "intro", "victoria" o "derrota": Bielsa dice una frase al azar (levels/dialogos.py).
+        El tutorial no tiene "intro": arranca con sus propios pasos."""
+        if tipo == "intro":
+            return None if self.level.get("tutorial") else Dialogo([random.choice(ANTES_DEL_NIVEL)], "antes")
+        frases = AL_GANAR if tipo == "victoria" else AL_PERDER
+        return Dialogo([random.choice(frases)], tipo)
 
     def siguiente_paso(self):
         self.tuto_paso = self.tuto.pop(0) if self.tuto else None
         if self.tuto_paso is None:
             return
+        # Los pasos seguidos que no esperan nada van en un mismo diálogo (Bielsa entra una sola vez)
+        textos = list(self.tuto_paso["texto"])
+        while self.tuto and not self.tuto_paso.get("espera") and not self.tuto_paso.get("oleadas"):
+            self.tuto_paso = self.tuto.pop(0)
+            textos += self.tuto_paso["texto"]
         if self.tuto_paso.get("oleadas"):
             self.waves_on = True
-        self.dialogo = Dialogo(self.tuto_paso["texto"])
+        self.dialogo = Dialogo(textos, "tutorial")
 
     def paso_cumplido(self):
         espera = self.tuto_paso.get("espera")

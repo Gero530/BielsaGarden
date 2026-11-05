@@ -34,18 +34,25 @@ PERSONAJES = {
         "descripcion": "El zombie que lo muerde se marea y pasa a pelear de nuestro lado. ¿Querés fumar?",
     },
     "iman": {
-        "nombre": "Imán",
+        "nombre": "Santi",
         "descripcion": "Les arranca los baldes y las puertas de metal a los zombies. Después tarda en soltarlos.",
     },
     "picante": {
-        "nombre": "Picante",
-        "descripcion": "Un chile tan picante que explota en cruz: quema toda su fila y toda su columna.",
+        "nombre": "Jesús",
+        "descripcion": "Se calienta, se calienta... y explota en cruz: quema toda su fila y toda su columna.",
     },
     "aplastadora": {
-        "nombre": "Aplastadora",
+        "nombre": "Gero",
         "descripcion": "Salta sobre el zombie que tenga enfrente y lo aplasta. Se queda donde cae y, después de descansar, salta de nuevo.",
     },
 }
+
+
+
+def nombre(key):
+    """Nombre que se ve en el juego (HUD, catálogo, equipo, diálogos). Usalo en vez de escribirlo."""
+    return PERSONAJES[key]["nombre"]
+
 
 # Frases en pixel art que aparecen un momento sobre el personaje
 FRASES_AL_PLANTAR = {
@@ -65,7 +72,7 @@ ZOMBIES = {
     },
     "cubeta": {
         "nombre": "Zombie con balde",
-        "descripcion": "Un balde de metal en la cabeza. El Imán se lo puede sacar.",
+        "descripcion": "Un balde de metal en la cabeza. " + nombre("iman") + " se lo puede sacar.",
     },
     "puerta": {
         "nombre": "Zombie con puerta",
@@ -106,5 +113,9 @@ ZOMBIES = {
     "mini": {
         "nombre": "Mini zombie",
         "descripcion": "Chiquito y rápido. Viaja a caballito del Gigante hasta que lo tiran.",
+    },
+    "alien": {
+        "nombre": "Alien",
+        "descripcion": "Bajó a ver qué pasaba en el pueblo. Entra un poco, aprieta su botón y les corta la luz a los Chef.",
     },
 }

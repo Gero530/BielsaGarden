@@ -11,23 +11,21 @@ Formato de oleadas: ver world/wave_manager.py. Resumen:
 LEVEL = {
     "id": "nivel1",
     "nombre": "Nivel 1 - El jardín",
+    "fondo": "fondos/nivel1.png",          # lo genera tools/fondos.py a partir de fondos/jardin.png
     "sol_inicial": 100,
     "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
 
     "oleadas": [
         # Arranque: de a uno, para armar la economía con Cartman
-        {"t": 2,   "zombies": ["alien"]},                            # el alien de Santi apaga a los Chef
         {"t": 18,  "zombies": [("normal", 2)]},
         {"t": 38,  "zombies": ["normal"]},
         {"t": 54,  "zombies": ["normal", "normal"]},
         {"t": 68,  "zombies": ["cono"]},
-        {"t": 76,  "zombies": ["alien"]},
         {"t": 82,  "zombies": ["normal", "cono"]},
         {"t": 98,  "zombies": ["puerta"]},                           # nuevo: puerta
         # Horda intermedia
         {"t": 120, "bandera": True, "zombies": ["normal", "normal", "cono", "normal", "cono", "puerta", "normal", "cubeta"]},
         # Se pone más pesado
-        {"t": 140, "zombies": ["alien"]},
         {"t": 146, "zombies": ["cono", "normal", "cono"]},
         {"t": 160, "zombies": ["cubeta", "normal", "normal"]},
         {"t": 175, "zombies": ["puerta", "cono"]},

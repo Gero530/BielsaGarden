@@ -184,8 +184,9 @@ ZOMBIE_DATA = {
     # Gigante: aplasta plantas de un golpe; con menos de "lanza_mini" de vida tira al mini zombie
     "gigante":  {"vida": 3000, "velocidad": 10, "dps": 0, "golpe": 1.0, "lanza_mini": 0.5},
     "mini":     {"vida": 150, "velocidad": 24, "dps": 100, "vuelo": 0.9},
-    # Alien (de Santi): entra ALIEN_CASILLAS casillas, aprieta el botón y apaga a los Chef hasta que muere
-    "alien":    {"vida": 300, "armadura": 0, "velocidad": 22, "dps": 0},
+    # Alien (de Santi): entra ALIEN_CASILLAS casillas, aprieta el botón y apaga a los Chef hasta que muere.
+    # Si en el camino una planta le corta el paso, se la come (dps).
+    "alien":    {"vida": 300, "armadura": 0, "velocidad": 22, "dps": 100},
 }
 ALIEN_CASILLAS = 2     # casillas que entra antes de frenar
 CHEF_REACTIVA = 3.0    # segundos hasta el primer sol cuando muere el alien

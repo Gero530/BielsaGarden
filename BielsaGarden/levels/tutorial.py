@@ -12,9 +12,12 @@ muestran en orden. Cada paso:
                oleadas arranca en ese momento)
 """
 
+from levels.dialogos import TUTORIAL as T
+
 LEVEL = {
     "id": "tutorial",
     "nombre": "Tutorial",
+    "fondo": "fondos/tutorial.png",          # lo genera tools/fondos.py a partir de fondos/jardin.png
     "sol_inicial": 50,
     "intervalo_sol_cielo": 5.0,
     "plantas": ["girasol", "lanzaguisantes"],
@@ -26,26 +29,24 @@ LEVEL = {
         {"t": 75, "final": True, "zombies": ["normal", "normal"]},
     ],
 
+    # Una frase de Bielsa por paso (levels/dialogos.py, TUTORIAL). El paso no termina hasta que
+    # el jugador hace lo que dice "espera".
     "tutorial": [
-        {"texto": ["¡Hola vecino! Te enseño a defender el jardín de los zombies.",
-                   "Primero hace falta energía. Cartman la genera cocinando chili.",
-                   "Hacé clic en la carta de Chef (arriba) y después en el césped."],
-         "espera": ("planta", "girasol"),
-         "pista": "Clic en la carta de Chef y después en el césped"},
-        {"texto": ["¡Bien! Cada tanto Cartman suelta un dedo brillante: esa es la energía.",
-                   "También caen dedos del cielo. Hacé clic en uno para juntarlo."],
-         "espera": ("juntar", 1),
-         "pista": "Hacé clic en un dedo brillante"},
-        {"texto": ["Con la energía se compran defensores. Stan tira bolas de nieve que frenan a los zombies.",
-                   "Juntá 100 de energía y poné a Stan en la fila del medio."],
-         "espera": ("planta", "lanzaguisantes"),
-         "pista": "Juntá 100 de energía y plantá a Stan"},
-        {"texto": ["¡Ahí viene un zombie! Stan le va a tirar solo."],
-         "oleadas": True,
-         "espera": ("muertes", 1),
-         "pista": "Seguí juntando energía y poné más Stan"},
-        {"texto": ["¡Bien hecho! Si un zombie llega al final del césped, Timmy sale disparado y limpia la fila.",
-                   "Pero ojo: cada Timmy sirve una sola vez por nivel. Si un zombie llega a la casa, perdés.",
-                   "Para ganar, aguantá todas las oleadas. ¡Vamos que quedan pocos!"]},
+        {"texto": [T[0]]},
+        {"texto": [T[1]]},
+        {"texto": [T[2]], "espera": ("planta", "girasol"),
+         "pista": "Clic en la carta de Cartman y después en el césped"},
+        {"texto": [T[3]], "espera": ("juntar", 1),
+         "pista": "Hacé clic en un dedo brillante para juntarlo"},
+        {"texto": [T[4]]},
+        {"texto": [T[5]]},
+        {"texto": [T[6]], "espera": ("planta", "lanzaguisantes"),
+         "pista": "Juntá 100 y plantá a Stan en la fila del zombie"},
+        {"texto": [T[7]]},
+        {"texto": [T[8]], "oleadas": True, "espera": ("muertes", 1),
+         "pista": "Aguantá: Stan le dispara solo al zombie"},
+        {"texto": [T[9]]},
+        {"texto": [T[10]]},
+        {"texto": [T[11]]},
     ],
 }

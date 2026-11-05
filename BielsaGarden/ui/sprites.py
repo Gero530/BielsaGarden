@@ -20,6 +20,7 @@ Para sumar un sprite nuevo, agregá una entrada en SPRITES:
 - "dy_px": desplaza el sprite hacia abajo (en píxeles de pantalla) para que los pies
   queden a la altura de los de otros sprites más altos (ej: Cartman vs. lanzaguisantes).
 - "icon_dy": igual que dy_px pero para los íconos chicos de las cartas.
+- "icono": qué frame usar como imagen fija en la carta del HUD y en el catálogo (por defecto el 0).
 - Los sprites se escalan x2 (ESCALA_BASE) con vecino más cercano para que el
   pixel art quede nítido.
 - Si el archivo no existe, el juego sigue usando el dibujo con formas.
@@ -51,59 +52,56 @@ SPRITES = {
     # Butters (nuez). Quieto mientras nadie lo toca; llora cuando lo están mordiendo
     "nuez":                   {"archivo": "plantas/butters_idle.png",          "frame_w": 40, "frame_h": 40, "fps": 2, "seq": [0, 0, 0, 1], "mult": 1.5, "dy_px": 7, "icon_dy": -3},
     "nuez_comido":            {"archivo": "plantas/butters_comido.png",        "frame_w": 40, "frame_h": 40, "fps": 8, "dx": 2, "mult": 1.5, "dy_px": -5},
-    # Zombies: tiras nuevas en assets/zombies, escala x1 (mult 0.5).
-    "zombie_bailarin_atacar": {"archivo": "zombies/zombie_bailarin_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_bailarin": {"archivo": "zombies/zombie_bailarin_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_bailarin_especial": {"archivo": "zombies/zombie_bailarin_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_bungee_atacar": {"archivo": "zombies/zombie_bungee_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_bungee": {"archivo": "zombies/zombie_bungee_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_bungee_especial": {"archivo": "zombies/zombie_bungee_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_diario_atacar": {"archivo": "zombies/zombie_diario_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_diario": {"archivo": "zombies/zombie_diario_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_diario_enojado": {"archivo": "zombies/zombie_diario_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_escalera_atacar": {"archivo": "zombies/zombie_escalera_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_escalera": {"archivo": "zombies/zombie_escalera_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_escalera_colocar": {"archivo": "zombies/zombie_escalera_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_excavador_atacar": {"archivo": "zombies/zombie_excavador_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_excavador": {"archivo": "zombies/zombie_excavador_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_excavador_tierra": {"archivo": "zombies/zombie_excavador_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_gigante_atacar": {"archivo": "zombies/zombie_gigante_atacar.png", "frame_w": 96, "frame_h": 128, "fps": 6, "loop": True, "mult": 0.5},
-    "zombie_gigante": {"archivo": "zombies/zombie_gigante_caminar.png", "frame_w": 96, "frame_h": 128, "fps": 6, "loop": True, "mult": 0.5},
-    "zombie_gigante_golpe": {"archivo": "zombies/zombie_gigante_especial.png", "frame_w": 96, "frame_h": 128, "fps": 6, "loop": False, "mult": 0.5},
-    "zombie_normal_atacar": {
-    "archivo": "zombies/zombie_normal_atacar.png",
-    "frame_w": 32,
-    "frame_h": 48,
-    "fps": 10
-},
-    "zombie_normal": {
-    "archivo": "zombies/zombie_normal_caminar.png",
-    "frame_w": 32,
-    "frame_h": 48,
-    "fps": 8
-},
-    "zombie_pertiga_atacar": {"archivo": "zombies/zombie_pertiga_atacar.png", "frame_w": 80, "frame_h": 112, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_pertiga": {"archivo": "zombies/zombie_pertiga_caminar.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_pertiga_salto": {"archivo": "zombies/zombie_pertiga_especial.png", "frame_w": 80, "frame_h": 112, "fps": 8, "loop": False, "mult": 0.5},
-    "zombie_puerta": {
-    "archivo": "zombies/zombie_puerta_caminar.png",
-    "frame_w": 48, "frame_h": 48, "fps": 8
-},
-"zombie_puerta_atacar": {
-    "archivo": "zombies/zombie_puerta_atacar.png",
-    "frame_w": 48, "frame_h": 48, "fps": 10
-},
-"zombie_puerta_especial": {
-    "archivo": "zombies/zombie_puerta_especial.png",
-    "frame_w": 48, "frame_h": 48, "fps": 8,
-    "loop": False
-},
-    "zombie_tractor_atacar": {"archivo": "zombies/zombie_zamboni_atacar.png", "frame_w": 112, "frame_h": 96, "fps": 10, "loop": True, "mult": 0.5},
-    "zombie_tractor": {"archivo": "zombies/zombie_zamboni_caminar.png", "frame_w": 112, "frame_h": 96, "fps": 8, "loop": True, "mult": 0.5},
-    "zombie_tractor_especial": {"archivo": "zombies/zombie_zamboni_especial.png", "frame_w": 112, "frame_h": 96, "fps": 8, "loop": False, "mult": 0.5},
+    # Zombies propios (assets/zombies/propios/), dibujados a mano en el estilo del alien.
+    # Los genera tools/zombies_disenos.py (no pisa tus retoques salvo con --forzar).
+    # Respaldo: los vecinos anteriores siguen en assets/sprites/vecinos/ y assets/zombies/zombie_normal_*.png.
+    # Caminar: 8 frames; atacar: 6 frames (se tira adelante, abre la boca, muerde, mastica, vuelve).
+    # "dx": la pértiga usa un frame más ancho (la garrocha asoma adelante); dx deja el cuerpo
+    # en el mismo lugar que el de los demás.
+    "zombie_normal":               {"archivo": "zombies/propios/zombie_normal_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_normal_atacar":        {"archivo": "zombies/propios/zombie_normal_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_puerta":               {"archivo": "zombies/propios/zombie_puerta_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_puerta_atacar":        {"archivo": "zombies/propios/zombie_puerta_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_puerta_sin":           {"archivo": "zombies/propios/zombie_puerta_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_puerta_sin_atacar":    {"archivo": "zombies/propios/zombie_puerta_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_diario":               {"archivo": "zombies/propios/zombie_diario_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_diario_atacar":        {"archivo": "zombies/propios/zombie_diario_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_diario_enojado":       {"archivo": "zombies/propios/zombie_diario_enojado_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 12},
+    "zombie_diario_enojado_atacar": {"archivo": "zombies/propios/zombie_diario_enojado_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 12},
+    "zombie_escalera":             {"archivo": "zombies/propios/zombie_escalera_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_escalera_atacar":      {"archivo": "zombies/propios/zombie_escalera_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_escalera_colocar":     {"archivo": "zombies/propios/zombie_escalera_colocar.png", "frame_w": 31, "frame_h": 48, "fps": 6, "loop": False},
+    "zombie_escalera_sin":         {"archivo": "zombies/propios/zombie_escalera_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_escalera_sin_atacar":  {"archivo": "zombies/propios/zombie_escalera_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_pertiga":              {"archivo": "zombies/propios/zombie_pertiga_caminar.png", "frame_w": 48, "frame_h": 48, "fps": 10, "dx": -8.5},
+    "zombie_pertiga_atacar":       {"archivo": "zombies/propios/zombie_pertiga_atacar.png", "frame_w": 48, "frame_h": 48, "fps": 10, "dx": -8.5},
+    "zombie_pertiga_salto":        {"archivo": "zombies/propios/zombie_pertiga_salto.png", "frame_w": 48, "frame_h": 48, "fps": 7, "dx": -8.5, "loop": False},
+    "zombie_pertiga_sin":          {"archivo": "zombies/propios/zombie_pertiga_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_pertiga_sin_atacar":   {"archivo": "zombies/propios/zombie_pertiga_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_excavador":            {"archivo": "zombies/propios/zombie_excavador_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_excavador_atacar":     {"archivo": "zombies/propios/zombie_excavador_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_excavador_sin":        {"archivo": "zombies/propios/zombie_excavador_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_excavador_sin_atacar": {"archivo": "zombies/propios/zombie_excavador_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_excavador_tierra":     {"archivo": "zombies/propios/zombie_excavador_tierra.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_bailarin":             {"archivo": "zombies/propios/zombie_bailarin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_bailarin_atacar":      {"archivo": "zombies/propios/zombie_bailarin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_bailarin_baile":       {"archivo": "zombies/propios/zombie_bailarin_baile.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_bungee":               {"archivo": "zombies/propios/zombie_bungee_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_bungee_atacar":        {"archivo": "zombies/propios/zombie_bungee_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    "zombie_bungee_bajar":         {"archivo": "zombies/propios/zombie_bungee_bajar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    "zombie_mini":                 {"archivo": "zombies/propios/zombie_mini_caminar.png", "frame_w": 20, "frame_h": 32, "fps": 10},
+    "zombie_mini_atacar":          {"archivo": "zombies/propios/zombie_mini_atacar.png", "frame_w": 20, "frame_h": 32, "fps": 12},
+    "zombie_gigante":              {"archivo": "zombies/propios/zombie_gigante_caminar.png", "frame_w": 44, "frame_h": 64, "fps": 6},
+    "zombie_gigante_sin":          {"archivo": "zombies/propios/zombie_gigante_sin_caminar.png", "frame_w": 44, "frame_h": 64, "fps": 6},
+    "zombie_gigante_golpe":        {"archivo": "zombies/propios/zombie_gigante_golpe.png", "frame_w": 44, "frame_h": 64, "fps": 6, "loop": False},
+    "zombie_gigante_golpe_sin":    {"archivo": "zombies/propios/zombie_gigante_golpe_sin.png", "frame_w": 44, "frame_h": 64, "fps": 6, "loop": False},
+    "zombie_gigante_lanzar":       {"archivo": "zombies/propios/zombie_gigante_lanzar.png", "frame_w": 44, "frame_h": 64, "fps": 8, "loop": False},
+    "zombie_tractor":              {"archivo": "zombies/propios/zombie_tractor_caminar.png", "frame_w": 56, "frame_h": 48, "fps": 10},
+    "zombie_tractor_atacar":       {"archivo": "zombies/propios/zombie_tractor_atacar.png", "frame_w": 56, "frame_h": 48, "fps": 12},
     # Alien y Cartman con la sonda (de Santi)
     "alien":                 {"archivo": "zombies/alien_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 6},
     "alien_boton":           {"archivo": "zombies/alien_boton.png",   "frame_w": 31, "frame_h": 48, "fps": 6, "loop": False},
+    "alien_atacar":          {"archivo": "zombies/propios/alien_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},   # hecho a partir del dibujo de Santi
     "girasol_sonda":         {"archivo": "plantas/cartman_sonda.png", "frame_w": 32, "frame_h": 24, "fps": 10, "loop": False, "mult": 1.5, "dy_px": 13},
     "girasol_deshabilitado": {"archivo": "plantas/cartman_deshabilitado.png", "frame_w": 32, "frame_h": 24, "fps": 6, "mult": 1.5, "dy_px": 13},
     "cartman_baile":         {"archivo": "plantas/cartman_baile.png", "frame_w": 32, "frame_h": 32, "fps": 6, "mult": 1.5},
@@ -129,13 +127,17 @@ SPRITES = {
     # Redibujalos en LibreSprite con el MISMO tamaño de frame y cantidad de frames.
     # Plantas: frames 40x40 que se ven x3 (mult 1.5). Zombies: frames 32x48 que se ven x2.
     # ------------------------------------------------------------------
-    # Picante: 6 frames 40x40, se infla y explota al terminar el último
-    "picante":                {"archivo": "sprites/nuevos/picante.png",           "frame_w": 40, "frame_h": 40, "fps": 10, "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    # Picante (Jesús): plantas/picante.png, 20 frames 40x40. 1-14 se enciende (~1 s), 15 aro,
+    # 16-19 explosión (el daño en cruz sale en el 16), 20 humo.
+    "picante":                {"archivo": "plantas/picante.png", "frame_w": 40, "frame_h": 40, "fps": 14, "frames": list(range(14)), "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    "picante_explota":        {"archivo": "plantas/picante.png", "frame_w": 40, "frame_h": 40, "fps": 18, "frames": list(range(14, 20)), "loop": False, "mult": 1.5, "dy_px": 4},
     # Llamarada que se ve en cada casilla de la cruz: 6 frames 26x32 (x3 = una casilla)
     "picante_fuego":          {"archivo": "sprites/nuevos/picante_fuego.png",     "frame_w": 26, "frame_h": 32, "fps": 12, "loop": False, "mult": 1.5},
-    # Aplastadora: reposo 2 frames 40x40; salto 5 frames (0-1 prepara, 2 sube, 3 cae, 4 aplasta)
-    "aplastadora":            {"archivo": "sprites/nuevos/aplastadora.png",       "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
-    "aplastadora_salto":      {"archivo": "sprites/nuevos/aplastadora_salto.png", "frame_w": 40, "frame_h": 40, "fps": 1, "mult": 1.5, "dy_px": 4},
+    # Aplastadora (Gero): quieta 4 frames en loop; salto 8 frames (1 quieto, 2-3 se agacha,
+    # 4 salta, 5 en el aire, 6 cae, 7 aplasta, 8 se recupera; los elige el código); cansada 2 frames.
+    "aplastadora":            {"archivo": "plantas/aplastadora_quieta.png",  "frame_w": 40, "frame_h": 40, "fps": 4, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    "aplastadora_salto":      {"archivo": "plantas/aplastadora_salto.png",   "frame_w": 40, "frame_h": 40, "fps": 1, "mult": 1.5, "dy_px": 4},
+    "aplastadora_cansada":    {"archivo": "plantas/aplastadora_cansada.png", "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4},
     # Cartman festejando en la pantalla de victoria: 4 frames 32x40 (salta con los brazos arriba)
     "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 32, "frame_h": 40, "fps": 6, "mult": 1.5},
     # PC Principal: 2 frames 40x40 (respira)
@@ -145,9 +147,8 @@ SPRITES = {
     # Mr. Mackey: 6 frames 40x40 de charla (una sola vez); al terminar congela a los zombies
     "mackey":                 {"archivo": "sprites/nuevos/mackey.png",            "frame_w": 40, "frame_h": 40, "fps": 6, "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
     # Objetos y estados de zombies que siguen con el placeholder (assets/sprites/nuevos)
-    "escalera":               {"archivo": "sprites/nuevos/escalera.png",              "frame_w": 20, "frame_h": 40, "fps": 1},   # 1 frame, apoyada sobre la planta
+    "escalera":               {"archivo": "zombies/propios/escalera_puesta.png",      "frame_w": 20, "frame_h": 40, "fps": 1},   # 1 frame, apoyada sobre la planta
     "bungee_marca":           {"archivo": "sprites/nuevos/bungee_marca.png",          "frame_w": 24, "frame_h": 12, "fps": 4},   # 2 frames, aviso en el piso
-    "zombie_excavador_tierra": {"archivo": "sprites/nuevos/zombie_excavador_tierra.png", "frame_w": 32, "frame_h": 48, "fps": 8},  # 4 frames
 }
 
 _cache = {}   # (clave, factor) -> lista de frames escalados
