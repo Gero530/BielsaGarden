@@ -259,8 +259,11 @@ class MapaScene(Scene):
             idx = self.hover
             r = next(r for i, r, _ in self.botones if i == idx)
             nombre = LEVELS[idx]["nombre"] + ("" if self.desbloqueado(idx) else " (BLOQUEADO)")
-            cartel = tablon(nombre, text_width(nombre, 1) + 12, 14)
-            pos = cartel.get_rect(midbottom=(r.centerx, r.top - 8))
+            # Cartelito chico al costado del nivel (a la derecha, o a la izquierda si no entra)
+            cartel = tablon(nombre, 0, 14, 2)
+            pos = cartel.get_rect(midleft=(r.right + 6, r.centery))
+            if pos.right > SCREEN_W - 8:
+                pos.midright = (r.left - 6, r.centery)
             pos.clamp_ip(surface.get_rect())
             surface.blit(cartel, pos)
 

@@ -223,7 +223,7 @@ TABLON_PAL = {
     "normal":    ((58, 34, 14), (200, 150, 86), (164, 116, 60), (116, 78, 38), (132, 92, 46), (40, 22, 6), (222, 180, 116)),
     "hover":     ((58, 34, 14), (232, 186, 112), (194, 144, 80), (138, 96, 48), (160, 114, 60), (30, 14, 2), (250, 214, 150)),
     "apretado":  ((50, 30, 12), (150, 104, 54), (128, 88, 44), (92, 60, 28), (108, 72, 36), (36, 20, 6), (170, 126, 72)),
-    "bloqueado": ((62, 60, 58), (172, 168, 160), (140, 136, 130), (102, 100, 96), (120, 116, 110), (96, 94, 92), (184, 180, 174)),
+    "bloqueado": ((62, 60, 58), (172, 168, 160), (140, 136, 130), (102, 100, 96), (120, 116, 110), (44, 42, 40), (190, 186, 180)),
 }
 TABLON_SOMBRA = (0, 0, 0, 90)
 
@@ -252,7 +252,7 @@ def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, col
     # Franja del texto: las vetas no pasan por ahí (no tachan las letras)
     img = pixel_text(texto, color_texto or letra, escala_texto) if texto else None
     tr = img.get_rect(center=(ancho // 2, top + ph // 2 + 1)) if img else pygame.Rect(0, 0, 0, 0)
-    franja = range(tr.top - 1, tr.bottom + 2) if img else range(0)
+    franja = range(tr.top - 1, tr.bottom + escala_texto + 1) if img else range(0)
     rnd = random.Random(ancho * 31 + alto * 7)
     for y in range(inner.y + 3, inner.bottom - 2, 3):           # vetas cortas
         if y in franja:
@@ -280,11 +280,16 @@ def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, col
                      (inner.x + 2, inner.bottom - 4), (inner.right - 4, inner.bottom - 4)):
             s.fill((46, 34, 24), (x, y, 2, 2)); s.set_at((x, y), (200, 190, 170))
     if estado == "bloqueado":                                   # dos tablas cruzadas clavadas
-        for a, b in (((2, top + 2), (ancho - 3, top + ph - 3)), ((2, top + ph - 3), (ancho - 3, top + 2))):
-            pygame.draw.line(s, (70, 52, 34), a, b, 3)
-            pygame.draw.line(s, (150, 112, 70), a, b, 1)
+        # Se cortan en la franja del texto (pasan por detrás de las letras), así se sigue leyendo
+        zonas = [pygame.Rect(0, 0, tr.left - 2, alto), pygame.Rect(tr.right + 2, 0, ancho, alto)] if img             else [s.get_rect()]
+        for zona in zonas:
+            s.set_clip(zona)
+            for a, b in (((2, top + 2), (ancho - 3, top + ph - 3)), ((2, top + ph - 3), (ancho - 3, top + 2))):
+                pygame.draw.line(s, (70, 52, 34), a, b, 3)
+                pygame.draw.line(s, (150, 112, 70), a, b, 1)
+        s.set_clip(None)
     if img:                                                     # letras talladas: luz de 1 píxel debajo
-        s.blit(pixel_text(texto, brillo, escala_texto), tr.move(0, 1))
+        s.blit(pixel_text(texto, brillo, escala_texto), tr.move(0, escala_texto))   # luz del grosor del trazo
         s.blit(img, tr)
     _cache[key] = s
     return s
@@ -333,15 +338,14 @@ _vivo = {}
 
 
 def fondo_vivo(t):
-    """El paisaje del menú (montañas, nieve y la calle) con la parada del bus, nubes que pasan
-    y el bus que cruza cada ~16 s. Devuelve la imagen ya agrandada x ESCALA."""
+    """El paisaje del menú (montañas, nieve y la calle) con nubes que pasan y el bus que cruza
+    cada ~16 s (sin la parada: asomaba detrás de los paneles). Devuelve la imagen agrandada x ESCALA."""
     if not _vivo:
         _vivo["mundo"] = pygame.Surface((W, H))
         _vivo["pantalla"] = pygame.Surface((W * ESCALA, H * ESCALA))
     m = _vivo["mundo"]
     m.blit(build_background(), (0, 0))
     draw_road(m, 1.0)
-    m.blit(build_cartel_parada(), (46, FEET - 66))
     for ancho, y, v, x0 in ((66, 12, 5.0, 40), (46, 34, 8.0, 210), (38, 20, 11.0, 330)):
         x = (x0 + v * t) % (W + 2 * ancho) - ancho
         m.blit(build_nube(ancho), (int(x), y))
@@ -436,8 +440,9 @@ def pieza_pos(k, t, parte):
     return (sx + 36 * (1 - u), -50 + (sy + 50) * u * u - rebote(t, t_land, 5))
 
 
-def draw_world(world, t, kids, extras=None, beat=None):
-    """Dibuja el mundo (500x300) en el instante t. `extras(world)` dibuja cosas entre el fondo y los chicos."""
+def draw_world(world, t, kids, extras=None, beat=None, delante=None):
+    """Dibuja el mundo (500x300) en el instante t. `extras(world)` dibuja cosas entre el fondo y los
+    chicos; `delante(world)`, cosas que pasan por delante de los chicos (el bus)."""
     world.fill((0, 0, 0))
     # el fondo se revela como un rectángulo que crece desde el centro (como en la intro)
     r = smooth((t - 0.8) / 0.6)
@@ -463,6 +468,8 @@ def draw_world(world, t, kids, extras=None, beat=None):
             if beat is not None and t >= T_CARTMAN:
                 dy = beat                                      # el cabeceo al ritmo, solo después del armado
             world.blit(k["head"], (round(p[0]), round(p[1]) + dy))
+    if delante:
+        delante(world)
 
 
 def render_view(canvas, world, t, kids):

@@ -25,6 +25,7 @@ from ui import intro_art as A
 from ui.hud import HUD_H
 
 CAIDA_CARTEL = 0.35           # segundos que tarda en caer el cartel de horda
+DURACION_AVISO = 2.0          # segundos que se ve un aviso (horda, oleada final)
 ROJO_PINTURA = (178, 28, 20)  # letras pintadas del cartel de horda
 from entities.effects import FloatingText
 from data.catalogo import FRASES_AL_PLANTAR, FRASES_SOLO_LA_PRIMERA_VEZ
@@ -258,7 +259,7 @@ class GameplayScene(Scene):
         for kind, row in new_zombies:
             self.zombies.append(create_zombie(kind, row, self.grid))
         for text in notices:
-            self.banner = [text, 3.0]
+            self.banner = [text, DURACION_AVISO]
 
         # Sol del cielo
         self.sky_timer -= dt
@@ -337,7 +338,7 @@ class GameplayScene(Scene):
     def draw_cartel_horda(self, surface):
         """Aviso de horda: cartel con letras rojas pintadas que cae colgado de sogas (desde el borde
         del HUD) y después se balancea por cuadros."""
-        visto = 3.0 - self.banner[1]                       # segundos desde que apareció (tiempo real)
+        visto = DURACION_AVISO - self.banner[1]            # segundos desde que apareció (tiempo real)
         caida = max(0.0, 1 - visto / CAIDA_CARTEL)
         dy = int(-300 * caida * caida) // 3 * 3              # cae rápido y frena
         cartel = A.colgante_escalado(self.banner[0], 0, 22, 2, visto, cuerda=58, color_texto=ROJO_PINTURA)
@@ -385,8 +386,8 @@ class GameplayScene(Scene):
         for s in self.suns:
             s.draw(surface)
 
-        # Planta / pala "fantasma" siguiendo al mouse
-        if show_cursor and self.selected and not self.paused:
+        # Planta / pala "fantasma" siguiendo al mouse (no sobre el HUD: taparía las cartas)
+        if show_cursor and self.selected and not self.paused and mouse[1] >= HUD_H:
             if self.selected == "pala":
                 draw_shovel(surface, mouse)
             else:
@@ -399,7 +400,7 @@ class GameplayScene(Scene):
             self.draw_cartel_horda(surface)
         elif self.banner:
             # Cartel grande con la fuente pixel; tiembla un poco al aparecer
-            sacude = 4 if self.banner[1] > 2.6 and int(self.banner[1] * 30) % 2 else 0
+            sacude = 4 if self.banner[1] > DURACION_AVISO - 0.4 and int(self.banner[1] * 30) % 2 else 0
             draw_pixel_text(surface, self.banner[0], (255, 214, 64), 5, outline=(30, 10, 10),
                             center=(SCREEN_W // 2 + sacude, SCREEN_H // 2))
 

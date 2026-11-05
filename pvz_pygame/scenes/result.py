@@ -87,13 +87,17 @@ class ResultScene(Scene):
         for x, y, _, fase, color, (w, h) in self.papelitos:       # papelitos cayendo (detrás del tablón)
             xx = int(x + 6 * math.sin(self.t * 3 + fase)) // 3 * 3
             surface.fill(color, (xx, int(y) // 3 * 3, w, h))
+        # Cartman (victoria) o Kenny (derrota) sobre un tablón, para que no se pierdan contra la partida
+        fondo = tablon("", 76, 56, 3)
+        fr = fondo.get_rect(center=(LADO_X, 330))
+        surface.blit(fondo, fr)
         if self.victory:                                         # Cartman festejando al costado
-            draw_sprite(surface, "cartman_festejo", (LADO_X, 330), 1.0, self.t)
+            draw_sprite(surface, "cartman_festejo", (LADO_X, fr.centery - 6), 1.0, self.t)
         else:                                                    # Kenny tirado con las ratas
             dur = anim_duration("kenny_ratas")
-            draw_sprite(surface, "kenny_ratas", (LADO_X, 300), 1.0, self.t % (dur + 1.2) if dur else None)
+            draw_sprite(surface, "kenny_ratas", (LADO_X, fr.centery - 26), 1.0, self.t % (dur + 1.2) if dur else None)
             draw_pixel_text(surface, FRASE_KENNY_EXPLOTA, (255, 240, 120), 2, outline=(30, 15, 5),
-                            center=(LADO_X, 390))
+                            center=(LADO_X, fr.bottom - 34))
         surface.blit(self.panel, self.panel_rect)
 
         # Cartel grande arriba del tablón (cae y rebota un poco al aparecer)

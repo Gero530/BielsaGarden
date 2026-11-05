@@ -40,6 +40,26 @@ def hueco_carta():
     return _cache["hueco"]
 
 
+def tilde_img():
+    """Tilde amarilla con contorno (la misma de la casilla de Opciones), x2."""
+    if "tilde" not in _cache:
+        from ui.widgets import TILDE
+        w, h = len(TILDE[0]) + 2, len(TILDE) + 2
+        s = pygame.Surface((w, h), pygame.SRCALPHA)
+        for capa, color in ((1, (40, 24, 10)), (0, (255, 214, 64))):
+            for y, fila in enumerate(TILDE):
+                for x, c in enumerate(fila):
+                    if c == "#":
+                        if capa:
+                            for dx in (-1, 0, 1):
+                                for dy in (-1, 0, 1):
+                                    s.set_at((x + 1 + dx, y + 1 + dy), color)
+                        else:
+                            s.set_at((x + 1, y + 1), color)
+        _cache["tilde"] = pygame.transform.scale(s, (w * 2, h * 2))
+    return _cache["tilde"]
+
+
 def acomodar_zombies(zombies, ancho_max):
     """Reparte los íconos (a x2) en filas que entren en ancho_max. Devuelve [(fila, alto), ...]
     con fila = [(zombie, ancho), ...]. El ancho le descuenta el margen vacío del cuadro."""
@@ -177,8 +197,10 @@ class EquipoScene(Scene):
                         midtop=(self.panel_rect.centerx, self.panel_rect.y + 16))
         for c in self.cartas:
             c.draw(surface, 9999, False)
-            if c.key in self.equipo:
-                surface.blit(dither(c.rect.size, 3), c.rect)
+            if c.key in self.equipo:                         # ya elegido: tramado 50% y una tilde
+                surface.blit(dither(c.rect.size, 2), c.rect)
+                tilde = tilde_img()
+                surface.blit(tilde, tilde.get_rect(topright=(c.rect.right - 4, c.rect.y + 4)))
 
         # Zombies del nivel
         surface.blit(self.zpanel, self.zpanel_rect)

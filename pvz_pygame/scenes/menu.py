@@ -160,7 +160,10 @@ class MenuScene(Scene):
             for ancho, y, v, x0 in ((66, 12, 5.0, 40), (46, 34, 8.0, 210), (38, 20, 11.0, 330)):
                 x = (x0 + v * self.mt) % (A.W + 2 * ancho) - ancho
                 world.blit(A.build_nube(ancho), (int(x), y))
-        # el bus escolar cruza la calle por detrás de los chicos cada ~16 s (la primera vez, a los 4,8 s)
+
+    def _bus(self, world):
+        """El bus escolar cruza la calle POR DELANTE de los chicos (y del cartel de la parada) cada
+        ~16 s; la primera vez, a los 4,8 s. Se dibuja después de los chicos para taparlos."""
         tb = self.mt - (A.T_MENU + 1.5)
         if tb >= 0:
             x = A.W + 6 - (tb % 16.0) * 62
@@ -179,7 +182,7 @@ class MenuScene(Scene):
 
     def draw(self, surface):
         vt = self.vt
-        A.draw_world(self.world, vt, self.kids, extras=self._extras,
+        A.draw_world(self.world, vt, self.kids, extras=self._extras, delante=self._bus,
                      beat=self._beat() if vt >= A.T_CARTMAN else None)
         A.render_view(self.canvas, self.world, vt, self.kids)
         pygame.transform.scale(self.canvas, self.escalado.get_size(), self.escalado)
