@@ -7,13 +7,15 @@ lento) y se ven celestes mientras dura.
 Si muerden a Toallin quedan hipnotizados: se dan vuelta, se ponen violetas y
 caminan hacia la derecha mordiendo a los zombies que encuentren.
 """
+import math
 import random
 import pygame
-from settings import ZOMBIE_DATA, SCREEN_W, CELL_H, NIEVE_RALENTIZA
+from settings import ZOMBIE_DATA, SCREEN_W, CELL_H, CELL_W, GRID_X, NIEVE_RALENTIZA
 HIPNO_TINTE = (190, 130, 255)     # color que se multiplica sobre el sprite hipnotizado
 HIPNO_ALCANCE = 36                 # a qué distancia (px) muerde a otro zombie
 NIEVE_TINTE = (150, 200, 255)      # celeste mientras está ralentizado por la nieve de Stan
-from ui.sprites import draw_sprite, has_sprite
+CONGELADO_TINTE = (110, 160, 255)  # azul mientras está congelado por la charla de Mr. Mackey
+from ui.sprites import draw_sprite, has_sprite, anim_duration, SPRITES
 
 
 class Zombie:
@@ -22,16 +24,24 @@ class Zombie:
     # Sprite del cuerpo. Cono y cubeta usan el mismo cuerpo y dibujan el accesorio encima.
     # Si algún día hacés un sprite propio para cada uno, cambiá esta clave en su clase.
     sprite_key = "zombie_normal"
+    escudo_total = False       # True: el escudo absorbe todo (diario); False: solo lo de frente (puerta)
+    puede_trepar = True        # usa las escaleras que dejó el zombie con escalera
+    hipnotizable = True        # False: si muerde a Toallin se lo come sin quedar hipnotizado
+    aplasta_pisables = False   # True: rompe a Mr. Hankey al pasarle por encima (tractor, gigante)
 
     def __init__(self, row, grid):
         data = ZOMBIE_DATA[self.key]
+        self.data = data
+        self.grid = grid
         self.row = row
         self.x = float(SCREEN_W + random.randint(10, 60))
         self.y_top = grid.row_center_y(row) - CELL_H // 2
         self.hp = data["vida"]
         self.max_hp = data["vida"]
-        self.armor = data["armadura"]
-        self.max_armor = data["armadura"]
+        self.armor = data.get("armadura", 0)
+        self.max_armor = self.armor
+        self.shield = data.get("escudo", 0)
+        self.max_shield = self.shield
         self.speed = data["velocidad"] * random.uniform(0.92, 1.08)
         self.dps = data["dps"]
         self.alive = True
@@ -41,6 +51,11 @@ class Zombie:
         self.hypno = False         # True: pelea de nuestro lado
         self.stun = 0.0            # frenado un instante porque un hipnotizado lo está mordiendo
         self.slow = 0.0            # segundos que le quedan ralentizado (bola de nieve de Stan)
+        self.dir = -1              # -1 camina a la izquierda (hacia la casa), 1 a la derecha
+        self.underground = False   # bajo tierra: los disparos no lo tocan
+        self.airborne = False      # en el aire: nada lo toca (saltando, cayendo del cielo)
+        self.lift = 0              # px que se dibuja más arriba (salto, escalera)
+        self.congelado = 0.0       # segundos que le quedan congelado (charla de Mr. Mackey)
 
     @property
     def slow_factor(self):
@@ -51,15 +66,30 @@ class Zombie:
         """Velocidad real en este momento (con la ralentización aplicada)."""
         return self.speed * self.slow_factor
 
+    @property
+    def targetable(self):
+        """Lo pueden atacar los disparos (bola de nieve, Ike)."""
+        return self.alive and not self.hypno and not self.underground and not self.airborne
+
     def slow_down(self, duration):
         self.slow = max(self.slow, duration)
+
+    def freeze(self, duration):
+        self.congelado = max(self.congelado, duration)
 
     @property
     def rect(self):
         return pygame.Rect(int(self.x) - 20, self.y_top + 8, 40, CELL_H - 16)
 
-    def take_damage(self, amount):
+    def take_damage(self, amount, frontal=True):
+        """frontal=False: el golpe viene de arriba o es una explosión (no lo frena la puerta)."""
         self.hit_flash = 0.08
+        if self.shield > 0 and (frontal or self.escudo_total):
+            absorbed = min(self.shield, amount)
+            self.shield -= absorbed
+            amount -= absorbed
+            if self.shield <= 0:
+                self.on_shield_lost()
         if self.armor > 0:
             absorbed = min(self.armor, amount)
             self.armor -= absorbed
@@ -68,8 +98,15 @@ class Zombie:
         if self.hp <= 0:
             self.alive = False
 
+    def kill(self):
+        self.hp = 0
+        self.alive = False
+
+    def on_shield_lost(self):
+        pass
+
     def can_lose_metal(self):
-        return self.alive and not self.hypno and self.metal and self.armor > 0
+        return self.alive and not self.hypno and self.metal and (self.armor > 0 or self.shield > 0)
 
     def metal_pos(self):
         """Centro del objeto de metal en pantalla (de donde sale volando hacia el Imán)."""
@@ -85,26 +122,62 @@ class Zombie:
         self.hypno = True
         self.eating = False
         self.stun = 0.0
+        self.dir = 1
 
     def update_hypno(self, dt, world):
         """Hipnotizado: camina a la derecha y muerde al zombie enemigo que tenga cerca."""
         victim = None
         for z in world.zombies:
             if z is not self and z.alive and not z.hypno and z.row == self.row \
-                    and abs(z.x - self.x) < HIPNO_ALCANCE:
+                    and not z.underground and not z.airborne and abs(z.x - self.x) < HIPNO_ALCANCE:
                 victim = z
                 break
         if victim is not None:
-            self.eating = True
+            self.eating = True          # el otro se frena porque le muerde de vuelta (ver rival_hipnotizado)
             victim.take_damage(self.dps * self.slow_factor * dt)
-            victim.stun = 0.15          # el mordido se queda quieto mientras lo comen
         else:
             self.eating = False
             self.x += self.cur_speed * dt
             if self.x > SCREEN_W + 60:  # salió de la pantalla
                 self.alive = False
 
+    def rival_hipnotizado(self, world):
+        """El zombie hipnotizado (de nuestro lado) que tiene en la boca, o None."""
+        for z in world.zombies:
+            if z.hypno and z.alive and z.row == self.row and 0 <= (z.x - self.x) * self.dir < HIPNO_ALCANCE:
+                return z
+        return None
+
+    def atacar_hipnotizado(self, rival, dt, world):
+        """Se frenan y se muerden entre ellos hasta que uno muera (como en el original)."""
+        self.eating = True
+        rival.take_damage(self.dps * self.slow_factor * dt)
+
+    def plant_ahead(self, world):
+        """La planta que tiene en la "boca" (delante, según hacia dónde camina)."""
+        col = world.grid.col_at_x(self.x + 22 * self.dir)
+        return world.grid.get(self.row, col) if col is not None else None
+
+    def special(self, dt, world):
+        """Estados propios de cada zombie (saltar, bailar, caer...). True = ya se movió este frame."""
+        return False
+
+    def on_plant(self, target, world):
+        """Llegó a una planta. True si hace algo propio en vez de comérsela."""
+        return False
+
+    def bite(self, target, dt):
+        target.take_damage(self.dps * self.slow_factor * dt)
+
     def update(self, dt, world):
+        if not self.alive:              # lo mataron antes en este mismo frame
+            return
+        if self.congelado > 0:          # congelado: no se mueve, no come, no se anima
+            self.congelado -= dt
+            self.eating = False
+            if self.hit_flash > 0:
+                self.hit_flash -= dt
+            return
         self.t += dt * self.slow_factor       # ralentizado: también se anima más lento
         if self.slow > 0:
             self.slow -= dt
@@ -118,54 +191,87 @@ class Zombie:
             self.stun -= dt
             self.eating = False
             return
+        if self.special(dt, world):
+            return
+        rival = self.rival_hipnotizado(world)
+        if rival is not None:
+            self.lift = 0
+            self.atacar_hipnotizado(rival, dt, world)
+            return
 
-        # ¿Hay una planta justo delante (en la "boca" del zombie)?
-        col = world.grid.col_at_x(self.x - 22)
-        target = world.grid.get(self.row, col) if col is not None else None
+        target = self.plant_ahead(world)
+        if target is not None and not target.alive:
+            target = None
+        # Mr. Hankey va en el piso: le pasan por encima (el tractor y el gigante lo rompen)
+        if target is not None and getattr(target, "pisable", False):
+            if self.aplasta_pisables:
+                target.alive = False
+            target = None
+        # Escalera apoyada sobre la planta: la pasa por arriba
+        trepa = target is not None and self.puede_trepar and (target.row, target.col) in world.grid.ladders
+        self.lift = 26 if trepa else 0
+        if trepa:
+            target = None
 
-        if target is not None and target.alive:
-            if getattr(target, "hipnotiza", False):
+        if target is not None:
+            if getattr(target, "hipnotiza", False) and self.hipnotizable:
                 # Se comió a Toallin: queda hipnotizado y Toallin desaparece
                 target.alive = False
                 self.hypnotize()
                 return
+            if self.on_plant(target, world):
+                return
             self.eating = True
-            target.take_damage(self.dps * self.slow_factor * dt)
+            self.bite(target, dt)
         else:
             self.eating = False
-            self.x -= self.cur_speed * dt
+            self.x += self.dir * self.cur_speed * dt
 
     # --- Dibujo ---
+    def sprite_state(self):
+        """(clave_de_sprite, tiempo). Tiempo None = primer frame (quieto mordiendo)."""
+        return self.sprite_key, (None if self.eating else self.t)
+
     def draw(self, surface):
-        if has_sprite(self.sprite_key):
-            self.draw_with_sprite(surface)
+        key, t = self.sprite_state()
+        if not has_sprite(key):
+            key = self.sprite_key if has_sprite(self.sprite_key) else "zombie_normal"
+        if has_sprite(key):
+            self.draw_with_sprite(surface, key, t)
         else:
             self.draw_shapes(surface)
 
-    def draw_with_sprite(self, surface):
-        # Pies apoyados en el fondo de la fila; el sprite (x2) mide 64x96
-        cx, cy = int(self.x), self.y_top + CELL_H - 48
-        # Hipnotizado: el sprite se espeja (mira a la derecha) y se tiñe de violeta
-        lado = 1 if self.hypno else -1
-        flip = self.hypno
-        tint = HIPNO_TINTE if self.hypno else (NIEVE_TINTE if self.slow > 0 else None)
-        if self.eating:
-            # Mordiendo: frame quieto y un pequeño cabeceo hacia adelante
-            dx = 3 * lado if int(self.t * 8) % 2 == 0 else 0
-            draw_sprite(surface, self.sprite_key, (cx + dx, cy), 1.0, None,
-                        flash=self.hit_flash > 0, flip=flip, tint=tint)
-            head = (cx + 4 * lado + dx, self.y_top + 22)
-        else:
-            draw_sprite(surface, self.sprite_key, (cx, cy), 1.0, self.t,
-                        flash=self.hit_flash > 0, flip=flip, tint=tint)
-            head = (cx + 4 * lado, self.y_top + 22)
-        self.draw_armor(surface, head)
-        self.draw_health_bar(surface)
+    def draw_with_sprite(self, surface, key, t):
+        # Pies apoyados en el fondo de la fila (el sprite se ve x2: medio alto = frame_h)
+        cx, cy = int(self.x), self.y_top + CELL_H - SPRITES[key]["frame_h"] - self.lift
+        # Mirando a la derecha (hipnotizado o excavador que ya salió): el sprite se espeja
+        flip = self.hypno or self.dir > 0
+        lado = 1 if flip else -1
+        tint = HIPNO_TINTE if self.hypno else (CONGELADO_TINTE if self.congelado > 0
+                                               else (NIEVE_TINTE if self.slow > 0 else None))
+        dx = 3 * lado if self.eating and int(self.t * 8) % 2 == 0 else 0     # cabeceo al morder
+        draw_sprite(surface, key, (cx + dx, cy), 1.0, t, flash=self.hit_flash > 0, flip=flip, tint=tint)
+        self.draw_armor(surface, (cx + 4 * lado + dx, self.y_top + 22 - self.lift))
+        if not self.airborne:
+            self.draw_health_bar(surface)
+
+    def draw_icon(self, surface, midbottom, box=None):
+        """Dibujo quieto para el catálogo (sin barra de vida). box=(ancho, alto): si al doble
+        no entra, se dibuja a tamaño de dibujo (x1). Siempre por un entero, sin suavizado."""
+        key = self.sprite_key if has_sprite(self.sprite_key) else "zombie_normal"
+        cfg = SPRITES[key]
+        f = 2
+        if box and (cfg["frame_w"] * 2 > box[0] or cfg["frame_h"] * 2 > box[1]):
+            f = 1
+        self.x, self.y_top = midbottom[0], midbottom[1] - CELL_H
+        draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), f / 2, None)
+        if f == 2:
+            self.draw_armor(surface, (midbottom[0] - 4, self.y_top + 22))
 
     def draw_health_bar(self, surface):
         r = self.rect
-        total = self.max_hp + self.max_armor
-        cur = max(0, self.hp) + max(0, self.armor)
+        total = self.max_hp + self.max_armor + self.max_shield
+        cur = max(0, self.hp) + max(0, self.armor) + max(0, self.shield)
         bar = pygame.Rect(r.x, self.y_top + CELL_H - 5, r.w, 4)   # a los pies, no tapa cono/cubeta
         pygame.draw.rect(surface, (60, 0, 0), bar)
         pygame.draw.rect(surface, (220, 60, 60), (bar.x, bar.y, int(bar.w * cur / total), bar.h))
@@ -249,7 +355,396 @@ def draw_bucket(surface, center, scale=1.0, golpeado=False):
                      (r.right + int(2 * scale), r.bottom), max(1, int(3 * scale)))
 
 
-ZOMBIE_CLASSES = {cls.key: cls for cls in (NormalZombie, ConeZombie, BucketZombie)}
+def _rand_speed(v):
+    return v * random.uniform(0.92, 1.08)
+
+
+class DoorZombie(Zombie):
+    """Lleva una puerta de frente: absorbe los disparos rectos. Ike (desde arriba) y las
+    explosiones la saltean. El Imán se la arranca. Sin puerta es un zombie normal."""
+    key = "puerta"
+    sprite_key = "zombie_puerta"
+    metal = True
+
+    def sprite_state(self):
+        key = self.sprite_key if self.shield > 0 else "zombie_normal"
+        return key, (None if self.eating else self.t)
+
+    def metal_pos(self):
+        return (int(self.x) - 22, self.y_top + 50)
+
+    def remove_metal(self):
+        self.metal = False
+        self.shield = 0
+        self.max_shield = 0
+
+
+class NewspaperZombie(Zombie):
+    """Lee el diario (escudo que absorbe todo). Cuando se lo rompen se queda un momento
+    quieto de la bronca y después camina y come mucho más rápido."""
+    key = "diario"
+    sprite_key = "zombie_diario"
+    escudo_total = True
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.enojado = False
+
+    def on_shield_lost(self):
+        self.enojado = True
+        self.stun = self.data["enojo"]
+        self.speed = _rand_speed(self.data["velocidad_enojado"])
+        self.dps = self.data["dps_enojado"]
+
+    def sprite_state(self):
+        key = "zombie_diario_enojado" if self.enojado else self.sprite_key
+        return key, (None if self.eating else self.t)
+
+
+class PoleZombie(Zombie):
+    """Corre con la pértiga y salta por encima de la primera planta. Después camina normal."""
+    key = "pertiga"
+    sprite_key = "zombie_pertiga"
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.pole = True
+        self.jump = None            # [tiempo, x_inicial, x_final] mientras salta
+
+    @property
+    def puede_trepar(self):
+        return not self.pole         # con la pértiga salta la planta aunque tenga escalera
+
+    def on_plant(self, target, world):
+        if not self.pole:
+            return False
+        if getattr(target, "alto", False):     # PC Principal: no lo puede saltar, pierde la pértiga
+            self.pole = False
+            self.speed = _rand_speed(self.data["velocidad_despues"])
+            return False
+        land = world.grid.cell_rect(target.row, target.col).left - 14
+        self.jump = [0.0, self.x, land]
+        self.airborne = True
+        self.eating = False
+        return True
+
+    def special(self, dt, world):
+        if self.jump is None:
+            return False
+        self.jump[0] += dt
+        u = min(1.0, self.jump[0] / self.data["salto"])
+        self.x = self.jump[1] + (self.jump[2] - self.jump[1]) * u
+        self.lift = int(math.sin(math.pi * u) * 70)
+        if u >= 1.0:
+            self.jump = None
+            self.pole = False
+            self.airborne = False
+            self.lift = 0
+            self.speed = _rand_speed(self.data["velocidad_despues"])
+        return True
+
+    def sprite_state(self):
+        if self.jump is not None:
+            return "zombie_pertiga_salto", self.jump[0]
+        key = self.sprite_key if self.pole else "zombie_pertiga_sin"
+        return key, (None if self.eating else self.t)
+
+
+class LadderZombie(Zombie):
+    """Al llegar a la primera planta le apoya la escalera encima y la pasa por arriba.
+    La escalera queda puesta (world.grid.ladders) y la usan los demás zombies."""
+    key = "escalera"
+    sprite_key = "zombie_escalera"
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.ladder = True
+        self.placing = None          # [tiempo, (fila, col)] mientras apoya la escalera
+
+    def on_plant(self, target, world):
+        if not self.ladder:
+            return False
+        self.placing = [0.0, (target.row, target.col)]
+        self.eating = False
+        return True
+
+    def special(self, dt, world):
+        if self.placing is None:
+            return False
+        self.placing[0] += dt
+        if self.placing[0] >= self.data["apoyar"]:
+            cell = self.placing[1]
+            if world.grid.get(*cell) is not None:
+                world.grid.ladders.add(cell)
+            self.placing = None
+            self.ladder = False
+            self.speed = _rand_speed(self.data["velocidad_despues"])
+        return True
+
+    def sprite_state(self):
+        if self.placing is not None:
+            return self.sprite_key, None
+        key = self.sprite_key if self.ladder else "zombie_escalera_sin"
+        return key, (None if self.eating else self.t)
+
+
+class TractorZombie(Zombie):
+    """Tanque lento: mucha vida y mucho daño a las plantas. No usa escaleras."""
+    key = "tractor"
+    sprite_key = "zombie_tractor"
+    puede_trepar = False
+    hipnotizable = False
+    aplasta_pisables = True
+
+    @property
+    def rect(self):
+        return pygame.Rect(int(self.x) - 40, self.y_top + 8, 80, CELL_H - 16)
+
+
+class BungeeZombie(Zombie):
+    """Cae del cielo colgado de una cuerda en una casilla al azar (desde la 3ra columna).
+    Antes se ve una marca en el piso. Al aterrizar camina y come como uno normal."""
+    key = "bungee"
+    sprite_key = "zombie_bungee"
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        # No cae en la casilla de PC Principal
+        libres = [c for c in range(self.data["col_minima"], grid.cols) if not self.bloqueada(grid, row, c)]
+        self.col = random.choice(libres or list(range(self.data["col_minima"], grid.cols)))
+        self.x = float(grid.cell_rect(row, self.col).centerx + 8)
+        self.fase = "aviso"          # aviso -> cae -> suelo
+        self.ft = 0.0
+        self.airborne = True
+
+    def special(self, dt, world):
+        if self.fase == "suelo":
+            return False
+        self.ft += dt
+        if self.fase == "aviso" and self.ft >= self.data["aviso"]:
+            if self.bloqueada(world.grid, self.row, self.col):
+                self.alive = False   # pusieron a PC Principal en la marca: no se anima a caer y se va
+                return True
+            self.fase, self.ft = "cae", 0.0
+        if self.fase == "cae":
+            u = min(1.0, self.ft / self.data["caida"])
+            self.lift = int((1 - u) * (self.y_top + CELL_H + 20))
+            if u >= 1.0:
+                self.fase = "suelo"
+                self.airborne = False
+                self.lift = 0
+        return True
+
+    @staticmethod
+    def bloqueada(grid, row, col):
+        return getattr(grid.get(row, col), "alto", False)
+
+    def draw(self, surface):
+        if self.fase != "suelo":
+            # Marca en el piso donde va a caer (titila)
+            mark = (int(self.x), self.y_top + CELL_H - 12)
+            if not draw_sprite(surface, "bungee_marca", mark, 1.0, self.ft):
+                pygame.draw.ellipse(surface, (210, 40, 40), (mark[0] - 24, mark[1] - 12, 48, 24), 4)
+            if self.fase == "aviso":
+                return
+            top = self.y_top + CELL_H - 96 - self.lift
+            # La cuerda: 1 píxel de dibujo (2 px, como el zombie), alineada a la grilla de x2
+            rx = (int(self.x) - 1) // 2 * 2
+            pygame.draw.rect(surface, (30, 30, 30), (rx, 0, 2, max(0, (top + 4) // 2 * 2)))
+        super().draw(surface)
+
+
+class DancerZombie(Zombie):
+    """Cada tanto frena, baila e invoca zombies normales alrededor suyo: adelante y atrás
+    en su fila y en las filas de arriba y abajo (solo repone los que le faltan, máx. 4)."""
+    key = "bailarin"
+    sprite_key = "zombie_bailarin"
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.timer = 2.0
+        self.dancing = 0.0
+        self.backups = [None] * 4
+
+    def summon(self, world):
+        spots = [(self.row, -CELL_W), (self.row, CELL_W), (self.row - 1, 0), (self.row + 1, 0)]
+        for i, (r, dx) in enumerate(spots):
+            b = self.backups[i]
+            if b is not None and b.alive:
+                continue
+            x = self.x + dx
+            if not (0 <= r < world.grid.rows and world.grid.rect.left + 20 < x < SCREEN_W):
+                continue
+            z = create_zombie("normal", r, world.grid)
+            z.x = x
+            z.stun = 0.6             # sale de la tierra y tarda un momento en arrancar
+            world.zombies.append(z)
+            self.backups[i] = z
+
+    def special(self, dt, world):
+        if self.dancing > 0:
+            self.dancing -= dt
+            return True
+        if self.eating or self.x > world.grid.rect.right - 10:
+            return False
+        self.timer -= dt
+        if self.timer <= 0:
+            self.timer = self.data["cada"]
+            self.dancing = self.data["baile"]
+            self.summon(world)
+            return True
+        return False
+
+    def sprite_state(self):
+        if self.dancing > 0:
+            return "zombie_bailarin_baile", self.t
+        return self.sprite_key, (None if self.eating else self.t)
+
+
+class DiggerZombie(Zombie):
+    """Avanza bajo tierra (solo lo tocan las explosiones y la podadora), sale en la primera
+    columna del lado de la casa y come las plantas de atrás para adelante caminando hacia la
+    derecha hasta salir de la pantalla. El pico es de metal: si el Imán se lo saca, sale a la
+    superficie donde esté y sigue como un zombie normal (camina hacia la casa)."""
+    key = "excavador"
+    sprite_key = "zombie_excavador"
+    puede_trepar = False
+    metal = True               # el pico
+
+    def can_lose_metal(self):
+        return self.alive and not self.hypno and self.metal
+
+    def metal_pos(self):
+        return (int(self.x) + 8, self.y_top + 56 - self.lift)
+
+    def remove_metal(self):
+        self.metal = False
+        if self.fase == "tierra":           # sin pico no puede seguir cavando: sale acá
+            self.fase, self.ft = "sale", 0.0
+        elif self.fase == "camina":
+            self.dir = -1
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.fase = "tierra"         # tierra -> sale -> camina
+        self.ft = 0.0
+        self.underground = True
+
+    def special(self, dt, world):
+        if self.fase == "tierra":
+            self.x -= self.cur_speed * dt
+            if self.x <= GRID_X + CELL_W // 2:
+                self.fase, self.ft = "sale", 0.0
+            return True
+        if self.fase == "sale":
+            self.ft += dt
+            self.lift = -int((1 - min(1.0, self.ft / self.data["salir"])) * 40)
+            if self.ft >= self.data["salir"]:
+                self.fase = "camina"
+                self.underground = False
+                self.lift = 0
+                self.dir = 1 if self.metal else -1   # sin pico: zombie normal
+                self.speed = _rand_speed(self.data["velocidad_despues"])
+            return True
+        if self.dir > 0 and self.x > SCREEN_W + 40:
+            self.alive = False       # se comió la fila y se fue por la calle: cuenta como eliminado
+            return True
+        return False
+
+    def sprite_state(self):
+        if self.fase == "tierra":
+            return "zombie_excavador_tierra", self.t
+        key = self.sprite_key if self.metal else "zombie_excavador_sin"
+        if self.fase == "sale":
+            return key, None
+        return key, (None if self.eating else self.t)
+
+
+class GiantZombie(Zombie):
+    """Muy tanque. Aplasta las plantas de un golpe. Con poca vida tira al mini zombie
+    hacia el fondo de la fila (cerca de la casa)."""
+    key = "gigante"
+    sprite_key = "zombie_gigante"
+    puede_trepar = False
+    hipnotizable = False
+    aplasta_pisables = True
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.golpe = None            # [tiempo, planta] mientras levanta el poste
+        self.tiene_mini = True
+
+    @property
+    def rect(self):
+        return pygame.Rect(int(self.x) - 28, self.y_top + 8, 56, CELL_H - 16)
+
+    def on_plant(self, target, world):
+        if self.golpe is None:
+            self.golpe = [0.0, target]
+        return True
+
+    def atacar_hipnotizado(self, rival, dt, world):
+        self.on_plant(rival, world)      # al hipnotizado también lo aplasta de un golpe
+
+    def special(self, dt, world):
+        if self.tiene_mini and self.hp <= self.max_hp * self.data["lanza_mini"] \
+                and GRID_X + CELL_W * 3 < self.x < SCREEN_W - 20:
+            self.tiene_mini = False
+            mini = create_zombie("mini", self.row, world.grid)
+            mini.lanzar(self.x - 10, random.uniform(GRID_X + 30, GRID_X + CELL_W * 2))
+            world.zombies.append(mini)
+        if self.golpe is None:
+            return False
+        self.golpe[0] += dt * self.slow_factor
+        if self.golpe[0] >= self.data["golpe"]:
+            plant = self.golpe[1]        # una planta o un zombie hipnotizado
+            if plant.alive:
+                plant.hp = 0
+                plant.alive = False
+            self.golpe = None
+        return True
+
+    def sprite_state(self):
+        if self.golpe is not None:
+            return "zombie_gigante_golpe", self.golpe[0]
+        return self.sprite_key, self.t
+
+
+class MiniZombie(Zombie):
+    """El zombie chiquito que tira el gigante."""
+    key = "mini"
+    sprite_key = "zombie_mini"
+
+    def __init__(self, row, grid):
+        super().__init__(row, grid)
+        self.vuelo = None
+
+    @property
+    def rect(self):
+        return pygame.Rect(int(self.x) - 14, self.y_top + 40, 28, CELL_H - 48)
+
+    def lanzar(self, x0, x1):
+        self.vuelo = [0.0, x0, x1]
+        self.x = x0
+        self.airborne = True
+
+    def special(self, dt, world):
+        if self.vuelo is None:
+            return False
+        self.vuelo[0] += dt
+        u = min(1.0, self.vuelo[0] / self.data["vuelo"])
+        self.x = self.vuelo[1] + (self.vuelo[2] - self.vuelo[1]) * u
+        self.lift = int(math.sin(math.pi * u) * 150)
+        if u >= 1.0:
+            self.vuelo = None
+            self.airborne = False
+            self.lift = 0
+        return True
+
+
+ZOMBIE_CLASSES = {cls.key: cls for cls in (
+    NormalZombie, ConeZombie, BucketZombie, DoorZombie, NewspaperZombie, PoleZombie, LadderZombie,
+    TractorZombie, BungeeZombie, DancerZombie, DiggerZombie, GiantZombie, MiniZombie)}
 
 
 def create_zombie(key, row, grid):

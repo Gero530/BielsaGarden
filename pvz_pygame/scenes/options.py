@@ -1,5 +1,6 @@
 """
-Pantalla de opciones con pestañas.
+Pantalla de opciones con pestañas, con la estética del menú (fondo con nubes y bus,
+tablones, fuente pixel, flechas y casilla dibujadas en pixel art).
 
 Para agregar una pestaña nueva (por ejemplo "Sonido"):
   1. Sumá el nombre a TABS.
@@ -12,11 +13,13 @@ import pygame
 import display
 from settings import SCREEN_W, SCREEN_H, COLORS
 from scenes.base import Scene
-from ui.button import Button
-from ui.fonts import draw_text
-from ui.widgets import Tabs, Selector, Checkbox, PANEL, PANEL_BORDE
+from ui import intro_art as A
+from ui.button import CartelButton, tablon
+from ui.pixel_font import draw_pixel_text
+from ui.widgets import Tabs, Selector, Checkbox
 
 TABS = ["Pantalla"]
+OSCURO = (30, 18, 6)
 
 
 class OptionsScene(Scene):
@@ -26,8 +29,9 @@ class OptionsScene(Scene):
             "resolucion": list(display.config["resolucion"]),
             "pantalla_completa": display.config["pantalla_completa"],
         }
-        self.panel = pygame.Rect(150, 150, SCREEN_W - 300, 300)
-        self.tabs = Tabs(TABS, (self.panel.x + 16, self.panel.y - 40), self.change_tab)
+        self.panel_img = tablon("", 233, 100, 3)
+        self.panel = self.panel_img.get_rect(topleft=(150, 150))
+        self.tabs = Tabs(TABS, (self.panel.x + 30, self.panel.y - 36), self.change_tab)
 
         self.builders = {
             "Pantalla": self._build_pantalla,
@@ -36,9 +40,10 @@ class OptionsScene(Scene):
         self.widgets = self.builders[self.current_tab]()
 
         cy = self.panel.bottom + 60
-        self.btn_apply = Button("Aplicar", (SCREEN_W // 2 - 130, cy), self.apply, size=(220, 52), font_size=32)
-        self.btn_back = Button("Volver", (SCREEN_W // 2 + 130, cy), self.back, size=(220, 52), font_size=32)
+        self.btn_apply = CartelButton("APLICAR", (SCREEN_W // 2 - 140, cy), self.apply, size=(70, 15))
+        self.btn_back = CartelButton("VOLVER", (SCREEN_W // 2 + 140, cy), self.back, size=(70, 15))
         self.message = None      # [texto, segundos]
+        self.t = 0.0
         self._refresh()
 
     # ------------------------------------------------------------------
@@ -76,7 +81,7 @@ class OptionsScene(Scene):
                 self.pending["pantalla_completa"] != display.config["pantalla_completa"])
 
     def _refresh(self):
-        self.btn_apply.enabled = self.has_changes()
+        self.btn_apply.enabled = self.has_changes()      # sin cambios: bloqueado (tablas cruzadas)
         if self.current_tab == "Pantalla":
             self.sel_res.enabled = not self.pending["pantalla_completa"]
 
@@ -106,33 +111,30 @@ class OptionsScene(Scene):
                 return
 
     def update(self, dt):
+        self.t += dt
         if self.message:
             self.message[1] -= dt
             if self.message[1] <= 0:
                 self.message = None
 
     def draw(self, surface):
-        from scenes.menu import draw_menu_background
-        draw_menu_background(surface)
+        surface.blit(A.fondo_vivo(self.t), (0, 0))
+        titulo = A.colgante_escalado("OPCIONES", 80, 22, 2, self.t)
+        surface.blit(titulo, titulo.get_rect(midtop=(SCREEN_W // 2, 0)))
 
-        draw_text(surface, "OPCIONES", 64, COLORS["sol"], center=(SCREEN_W // 2, 70), bold=True)
-
+        surface.blit(self.panel_img, self.panel)
         self.tabs.draw(surface)
-        pygame.draw.rect(surface, PANEL, self.panel, border_radius=10)
-        pygame.draw.rect(surface, PANEL_BORDE, self.panel, 3, border_radius=10)
-        # Re-dibujar la pestaña activa encima del borde del panel para que queden unidos
-        self.tabs.draw(surface)
-
         for w in self.widgets:
             w.draw(surface)
 
         if self.has_changes():
-            draw_text(surface, "Hay cambios sin aplicar", 22, (255, 230, 140),
-                      center=(SCREEN_W // 2, self.panel.bottom - 22))
+            draw_pixel_text(surface, "Hay cambios sin aplicar", (255, 230, 140), 2, outline=OSCURO,
+                            center=(SCREEN_W // 2, self.panel.bottom - 30))
         elif self.message:
-            draw_text(surface, self.message[0], 22, COLORS["verde"],
-                      center=(SCREEN_W // 2, self.panel.bottom - 22))
+            draw_pixel_text(surface, self.message[0], (140, 240, 110), 2, outline=OSCURO,
+                            center=(SCREEN_W // 2, self.panel.bottom - 30))
 
         self.btn_apply.draw(surface)
         self.btn_back.draw(surface)
-        draw_text(surface, "Esc: volver", 20, COLORS["texto"], center=(SCREEN_W // 2, SCREEN_H - 20))
+        draw_pixel_text(surface, "ESC: VOLVER", (255, 255, 255), 2, outline=(30, 40, 70),
+                        center=(SCREEN_W // 2, SCREEN_H - 20))

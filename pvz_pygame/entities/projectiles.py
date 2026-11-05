@@ -3,6 +3,18 @@ import pygame
 from ui.sprites import draw_sprite
 from settings import GUISANTE_VEL, IKE_VEL, SCREEN_W, NIEVE_DURACION
 
+IKE_PX = 3          # Ike se ve x3: la sombra usa el mismo tamaño de píxel
+_sombras = {}
+
+
+def _sombra(w):
+    """Sombra ovalada de 2w x 4 píxeles de dibujo, agrandada xIKE_PX sin suavizado."""
+    if w not in _sombras:
+        s = pygame.Surface((w * 2, 4), pygame.SRCALPHA)
+        pygame.draw.ellipse(s, (0, 0, 0, 70), s.get_rect())
+        _sombras[w] = pygame.transform.scale(s, (w * 2 * IKE_PX, 4 * IKE_PX))
+    return _sombras[w]
+
 
 class Pea:
     def __init__(self, x, y, row, damage):
@@ -19,7 +31,7 @@ class Pea:
             return
         # Golpea al primer zombie vivo de su fila que toque
         for z in world.zombies:
-            if z.alive and not z.hypno and z.row == self.row and z.rect.left <= self.x <= z.rect.right:
+            if z.targetable and z.row == self.row and z.rect.left <= self.x <= z.rect.right:
                 self.hit(z)
                 self.alive = False
                 return
@@ -39,8 +51,10 @@ class Snowball(Pea):
     """Bola de nieve de Stan: va recta como el guisante y además ralentiza al zombie."""
 
     def hit(self, zombie):
+        en_la_puerta = zombie.shield > 0 and not zombie.escudo_total   # rebota en la puerta: no lo frena
         zombie.take_damage(self.damage)
-        zombie.slow_down(NIEVE_DURACION)
+        if not en_la_puerta:
+            zombie.slow_down(NIEVE_DURACION)
 
     def draw(self, surface):
         c = (int(self.x), int(self.y))
@@ -91,11 +105,11 @@ class Ike:
         """Daña al zombie (vivo y no hipnotizado) más cercano al punto de caída."""
         best = None
         for z in world.zombies:
-            if z.alive and not z.hypno and z.row == self.row and abs(z.x - self.x1) <= 45:
+            if z.targetable and z.row == self.row and abs(z.x - self.x1) <= 45:
                 if best is None or abs(z.x - self.x1) < abs(best.x - self.x1):
                     best = z
         if best is not None:
-            best.take_damage(self.damage)
+            best.take_damage(self.damage, frontal=False)   # cae de arriba: la puerta no lo frena
         self.alive = False
 
     def frame(self):
@@ -111,9 +125,9 @@ class Ike:
     def draw(self, surface):
         x, y = self.pos
         # Sombra en el piso: más chica y clara cuanto más alto está
-        w = max(10, int(34 - self.arc / 5))
-        sh = pygame.Surface((w * 2, 14), pygame.SRCALPHA)
-        pygame.draw.ellipse(sh, (0, 0, 0, 70), sh.get_rect())
-        surface.blit(sh, (int(x) - w, int(self.ground) - 7))
+        w = max(3, int(34 - self.arc / 5) // IKE_PX)        # medio ancho en píxeles de dibujo
+        sh = _sombra(w)
+        surface.blit(sh, ((int(x) - w * IKE_PX) // IKE_PX * IKE_PX,
+                          (int(self.ground) - 2 * IKE_PX) // IKE_PX * IKE_PX))
         if not draw_sprite(surface, "ike", (int(x), int(y)), 1.0, None, frame=self.frame()):
             pygame.draw.circle(surface, (110, 190, 255), (int(x), int(y)), 12)

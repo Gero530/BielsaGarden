@@ -33,6 +33,8 @@ python main.py
 | Kenny | 150 | — | Como la cereza: explota al plantarlo (~0,5 s) y hace 1800 de daño en un área de 3x3 casillas. Después aparecen las ratas (solo decoración) |
 | Imán | 100 | 300 | Como el Magnetoseta: cuando un zombie con un objeto de metal (el balde de la cubeta) entra en su alcance (~3 casillas a la redonda, cualquier fila), le arranca el balde, que sale volando hasta el imán. El zombie sigue como uno normal. Se queda con el balde pegado (que se va deshaciendo) durante 15 s de recarga. El cono no es de metal |
 | Toallin | 75 | 300 | Como la hipnoseta: el zombie que lo muerde se lo come y queda hipnotizado (violeta, camina a la derecha y muerde a los zombies que encuentra) |
+| Picante | 125 | — | Como el Jalapeño pero en cruz: explota al plantarlo y quema toda su fila y toda su columna (200 de daño, justo para un zombie normal) |
+| Aplastadora | 125 | 300 | Como la Calabaza pero reutilizable: salta a la casilla de enfrente si hay un zombie (y está libre), mata a todos los de esa casilla, se queda ahí y recarga 8 s |
 
 **Zombies**
 
@@ -41,8 +43,19 @@ python main.py
 | Normal | 200 | — |
 | Cono | 200 | 370 |
 | Cubeta | 200 | 1100 |
+| Puerta | 200 | 1100 de escudo frontal (Ike y las explosiones la saltean; el Imán se la saca) |
+| Diario | 200 | 150 de escudo; sin diario se enoja y corre |
+| Pértiga | 340 | — Corre y salta la primera planta |
+| Escalera | 340 | — Apoya una escalera en la primera planta; la usan todos |
+| Tractor | 1300 | — Lento, muerde fuerte |
+| Bungee | 200 | — Cae del cielo en una casilla al azar (marca roja antes) |
+| Bailarín | 340 | — Invoca hasta 4 zombies a su alrededor |
+| Excavador | 300 | — Va bajo tierra, sale junto a la casa y come hacia la derecha |
+| Gigante | 3000 | — Aplasta plantas de un golpe; con poca vida tira al mini zombie (150) |
 
-**Nivel 1**: 16 zombies en ~3 minutos, con oleada final. Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
+Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
+
+**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno, el progreso dura mientras el juego está abierto). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -56,7 +69,17 @@ scenes/
   base.py            Clase Scene (handle_event / update / draw)
   menu.py            Pantalla de inicio
   gameplay.py        Partida: une grilla, entidades, HUD, recursos y fin de nivel
-  result.py          Pantalla de victoria / derrota
+  result.py          Pantalla de victoria / derrota (pixel art)
+  mapa.py            Mapa de niveles (desbloqueo, candados)
+  equipo.py          Elegí tu equipo antes de cada nivel (máximo EQUIPO_MAX de settings.py)
+  catalogo.py        Catálogo de personajes y zombies
+
+data/
+  mapa.py            Fondo del mapa y posición de cada botón de nivel
+  catalogo.py        Nombres y descripciones del catálogo
+
+tools/
+  generar_placeholders.py   Crea los sprites placeholder de assets/sprites/nuevos/ (no pisa los existentes)
 
 world/
   grid.py            Grilla 5x9: celdas, colocación de plantas, dibujo del césped
@@ -83,14 +106,16 @@ assets/
 
 levels/
   __init__.py        Lista de niveles
-  level_1.py         Oleadas y avisos del nivel 1
+  tutorial.py        Tutorial guiado (pasos con diálogo)
+  level_1.py ... level_3.py   Oleadas de cada nivel
+  dialogos.py        Diálogos de Bielsa por nivel
 ```
 
 ## Cómo extender
 
-- **Nueva planta**: datos en `settings.PLANT_DATA` → clase en `entities/plants.py` → registrar en `PLANT_CLASSES` → agregar su key en `"plantas"` del nivel.
+- **Nueva planta**: datos en `settings.PLANT_DATA` → clase en `entities/plants.py` → registrar en `PLANT_CLASSES` → nombre y descripción en `data/catalogo.py`. Aparece sola en la pantalla de equipo (un nivel puede limitar las opciones con `"plantas": [...]`).
 - **Nuevo zombie**: datos en `settings.ZOMBIE_DATA` → clase en `entities/zombies.py` → registrar en `ZOMBIE_CLASSES`.
-- **Nuevo nivel**: copiar `levels/level_1.py` como `level_2.py`, cambiar las oleadas y agregarlo a `LEVELS` en `levels/__init__.py`.
+- **Nuevo nivel**: copiar `levels/level_3.py` como `level_4.py` (con un `"id"` nuevo), cambiar las oleadas, agregarlo a `LEVELS` en `levels/__init__.py` y sumar su botón en `data/mapa.py`.
 - **Sprites**: poné la tira horizontal (PNG transparente) en `assets/` y agregá una línea en `SPRITES` dentro de `ui/sprites.py`
   con el archivo, el tamaño de un frame y los fps. Se escala x2 automáticamente. Si falta el archivo se usa el dibujo con formas.
   Animaciones de acción (como el disparo) llevan `"loop": False` y se reproducen una vez.
@@ -130,9 +155,9 @@ Al ejecutar `python main.py` pasa esto, en orden:
 
 1. **Pantalla de carga** (`scenes/loading.py`): "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio.
 2. **Intro** (`scenes/menu.py` + `ui/intro_art.py`): estilo la intro de South Park en pixel art. Se acerca la cabeza de Stan y caen la calle, los cuerpos y las cabezas de Cartman, Kyle, Stan y Kenny en la parada del bus. Está sincronizada con la canción `assets/musica/intro.mp3`.
-3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
+3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / CATÁLOGO / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
 
-Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR la música se apaga con un fundido y empieza la partida.
+Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR se abre el mapa de niveles; la música se apaga con un fundido al entrar a un nivel.
 
 Cosas que se pueden tocar:
 

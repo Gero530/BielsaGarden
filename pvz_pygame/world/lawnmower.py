@@ -21,6 +21,17 @@ PIXEL = 3                  # tamaño en pantalla de un píxel del dibujo (el spr
 PIES_DY = 46               # pies a la misma altura que los chicos del tablero (centro de fila + 46)
 DURACION_GRITO = 1.0       # segundos que se ve el "¡TIMMY!"
 
+_nubes = {}
+
+
+def _nube(n, alfa):
+    """Nubecita de polvo de radio n (píxeles de dibujo), agrandada xPIXEL sin suavizado."""
+    if (n, alfa) not in _nubes:
+        s = pygame.Surface((n * 2, n * 2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (210, 200, 180, alfa), (n, n), n)
+        _nubes[(n, alfa)] = pygame.transform.scale(s, (n * 2 * PIXEL, n * 2 * PIXEL))
+    return _nubes[(n, alfa)]
+
 
 class LawnMower:
     def __init__(self, row, grid):
@@ -40,14 +51,14 @@ class LawnMower:
             self.shout -= dt
         if not self.active and not self.used:
             for z in world.zombies:
-                if z.row == self.row and z.alive and z.x < GRID_X + 5:
+                if z.row == self.row and z.alive and not z.airborne and not z.hypno and z.x < GRID_X + 5:
                     self.active = True
                     self.shout = DURACION_GRITO
                     break
         if self.active:
             self.x += VELOCIDAD * dt
             for z in world.zombies:
-                if z.row == self.row and z.alive and abs(z.x - self.x) < 30:
+                if z.row == self.row and z.alive and not z.airborne and not z.hypno and abs(z.x - self.x) < 30:
                     z.alive = False
             # polvo que levantan las ruedas
             if random.random() < 0.6:
@@ -100,11 +111,12 @@ class LawnMower:
 
     def draw_dust(self, surface):
         for x, y, edad in self.dust:
-            r = int(4 + edad * 18)
-            a = int(150 * (1 - edad / 0.4))
-            s = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
-            pygame.draw.circle(s, (210, 200, 180, a), (r, r), r)
-            surface.blit(s, (int(x - edad * 40) - r, int(y) - r))
+            n = max(1, round((4 + edad * 18) / PIXEL))          # radio en píxeles de dibujo
+            a = int(150 * (1 - edad / 0.4)) // 30 * 30          # pocos niveles de transparencia
+            img = _nube(n, a)
+            px = (int(x - edad * 40) - n * PIXEL) // PIXEL * PIXEL
+            py = (int(y) - n * PIXEL) // PIXEL * PIXEL
+            surface.blit(img, (px, py))
 
     def draw_shapes(self, surface):
         """Sin sprite: la podadora roja de antes."""

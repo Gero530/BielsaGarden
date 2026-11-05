@@ -14,6 +14,7 @@ import os
 import pygame
 from settings import SCREEN_W, SCREEN_H
 from ui.sprites import ASSETS_DIR
+from ui.pixel_font import wrap, draw_pixel_text
 
 # === IMÁGENES DEL DIÁLOGO: poné tus archivos acá (rutas relativas a pvz_pygame/assets/) ===
 PERSONAJE_IMG  = "dialogo/bielsa1.png"
@@ -28,8 +29,10 @@ BURBUJA_TAM   = (432, 176)                                  # 108x44 dibujada x4
 BURBUJA_POS   = (PERSONAJE_POS[0] + PERSONAJE_TAM[0], PERSONAJE_POS[1] - 60)
 MARGEN_TEXTO  = (52, 20)                                    # dónde empieza el texto, relativo a la burbuja
 AREA_TEXTO    = (360, 136)                                  # ancho y alto del área de texto
-TAM_FUENTE    = 28
+TAM_FUENTE    = 28                                          # solo si usás un .ttf propio
+ESCALA_PIXEL  = 2                                           # tamaño de la fuente pixel (sin .ttf)
 COLOR_TEXTO   = (20, 20, 20)
+NOMBRE_PERSONAJE = "Bielsa"                                  # cartelito de madera arriba de la burbuja
 INTERLINEADO  = 4                                           # px extra entre líneas
 
 # === COMPORTAMIENTO ===
@@ -71,8 +74,9 @@ def _placeholder_burbuja():
 
 
 def _cargar_fuente():
+    """La fuente .ttf si existe; si no, None = se usa la fuente pixel del juego (ui/pixel_font.py)."""
     path = os.path.join(ASSETS_DIR, FUENTE_DIALOGO)
-    return pygame.font.Font(path if os.path.exists(path) else None, TAM_FUENTE)
+    return pygame.font.Font(path, TAM_FUENTE) if os.path.exists(path) else None
 
 
 def partir_lineas(texto, fuente, ancho):
@@ -111,7 +115,10 @@ class Dialogo:
 
     def _preparar_mensaje(self):
         texto = self.mensajes[self.indice] if self.mensajes else ""
-        self.lineas = partir_lineas(texto, self.fuente, AREA_TEXTO[0])
+        if self.fuente:
+            self.lineas = partir_lineas(texto, self.fuente, AREA_TEXTO[0])
+        else:
+            self.lineas = wrap(texto, ESCALA_PIXEL, AREA_TEXTO[0])
         self.total_letras = sum(len(l) for l in self.lineas)
         self.letras = 0.0
 
@@ -161,6 +168,10 @@ class Dialogo:
         pantalla.blit(self.img_personaje, (PERSONAJE_POS[0] + ox, PERSONAJE_POS[1]))
         bx, by = BURBUJA_POS[0] + ox, BURBUJA_POS[1]
         pantalla.blit(self.img_burbuja, (bx, by))
+        if NOMBRE_PERSONAJE:
+            from ui.button import tablon
+            placa = tablon(NOMBRE_PERSONAJE, 0, 14, 3)
+            pantalla.blit(placa, placa.get_rect(bottomleft=(bx + 40, by + 3)))
 
         # Texto letra por letra, repartido entre las líneas ya partidas
         x, y = bx + MARGEN_TEXTO[0], by + MARGEN_TEXTO[1]
@@ -168,13 +179,18 @@ class Dialogo:
         for linea in self.lineas:
             if restantes <= 0:
                 break
-            img = self.fuente.render(linea[:restantes], False, COLOR_TEXTO)
-            pantalla.blit(img, (x, y))
+            if self.fuente:
+                pantalla.blit(self.fuente.render(linea[:restantes], False, COLOR_TEXTO), (x, y))
+                y += self.fuente.get_linesize() + INTERLINEADO
+            else:
+                draw_pixel_text(pantalla, linea[:restantes], COLOR_TEXTO, ESCALA_PIXEL, topleft=(x, y))
+                y += 10 * ESCALA_PIXEL
             restantes -= len(linea)
-            y += self.fuente.get_linesize() + INTERLINEADO
 
         # Indicador "▼" parpadeando abajo a la derecha del área de texto
         if self.escrito and int(self.tiempo / PARPADEO) % 2 == 0:
             ix = bx + MARGEN_TEXTO[0] + AREA_TEXTO[0] - 16
             iy = by + MARGEN_TEXTO[1] + AREA_TEXTO[1] - 16
-            pygame.draw.polygon(pantalla, COLOR_TEXTO, [(ix, iy), (ix + 16, iy), (ix + 8, iy + 10)])
+            # triangulito dibujado en la misma grilla x4 de la burbuja
+            for fila, (dx, ancho) in enumerate(((0, 5), (1, 3), (2, 1))):
+                pantalla.fill(COLOR_TEXTO, (ix + dx * 4, iy + fila * 4, ancho * 4, 4))

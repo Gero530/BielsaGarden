@@ -67,6 +67,48 @@ SPRITES = {
     "ike":                    {"archivo": "proyectiles/ike_volando.png",        "frame_w": 38, "frame_h": 38, "fps": 1, "mult": 1.5},
     "guisante":               {"archivo": "proyectiles/guisante.png",           "frame_w": 40, "frame_h": 48, "fps": 1},
     "bola_nieve":             {"archivo": "proyectiles/bola_nieve.png",         "frame_w": 6, "frame_h": 6, "fps": 1, "mult": 1.5},
+
+    # ------------------------------------------------------------------
+    # NUEVOS (placeholders de tools/generar_placeholders.py en assets/sprites/nuevos/).
+    # Redibujalos en LibreSprite con el MISMO tamaño de frame y cantidad de frames.
+    # Plantas: frames 40x40 que se ven x3 (mult 1.5). Zombies: frames 32x48 que se ven x2.
+    # ------------------------------------------------------------------
+    # Picante: 6 frames 40x40, se infla y explota al terminar el último
+    "picante":                {"archivo": "sprites/nuevos/picante.png",           "frame_w": 40, "frame_h": 40, "fps": 10, "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    # Llamarada que se ve en cada casilla de la cruz: 6 frames 26x32 (x3 = una casilla)
+    "picante_fuego":          {"archivo": "sprites/nuevos/picante_fuego.png",     "frame_w": 26, "frame_h": 32, "fps": 12, "loop": False, "mult": 1.5},
+    # Aplastadora: reposo 2 frames 40x40; salto 5 frames (0-1 prepara, 2 sube, 3 cae, 4 aplasta)
+    "aplastadora":            {"archivo": "sprites/nuevos/aplastadora.png",       "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
+    "aplastadora_salto":      {"archivo": "sprites/nuevos/aplastadora_salto.png", "frame_w": 40, "frame_h": 40, "fps": 1, "mult": 1.5, "dy_px": 4},
+    # Cartman festejando en la pantalla de victoria: 4 frames 32x40 (salta con los brazos arriba)
+    "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 32, "frame_h": 40, "fps": 6, "mult": 1.5},
+    # PC Principal: 2 frames 40x40 (respira)
+    "principal":              {"archivo": "sprites/nuevos/principal.png",         "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
+    # Mr. Hankey: 2 frames 40x40, dibujado abajo del frame (va en el piso)
+    "hankey":                 {"archivo": "sprites/nuevos/hankey.png",            "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -12},
+    # Mr. Mackey: 6 frames 40x40 de charla (una sola vez); al terminar congela a los zombies
+    "mackey":                 {"archivo": "sprites/nuevos/mackey.png",            "frame_w": 40, "frame_h": 40, "fps": 6, "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
+    # Zombies nuevos (5 frames de caminata de 32x48 salvo que diga otra cosa)
+    "zombie_puerta":          {"archivo": "sprites/nuevos/zombie_puerta.png",         "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_diario":          {"archivo": "sprites/nuevos/zombie_diario.png",         "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_diario_enojado":  {"archivo": "sprites/nuevos/zombie_diario_enojado.png", "frame_w": 32, "frame_h": 48, "fps": 14},
+    "zombie_pertiga":         {"archivo": "sprites/nuevos/zombie_pertiga.png",        "frame_w": 32, "frame_h": 48, "fps": 12},
+    "zombie_pertiga_salto":   {"archivo": "sprites/nuevos/zombie_pertiga_salto.png",  "frame_w": 32, "frame_h": 48, "fps": 4, "loop": False},   # 3 frames
+    "zombie_pertiga_sin":     {"archivo": "sprites/nuevos/zombie_pertiga_sin.png",    "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_escalera":        {"archivo": "sprites/nuevos/zombie_escalera.png",       "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_escalera_sin":    {"archivo": "sprites/nuevos/zombie_escalera_sin.png",   "frame_w": 32, "frame_h": 48, "fps": 6},
+    "escalera":               {"archivo": "sprites/nuevos/escalera.png",              "frame_w": 20, "frame_h": 40, "fps": 1},   # 1 frame, apoyada sobre la planta
+    "zombie_tractor":         {"archivo": "sprites/nuevos/zombie_tractor.png",        "frame_w": 48, "frame_h": 48, "fps": 6},   # 4 frames
+    "zombie_bungee":          {"archivo": "sprites/nuevos/zombie_bungee.png",         "frame_w": 32, "frame_h": 48, "fps": 4},   # 2 frames, colgando
+    "bungee_marca":           {"archivo": "sprites/nuevos/bungee_marca.png",          "frame_w": 24, "frame_h": 12, "fps": 4},   # 2 frames, aviso en el piso
+    "zombie_bailarin":        {"archivo": "sprites/nuevos/zombie_bailarin.png",       "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_bailarin_baile":  {"archivo": "sprites/nuevos/zombie_bailarin_baile.png", "frame_w": 32, "frame_h": 48, "fps": 6},   # 4 frames
+    "zombie_excavador":       {"archivo": "sprites/nuevos/zombie_excavador.png",      "frame_w": 32, "frame_h": 48, "fps": 6},
+    "zombie_excavador_sin":   {"archivo": "sprites/nuevos/zombie_excavador_sin.png",   "frame_w": 32, "frame_h": 48, "fps": 6},   # sin el pico (se lo sacó el Imán)
+    "zombie_excavador_tierra": {"archivo": "sprites/nuevos/zombie_excavador_tierra.png", "frame_w": 32, "frame_h": 48, "fps": 8},  # 4 frames
+    "zombie_gigante":         {"archivo": "sprites/nuevos/zombie_gigante.png",        "frame_w": 48, "frame_h": 64, "fps": 4},   # 4 frames
+    "zombie_gigante_golpe":   {"archivo": "sprites/nuevos/zombie_gigante_golpe.png",  "frame_w": 48, "frame_h": 64, "fps": 4, "loop": False},   # 4 frames
+    "zombie_mini":            {"archivo": "sprites/nuevos/zombie_mini.png",           "frame_w": 24, "frame_h": 32, "fps": 8},   # 4 frames
 }
 
 _cache = {}   # (clave, factor) -> lista de frames escalados

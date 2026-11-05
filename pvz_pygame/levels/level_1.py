@@ -1,39 +1,40 @@
 """
-Nivel 1 — corto (~3 minutos) y pasable con las plantas disponibles.
+Nivel 1 — El jardín (~3,5 min). Presenta al zombie con puerta.
 
-Cada oleada es (segundo, tipo_de_zombie, fila).
-fila = None -> fila al azar.
-La lista de avisos muestra un cartel en pantalla en ese segundo.
+Los personajes se eligen antes de jugar (pantalla de equipo, entre todos). Si querés
+limitar los que se pueden elegir en un nivel, agregá "plantas": ["girasol", ...].
+
+Formato de oleadas: ver world/wave_manager.py. Resumen:
+    {"t": segundo, "zombies": [tipo, (tipo, fila), ...], "bandera": True, "final": True, "cada": s}
 """
 
 LEVEL = {
+    "id": "nivel1",
     "nombre": "Nivel 1 - El jardín",
-    "sol_inicial": 150,
+    "sol_inicial": 100,
     "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
-    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman"],
+    # Personajes que se pueden elegir en este nivel. Nuevo: Mr. Hankey (le hace daño al de la puerta
+    # desde abajo). Picante y PC Principal llegan en el 2; Aplastadora y Mr. Mackey en el 3.
+    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman", "hankey"],
 
     "oleadas": [
-        (20,  "normal", 2),          # el primero va por el medio
-        (36,  "normal", None),
-        (50,  "normal", None),
-        (57,  "normal", None),
-        (70,  "cono",   None),
-        (83,  "normal", None),
-        (89,  "cono",   None),
-        (101, "normal", None),
-        (105, "normal", None),
-        (116, "cubeta", None),
+        # Arranque: de a uno, para armar la economía con Cartman
+        {"t": 18,  "zombies": [("normal", 2)]},
+        {"t": 38,  "zombies": ["normal"]},
+        {"t": 54,  "zombies": ["normal", "normal"]},
+        {"t": 68,  "zombies": ["cono"]},
+        {"t": 82,  "zombies": ["normal", "cono"]},
+        {"t": 98,  "zombies": ["puerta"]},                           # nuevo: puerta
+        # Horda intermedia
+        {"t": 120, "bandera": True, "zombies": ["normal", "normal", "cono", "normal", "cono", "puerta", "normal", "cubeta"]},
+        # Se pone más pesado
+        {"t": 146, "zombies": ["cono", "normal", "cono"]},
+        {"t": 160, "zombies": ["cubeta", "normal", "normal"]},
+        {"t": 175, "zombies": ["puerta", "cono"]},
+        {"t": 188, "zombies": ["cono", "normal"]},
         # Oleada final
-        (131, "normal", None),
-        (132, "cono",   None),
-        (134, "normal", None),
-        (136, "cono",   None),
-        (138, "normal", None),
-        (140, "cubeta", None),
-    ],
-
-    "avisos": [
-        (17,  "¡Se acercan los zombies!"),
-        (128, "¡OLEADA FINAL!"),
+        {"t": 208, "final": True, "zombies": [
+            "normal", "cono", "normal", "puerta", "cono", "cubeta",
+            "normal", "cono", "normal", "puerta", "cubeta", "normal"]},
     ],
 }

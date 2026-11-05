@@ -53,6 +53,24 @@ _G = {
     "<": ["....#", "...#.", "..#..", ".#...", "..#..", "...#.", "....#"],
     "'": ["..#..", "..#..", ".#...", ".....", ".....", ".....", "....."],
     " ": [".....", ".....", ".....", ".....", ".....", ".....", "....."],
+    # Español: la tilde ocupa la fila de arriba y la letra se aprieta en las 6 de abajo
+    # Con tilde: 8 filas, la tilde va ARRIBA de la letra entera (la letra no se aplasta)
+    "Á": ["...#.", ".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+    "É": ["...#.", "#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+    "Í": ["...#.", ".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
+    "Ó": ["...#.", ".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "Ú": ["...#.", "#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "Ü": [".#.#.", "#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+    "Ñ": [".###.", "#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"],
+    "¡": ["..#..", ".....", "..#..", "..#..", "..#..", "..#..", "..#.."],
+    "¿": ["..#..", ".....", "..#..", ".#...", "#....", "#...#", ".###."],
+    "(": ["...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#."],
+    ")": [".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..."],
+    "+": [".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."],
+    "=": [".....", ".....", "#####", ".....", "#####", ".....", "....."],
+    "%": ["##..#", "##..#", "...#.", "..#..", ".#...", "#..##", "#..##"],
+    "^": ["..#..", ".###.", "#####", "..#..", "..#..", "..#..", "..#.."],   # flecha hacia arriba
+    '"': [".#.#.", ".#.#.", ".....", ".....", ".....", ".....", "....."],
 }
 ANCHO, ALTO, AVANCE = 5, 7, 6          # ancho de letra, alto y cuánto avanza (con 1 px de espacio)
 _cache = {}
@@ -69,8 +87,9 @@ def pixel_text(text, color=(255, 255, 255), scale=1, outline=None):
         return _cache[key]
     text = text.upper()
     pad = 1 if outline else 0
+    extra = 1 if any(len(_G.get(ch, ())) > ALTO for ch in text) else 0   # fila de arriba para tildes
     w = (len(text) * AVANCE - 1 + 2 * pad) * scale
-    h = (ALTO + 2 * pad) * scale
+    h = (ALTO + extra + 2 * pad) * scale
     surf = pygame.Surface((max(1, w), h), pygame.SRCALPHA)
 
     def paint(col, dx, dy):
@@ -80,7 +99,7 @@ def pixel_text(text, color=(255, 255, 255), scale=1, outline=None):
                 for rx, c in enumerate(row):
                     if c == "#":
                         x = (pad + i * AVANCE + rx + dx) * scale
-                        y = (pad + ry + dy) * scale
+                        y = (pad + ry + dy + extra - (len(rows) - ALTO)) * scale
                         surf.fill(col, (x, y, scale, scale))
 
     if outline:
@@ -93,14 +112,42 @@ def pixel_text(text, color=(255, 255, 255), scale=1, outline=None):
     return surf
 
 
-def draw_pixel_text(surface, text, color, scale=1, center=None, topleft=None, midleft=None, outline=None):
+def wrap(text, scale, width):
+    """Parte el texto en líneas que entren en `width` píxeles de pantalla."""
+    lines, cur = [], ""
+    for word in text.split():
+        test = f"{cur} {word}".strip()
+        if text_width(test, scale) <= width or not cur:
+            cur = test
+        else:
+            lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def draw_pixel_lines(surface, text, color, scale, topleft, width, outline=None, gap=None):
+    """Texto en varias líneas (con ajuste de línea). Devuelve la y donde terminó."""
+    x, y = topleft
+    for line in wrap(text, scale, width):
+        draw_pixel_text(surface, line, color, scale, topleft=(x, y), outline=outline)
+        y += (ALTO + 3) * scale if gap is None else gap
+    return y
+
+
+def draw_pixel_text(surface, text, color, scale=1, outline=None, **anchor):
+    """anchor: cualquier punto de un Rect, ej. center=(x, y), topleft=..., midright=..."""
     img = pixel_text(text, color, scale, outline)
-    r = img.get_rect()
-    if center:
-        r.center = center
-    elif midleft:
-        r.midleft = midleft
-    elif topleft:
-        r.topleft = topleft
+    r = img.get_rect(**anchor)
+    # Si el texto tiene tildes, la imagen tiene una fila más arriba: se corre para que las
+    # letras queden a la misma altura que en un texto sin tildes
+    extra = img.get_height() - (ALTO + (2 if outline else 0)) * scale
+    if extra:
+        k = next(iter(anchor), "")
+        if k in ("topleft", "midtop", "topright", "top", "y"):
+            r.y -= extra
+        elif k in ("center", "midleft", "midright", "centery"):
+            r.y -= extra // 2
     surface.blit(img, r)
     return r

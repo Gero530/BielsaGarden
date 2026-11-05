@@ -7,6 +7,8 @@ import math
 import pygame
 from ui.sprites import draw_sprite, anim_duration
 from entities.zombies import draw_bucket
+from ui.pixel_font import draw_pixel_text, text_width
+from settings import SCREEN_W
 
 
 class SpriteEffect:
@@ -26,6 +28,30 @@ class SpriteEffect:
 
     def draw(self, surface):
         draw_sprite(surface, self.key, self.center, 1.0, self.t)
+
+
+class FloatingText:
+    """Frase en pixel art que aparece sobre un personaje, sube un poco y desaparece."""
+    ESCALA = 2
+
+    def __init__(self, text, pos, color=(255, 240, 120), life=1.8):
+        self.text = text
+        half = text_width(text, self.ESCALA) // 2 + 6
+        self.x = min(max(pos[0], half), SCREEN_W - half)     # que no se salga de la pantalla
+        self.y = max(pos[1], 118)                            # que no la tape el HUD
+        self.color = color
+        self.life = life
+        self.t = 0.0
+        self.alive = True
+
+    def update(self, dt, world):
+        self.t += dt
+        if self.t >= self.life:
+            self.alive = False
+
+    def draw(self, surface):
+        y = self.y - int(self.t * 12) // 2 * 2               # sube de a 2 px (1 píxel de dibujo)
+        draw_pixel_text(surface, self.text, self.color, self.ESCALA, outline=(30, 15, 5), midbottom=(self.x, y))
 
 
 class Flash:

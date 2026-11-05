@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de revisión — Plantas vs Zombies, edición South Park</title>
+<style>
+  :root {
+    --cielo: #74b4f0;
+    --pasto: #10c858;
+    --pasto-osc: #0a9a42;
+    --nieve: #f4f8fc;
+    --madera: #7a5028;
+    --madera-cl: #9c6a3a;
+    --madera-osc: #3c2818;
+    --papel: #e1d2a0;
+    --papel-osc: #bea870;
+    --texto: #1e140a;
+    --alta: #c83232;
+    --media: #e8a020;
+    --baja: #2a7a2a;
+    --rapido: #2f6fd0;
+    --trabajo: #8a3cb4;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--texto);
+    font: 16px/1.55 "Segoe UI", Verdana, Tahoma, sans-serif;
+    background:
+      linear-gradient(var(--cielo) 0 260px, transparent 260px),
+      repeating-linear-gradient(90deg, var(--pasto) 0 80px, var(--pasto-osc) 80px 160px);
+    background-attachment: fixed;
+  }
+  /* Montañas de fondo, en escalones (pixel art) */
+  .montes {
+    position: fixed; inset: 0 0 auto 0; height: 260px; z-index: -1;
+    background:
+      conic-gradient(from 135deg at 15% 120px, #0a9a42 90deg, transparent 0) ,
+      conic-gradient(from 135deg at 45% 90px, #0a9a42 90deg, transparent 0),
+      conic-gradient(from 135deg at 78% 110px, #0a9a42 90deg, transparent 0);
+    image-rendering: pixelated;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* Tablón de madera como el del menú */
+  .tablon {
+    position: relative;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(60,40,24,.25) 22px 24px),
+      var(--madera);
+    border: 4px solid var(--madera-osc);
+    box-shadow: inset 0 4px 0 var(--madera-cl), inset 0 -4px 0 #5a3a1c, 6px 6px 0 rgba(0,0,0,.35);
+    padding: 22px 26px;
+  }
+  .tablon::before, .tablon::after {
+    content: ""; position: absolute; top: 8px; width: 8px; height: 8px; background: var(--madera-osc);
+    box-shadow: 0 calc(100% - 0px) 0 transparent;
+  }
+  .tablon::before { left: 8px; }
+  .tablon::after { right: 8px; }
+
+  .papel {
+    background: var(--papel);
+    border: 4px solid var(--madera-osc);
+    box-shadow: inset 0 -4px 0 var(--papel-osc), 4px 4px 0 rgba(0,0,0,.3);
+    padding: 14px 18px;
+  }
+
+  header.portada { text-align: center; margin-bottom: 22px; }
+  header.portada .tablon { display: inline-block; padding: 18px 28px; }
+  .subt { color: #fff3c8; margin: 10px 0 0; text-shadow: 2px 2px 0 var(--madera-osc); font-weight: 600; }
+  .audiencia { color: #10284a; font-weight: 600; margin: 14px 0 0; font-style: italic; }
+
+  /* Títulos con la fuente pixel del juego (se dibujan en canvas) */
+  .px { display: block; margin: 0; }
+  .px canvas { image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; height: auto; display: inline-block; }
+  .px .alt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  section { margin: 34px 0; scroll-margin-top: 16px; }
+  section > .tablon > .px { margin-bottom: 14px; }
+  h3.px { margin: 22px 0 10px; }
+
+  nav.indice ol { margin: 8px 0 0; padding-left: 0; list-style: none; columns: 2; column-gap: 24px; }
+  nav.indice li { margin: 6px 0; break-inside: avoid; }
+  nav.indice a {
+    display: block; color: var(--texto); text-decoration: none; font-weight: 700;
+    background: var(--papel); border: 3px solid var(--madera-osc); padding: 6px 10px;
+    box-shadow: inset 0 -3px 0 var(--papel-osc);
+  }
+  nav.indice a:hover { background: #fff0a0; }
+  nav.indice ul { list-style: none; padding-left: 14px; margin: 4px 0 0; font-size: 14px; }
+  nav.indice ul a { font-weight: 600; padding: 3px 8px; border-width: 2px; }
+
+  .contador {
+    position: fixed; right: 14px; bottom: 14px; z-index: 5;
+    background: var(--madera); color: #fff3c8; border: 4px solid var(--madera-osc);
+    padding: 8px 12px; font-weight: 700; box-shadow: 4px 4px 0 rgba(0,0,0,.35);
+  }
+  .contador a { color: #ffe060; }
+
+  p, li { margin: 6px 0; }
+  .papel > p:first-child { margin-top: 0; }
+  code {
+    font: 13px Consolas, "Courier New", monospace; background: #f6ecc8; border: 2px solid var(--papel-osc);
+    padding: 0 4px; white-space: nowrap;
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--papel); border: 4px solid var(--madera-osc); }
+  th, td { border: 2px solid var(--madera-osc); padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: var(--madera-osc); color: #fff3c8; font-size: 14px; }
+  tr:nth-child(even) td { background: #d8c890; }
+  td.chk { width: 34px; text-align: center; }
+
+  /* Etiquetas */
+  .tag {
+    display: inline-block; padding: 1px 8px; margin: 2px 4px 2px 0; color: #fff; font-size: 13px; font-weight: 700;
+    border: 2px solid rgba(0,0,0,.55); box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); white-space: nowrap;
+  }
+  .p-alta { background: var(--alta); }
+  .p-media { background: var(--media); color: #2a1a00; }
+  .p-baja { background: var(--baja); }
+  .e-rapido { background: var(--rapido); }
+  .e-trabajo { background: var(--trabajo); }
+  .e-medio { background: #5c6c7c; }
+  .e-otro { background: #6a5a48; }
+  .ok { background: #2a7a2a; }
+  .warn { background: var(--media); color: #2a1a00; }
+
+  /* Checkbox pixel */
+  input[type=checkbox] {
+    appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; cursor: pointer;
+    background: #fff8e0; border: 3px solid var(--madera-osc); box-shadow: inset 0 -3px 0 var(--papel-osc);
+    vertical-align: middle; position: relative; flex: none;
+  }
+  input[type=checkbox]:checked { background: #ffe03c; }
+  input[type=checkbox]:checked::after {
+    content: ""; position: absolute; left: 3px; top: 3px; width: 10px; height: 10px; background: var(--madera-osc);
+    clip-path: polygon(0 50%, 20% 30%, 40% 55%, 80% 0, 100% 20%, 40% 100%);
+  }
+  input[type=checkbox]:focus-visible { outline: 3px solid #ffe060; outline-offset: 2px; }
+  tr:has(input:checked) td { background: #fff3a0; }
+
+  /* Tarjetas */
+  .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .tarjeta {
+    background: var(--papel); border: 4px solid var(--madera-osc); box-shadow: inset 0 -4px 0 var(--papel-osc), 4px 4px 0 rgba(0,0,0,.3);
+    padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .tarjeta:has(input:checked) { background: #fff3a0; }
+  .tarjeta .cab { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .tarjeta .cab label { font-weight: 800; font-size: 17px; cursor: pointer; }
+  .tarjeta .num {
+    background: #3c7c2c; color: #fff; font-weight: 800; padding: 0 7px; border: 2px solid var(--madera-osc);
+  }
+  .tarjeta dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+  .tarjeta dt { font-weight: 700; color: #5a3a18; }
+  .tarjeta dd { margin: 0; }
+  .costo { display: inline-block; background: #ffd632; border: 2px solid #8a6010; padding: 0 6px; font-weight: 800; }
+
+  ul.lista-chk { list-style: none; padding: 0; margin: 6px 0; }
+  ul.lista-chk > li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 8px; border-bottom: 2px dashed var(--papel-osc); }
+  ul.lista-chk > li:last-child { border-bottom: 0; }
+  ul.lista-chk > li:has(input:checked) { background: #fff3a0; }
+  ul.lista-chk > li > input { margin-top: 2px; }
+  ul.lista-chk ul { margin: 4px 0 0; padding-left: 20px; }
+
+  .nota { background: #fff8d8; border-left: 8px solid var(--media); padding: 10px 14px; margin: 12px 0; }
+  .leyenda { margin: 10px 0 0; font-size: 14px; }
+  footer { margin-top: 30px; }
+  @media (max-width: 640px) { nav.indice ol { columns: 1; } }
+  @media print { .contador, .montes { display: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<div class="montes" aria-hidden="true"></div>
+<div class="wrap">
+
+<header class="portada">
+  <div class="tablon">
+    <h1 class="px" data-px="INFORME DE REVISIÓN" data-scale="6" data-color="#fff0c8">Informe de revisión</h1>
+    <p class="subt">Plantas vs Zombies, edición South Park</p>
+  </div>
+</header>
+
+<section id="indice">
+  <div class="tablon">
+    <h2 class="px" data-px="ÍNDICE" data-scale="4" data-color="#fff0c8">Índice</h2>
+    <nav class="indice">
+      <ol>
+        <li><a href="#como">Cómo lo probé</a></li>
+        <li><a href="#s1">1. ¿Funciona lo que se pidió?</a>
+          <ul><li><a href="#s1-casos">Casos raros</a></li></ul></li>
+        <li><a href="#s2">2. Bugs y errores</a></li>
+        <li><a href="#s3">3. Balance y dificultad</a></li>
+        <li><a href="#s4">4. Estética</a></li>
+        <li><a href="#s5">5. Calidad del código</a></li>
+        <li><a href="#s6">6. Ideas nuevas</a>
+          <ul><li><a href="#s6-plantas">Plantas</a></li><li><a href="#s6-otras">Otras ideas</a></li></ul></li>
+        <li><a href="#cierre">Cierre</a></li>
+      </ol>
+    </nav>
+    <p class="leyenda" style="color:#fff3c8">
+      Etiquetas:
+      <span class="tag p-alta">Alta</span><span class="tag p-media">Media</span><span class="tag p-baja">Baja</span> prioridad ·
+      <span class="tag e-rapido">Rápido</span><span class="tag e-medio">Media</span><span class="tag e-trabajo">Lleva trabajo</span> esfuerzo.
+      Lo que marques se guarda en este navegador.
+    </p>
+  </div>
+</section>
+
+<section id="como">
+  <div class="papel">
+    <p><strong>Cómo lo probé:</strong> leí todo el código nuevo y corrí el juego sin ventana con scripts que arman cada caso raro a mano. Además jugué los 4 niveles en automático con una defensa fija (Cartman, 2 Stan, Kyle y Butters por fila) y saqué capturas de cada pantalla. No modifiqué ningún archivo del proyecto.</p>
+  </div>
+</section>
+
+<!-- ============================ 1 ============================ -->
+<section id="s1">
+  <div class="tablon">
+    <h2 class="px" data-px="1. ¿FUNCIONA LO QUE SE PIDIÓ?" data-scale="4" data-color="#fff0c8">1. ¿Funciona lo que se pidió?</h2>
+    <table>
+      <thead><tr><th>Función</th><th>Estado</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td>Picante (cruz)</td><td><span class="tag warn">⚠️ A medias</span></td><td>La cruz anda y se ve bien. Pero 200 de daño mata pocos zombies (ver casos raros abajo).</td></tr>
+        <tr><td>Aplastadora</td><td><span class="tag warn">⚠️ A medias</span></td><td>Salta, mata todo, se queda en la casilla nueva, respeta la recarga y no salta a casillas ocupadas. <strong>Pero en la columna 9 nunca puede saltar y se la comen</strong> (probado).</td></tr>
+        <tr><td>Puerta</td><td><span class="tag ok">✅</span></td><td>Las bolas de nieve chocan con la puerta, Ike la saltea y el Imán se la saca.</td></tr>
+        <tr><td>Saltador (pértiga)</td><td><span class="tag ok">✅</span></td><td>Salta la primera planta. Si salta la planta de la columna 1, cae y la podadora (Timmy) se activa bien.</td></tr>
+        <tr><td>Escalera</td><td><span class="tag ok">✅</span></td><td>La escalera queda puesta y los demás la usan. Tractor, gigante y excavador no la usan.</td></tr>
+        <tr><td>Tractor</td><td><span class="tag ok">✅</span></td><td>Además, Toallín no lo hipnotiza: se lo come.</td></tr>
+        <tr><td>Cae del cielo (bungee)</td><td><span class="tag warn">⚠️</span></td><td>Cae desde la 3ra columna y avisa antes. <strong>En la fila de abajo, la marca de aviso queda tapada por el nombre del nivel y la barra de progreso</strong> (se ve en la captura).</td></tr>
+        <tr><td>Diario</td><td><span class="tag ok">✅</span></td><td>Se enoja, se frena 1 s y después corre.</td></tr>
+        <tr><td>Bailarín</td><td><span class="tag ok">✅</span></td><td>Funciona también en los bordes (ver abajo).</td></tr>
+        <tr><td>Excavador</td><td><span class="tag warn">⚠️ Funciona pero está roto en balance</span></td><td>Ver la sección 3: casi no hay forma de pararlo.</td></tr>
+        <tr><td>Gigante + mini</td><td><span class="tag ok">✅</span></td><td>Aplasta plantas, lanza al mini y el mini activa la podadora.</td></tr>
+        <tr><td>HUD (cartas, recarga, barra con banderas, avisos de horda)</td><td><span class="tag ok">✅</span></td><td>Solo choca con la fila de abajo, como se dijo en el bungee.</td></tr>
+        <tr><td>Niveles 1–3 y tutorial</td><td><span class="tag ok">✅</span></td><td>Los 4 se pueden terminar sin errores.</td></tr>
+        <tr><td>Mapa con desbloqueo</td><td><span class="tag ok">✅</span></td><td>Al empezar solo está disponible el tutorial. No encontré forma de entrar a un nivel bloqueado.</td></tr>
+        <tr><td>Catálogo</td><td><span class="tag ok">✅</span></td><td>Están las 9 plantas y los 13 zombies. Hay detalles visuales en la sección 4.</td></tr>
+        <tr><td>Pantalla de fin de nivel</td><td><span class="tag ok">✅</span></td><td>Usa la misma estética que el menú.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="s1-casos" class="px" data-px="CASOS RAROS" data-scale="3" data-color="#fff0c8">Casos raros</h3>
+    <div class="papel">
+      <ul>
+        <li><strong>Escalera + Aplastadora:</strong> la Aplastadora nunca puede caer sobre una escalera, porque solo salta a casillas vacías y las escaleras solo están sobre plantas. Lo que sí pasa: si la escalera estaba apoyada sobre la Aplastadora y ella salta, <strong>la escalera desaparece</strong> (probado). Me parece razonable, pero decidí vos si querés que se quede.</li>
+        <li><strong>Excavador cerca de la casa:</strong> no activa la podadora porque sale caminando hacia la derecha. Es lo correcto.</li>
+        <li><strong>Mini zombie cerca de la casa:</strong> cae entre 30 y 160 px del borde y casi siempre gasta la podadora de esa fila (probado). Es como el original.</li>
+        <li><strong>Bungee sobre una planta:</strong> cae encima y se la empieza a comer desde ahí. Funciona.</li>
+        <li><strong>Picante contra escudos:</strong> la puerta muere, porque la explosión saltea la puerta. <strong>El diario sobrevive con 150 de vida</strong>: el diario absorbe 150 de los 200. El cono también sobrevive (es lo que pediste). Pértiga, bailarín y escalera también sobreviven, porque tienen 340 de vida.</li>
+        <li><strong>Excavador bajo tierra:</strong> cada cosa lo trata distinto. El Picante le pega (le saca 200 de 300), Kenny y la podadora lo matan, y la Aplastadora y los disparos no lo tocan. Hay que decidir una regla.</li>
+        <li><strong>Aplastadora contra escudos:</strong> mata a cualquiera, gigante incluido.</li>
+        <li><strong>Bailarín en el borde:</strong> en la fila de arriba y la de abajo invoca solo 3 refuerzos, sin errores. Cerca de la casa no pone refuerzos detrás suyo. Funciona bien.</li>
+        <li><strong>Siguiente nivel / Reintentar:</strong> funcionan. "Siguiente" solo aparece si ganaste y no aparece en el nivel 3.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 2 ============================ -->
+<section id="s2">
+  <div class="tablon">
+    <h2 class="px" data-px="2. BUGS Y ERRORES" data-scale="4" data-color="#fff0c8">2. Bugs y errores</h2>
+    <table>
+      <thead><tr><th>✔</th><th>#</th><th>Problema</th><th>Prioridad</th><th>Esfuerzo</th></tr></thead>
+      <tbody>
+        <tr><td class="chk"><input type="checkbox" data-id="B1" aria-label="B1"></td><td>B1</td><td><strong>El excavador se come la fila entera, llega al final, se da vuelta y vuelve caminando.</strong> En una prueba del nivel 2, a los 400 s el nivel seguía sin terminar por un excavador que volvía por una fila ya vacía. Stan y Kyle no le pueden disparar porque lo tienen detrás. <code>entities/zombies.py:557-575</code></td><td><span class="tag p-alta">Alta</span></td><td><span class="tag e-medio">Media</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B2" aria-label="B2"></td><td>B2</td><td>En la última columna la Aplastadora no tiene adonde saltar, así que no hace nada y muere. <code>entities/plants.py:432-435</code></td><td><span class="tag p-media">Media</span></td><td><span class="tag e-rapido">Rápido</span> que también ataque su propia casilla</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B3" aria-label="B3"></td><td>B3</td><td>La explosión de Kenny daña a los zombies hipnotizados, que pelean de tu lado (probado: muere el aliado). Además usa daño "de frente", así que primero rompe la puerta. El Picante sí hace las dos cosas bien. <code>entities/plants.py:269-270</code></td><td><span class="tag p-media">Media</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B4" aria-label="B4"></td><td>B4</td><td>La marca del bungee queda tapada por el nombre del nivel y la barra, que se meten sobre la fila 5. <code>ui/hud.py:117</code></td><td><span class="tag p-media">Media</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B5" aria-label="B5"></td><td>B5</td><td>No se puede salir de un nivel a mitad de partida: la pausa solo dice "P / ESC para continuar". <code>scenes/gameplay.py:127</code></td><td><span class="tag p-media">Media</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B6" aria-label="B6"></td><td>B6</td><td>La bola de nieve frena al zombie con puerta aunque pegue en la puerta. En el original no lo frena. <code>entities/projectiles.py:41-43</code></td><td><span class="tag p-baja">Baja</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B7" aria-label="B7"></td><td>B7</td><td>Una pértiga que llega a una escalera la sube en vez de saltar, y se guarda el salto para la planta siguiente. <code>entities/zombies.py:178</code></td><td><span class="tag p-baja">Baja</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B8" aria-label="B8"></td><td>B8</td><td>Si en <code>data/mapa.py</code> hay un id que no existe en <code>levels/</code>, el juego se cierra con un error poco claro. <code>scenes/mapa.py:115</code></td><td><span class="tag p-baja">Baja</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B9" aria-label="B9"></td><td>B9</td><td>Los archivos <code>__pycache__/*.pyc</code> están guardados en git: cada vez que corrés el juego aparecen como cambiados. Falta un <code>.gitignore</code>.</td><td><span class="tag p-baja">Baja</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="B10" aria-label="B10"></td><td>B10</td><td>Con la pausa activa, las teclas 1 a 9 igual seleccionan cartas.</td><td><span class="tag p-baja">Baja</span></td><td><span class="tag e-rapido">Rápido</span></td></tr>
+      </tbody>
+    </table>
+    <div class="papel" style="margin-top:14px">
+      <ul>
+        <li><strong>Memoria:</strong> zombies, disparos, efectos, soles y el polvo de las podadoras se borran bien. Las cachés tienen tamaño limitado. Al reintentar se crea todo de nuevo. No encontré nada que quede acumulado.</li>
+        <li><strong>Rendimiento:</strong> con 150 zombies y 45 plantas, la lógica tarda 0,9 ms por cuadro y el dibujo 3,9 ms, de un máximo de 16,7 ms. Ojo: en esa prueba la mayoría de los zombies estaba en el borde derecho, pero aun así hay mucho margen.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 3 ============================ -->
+<section id="s3">
+  <div class="tablon">
+    <h2 class="px" data-px="3. BALANCE Y DIFICULTAD" data-scale="4" data-color="#fff0c8">3. Balance y dificultad</h2>
+    <div class="papel">
+      <p><strong>Resultado del juego automático</strong> (siempre la misma defensa, sin las plantas nuevas):</p>
+      <ul>
+        <li>Tutorial: siempre gana.</li>
+        <li>Nivel 1: gana 2 de 2, sin usar podadoras.</li>
+        <li>Nivel 2: pierde una vez y la otra no termina, por el excavador y la pértiga.</li>
+        <li>Nivel 3: gana 1 de 2, gastando 3 podadoras.</li>
+      </ul>
+      <p>Hay un salto fuerte de dificultad del nivel 1 al 2, y se debe casi todo al <strong>excavador</strong>.</p>
+    </div>
+    <h3 class="px" data-px="PROBLEMAS Y VALORES QUE PROPONGO" data-scale="3" data-color="#fff0c8">Problemas y valores que propongo</h3>
+    <div class="papel">
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="BAL1" aria-label="Balance 1"><div><strong>1. El excavador no tiene un buen contraataque</strong> <span class="tag p-alta">Alta</span><br>Solo lo paran Kenny, el Picante (a medias), Toallín o la pala. Propuesta: que su pico sea de metal, para que el Imán se lo saque y salga a la superficie como un zombie normal. Así el Imán gana un papel. La idea de Terrance y Phillip de la sección 6 también serviría.</div></li>
+        <li><input type="checkbox" data-id="BAL2" aria-label="Balance 2"><div><strong>2. La Aplastadora está demasiado fuerte</strong> <span class="tag p-alta">Alta</span><br>Por 125 mata un gigante de 3000 de vida cada 8 s. Propuesta: que haga 1800 de daño (como Kenny) en vez de matar siempre, y subir <code>recarga_salto</code> de 8 a 18.</div></li>
+        <li><input type="checkbox" data-id="BAL3" aria-label="Balance 3"><div><strong>3. El Picante es flojo</strong> <span class="tag p-media">Media</span><br>Propuesta: subir <code>dano</code> de 200 a 350. Así mata justo al diario (150 + 200) y también a pértiga, escalera, bailarín y excavador, pero no al cono ni al balde.</div></li>
+        <li><input type="checkbox" data-id="BAL4" aria-label="Balance 4"><div><strong>4. Las plantas nuevas se pueden usar desde el nivel 1</strong> <span class="tag p-media">Media</span><br>Eso le quita gracia a la curva. Propuesta: usar la clave <code>"plantas"</code> que ya existe en cada nivel. Nivel 1 sin Picante ni Aplastadora, el Picante desde el nivel 2 y la Aplastadora desde el 3, como sugieren los diálogos.</div></li>
+        <li><input type="checkbox" data-id="BAL5" aria-label="Balance 5"><div><strong>5. Nivel 2:</strong> pasar el primer excavador de t=182 a una oleada con menos presión alrededor, o hacer el cambio del punto 1.</div></li>
+        <li><input type="checkbox" data-id="BAL6" aria-label="Balance 6"><div><strong>6.</strong> Lo demás está bien ajustado: Stan, Butters (4000 de vida), tractor, gigante (3000, como el original) y diario. El Chef da 25 de energía cada 18 s; es generoso pero sirve para enseñar. Si querés más dificultad, podés subirlo a 22 s.</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 4 ============================ -->
+<section id="s4">
+  <div class="tablon">
+    <h2 class="px" data-px="4. ESTÉTICA" data-scale="4" data-color="#fff0c8">4. Estética</h2>
+    <div class="papel">
+      <p><strong>Lo que está bien:</strong> todo se agranda sin suavizado (nunca se usa <code>smoothscale</code>). Los dibujos nuevos tienen la misma resolución que los viejos: plantas de 40×40 que se ven al triple y zombies de 32×48 que se ven al doble. Las pantallas nuevas usan la fuente pixel y los tablones de madera del menú. Mapa, catálogo, equipo y resultado combinan con el menú.</p>
+    </div>
+    <h3 class="px" data-px="LO QUE NO QUEDA PROLIJO" data-scale="3" data-color="#fff0c8">Lo que no queda prolijo</h3>
+    <table>
+      <thead><tr><th>✔</th><th>Problema</th><th>Prioridad</th></tr></thead>
+      <tbody>
+        <tr><td class="chk"><input type="checkbox" data-id="E1" aria-label="Estética 1"></td><td>El fogonazo de Kenny tiene bordes redondeados y transparencia suave, no es pixel art. Se usa también para el Picante si falta su dibujo. <code>entities/effects.py:50</code></td><td><span class="tag p-media">Media</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E2" aria-label="Estética 2"></td><td>El balde que vuela hacia el Imán está dibujado con formas a resolución de pantalla y rota en ángulos sueltos, así que se mezclan tamaños de pixel. <code>entities/effects.py:88</code></td><td><span class="tag p-baja">Baja</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E3" aria-label="Estética 3"></td><td>El polvo de las podadoras, la sombra de Ike, la cuerda del bungee y la flechita del mapa usan píxeles de 1 px, no los de 2–4 px del resto.</td><td><span class="tag p-baja">Baja</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E4" aria-label="Estética 4"></td><td>En el catálogo, al gigante se le corta la cabeza y el tractor se sale del cuadro. En la pantalla de equipo, el tractor y el gigante se pisan con los vecinos. <code>scenes/catalogo.py:131</code>, <code>scenes/equipo.py:148</code></td><td><span class="tag p-media">Media</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E5" aria-label="Estética 5"></td><td>En la pestaña Zombies del catálogo abajo dice "por un PERSONAJE". <code>scenes/catalogo.py:137</code></td><td><span class="tag p-baja">Baja</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E6" aria-label="Estética 6"></td><td>En la pantalla de resultado, el botón "Siguiente nivel" tiene otro ancho que el resto.</td><td><span class="tag p-baja">Baja</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E7" aria-label="Estética 7"></td><td>Con resoluciones que no son múltiplo de 1000×600 (por ejemplo 1366×768), la ventana agranda ×1,28 y los píxeles quedan de tamaños desparejos. Esto ya pasaba antes.</td><td><span class="tag p-baja">Baja</span></td></tr>
+        <tr><td class="chk"><input type="checkbox" data-id="E8" aria-label="Estética 8"></td><td>Los dibujos provisorios (Aplastadora como calabaza verde, zombies con accesorios encima, gigante simple) todavía no tienen estilo South Park. Esto ya lo sabías.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================ 5 ============================ -->
+<section id="s5">
+  <div class="tablon">
+    <h2 class="px" data-px="5. CALIDAD DEL CÓDIGO" data-scale="4" data-color="#fff0c8">5. Calidad del código</h2>
+    <div class="papel">
+      <p><strong>Bien centralizado:</strong> los stats están en <code>settings.py</code>, los textos del catálogo en <code>data/catalogo.py</code>, los diálogos en <code>levels/dialogos.py</code>, el fondo y las posiciones del mapa en <code>data/mapa.py</code>, y los sprites en <code>ui/sprites.py</code>. El catálogo saca los números de <code>settings.py</code> automáticamente. Se cumplió lo pedido.</p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="C1" aria-label="Código 1"><div><strong>Nombres duplicados</strong> <span class="tag p-media">Media</span><span class="tag e-rapido">Rápido</span><br><code>PLANT_DATA</code> dice "Chef" y "Aplasta", pero el catálogo dice "Chef Cartman" y "Aplastadora". El HUD muestra uno y el catálogo otro. Conviene dejar un solo lugar.</div></li>
+        <li><input type="checkbox" data-id="C2" aria-label="Código 2"><div><strong>El mapa repite la lista de niveles</strong> <span class="tag p-baja">Baja</span><br>El orden y los ids en <code>data/mapa.py</code> tienen que coincidir a mano con <code>levels/__init__.py</code>.</div></li>
+        <li><input type="checkbox" data-id="C3" aria-label="Código 3"><div><strong>Números sueltos en el código, no en <code>settings.py</code></strong> <span class="tag p-baja">Baja</span><br>El alcance de la mordida hipnotizada, la altura de los saltos (26/70/150), dónde cae el mini, el primer baile a los 2 s, el primer sol a los 4 s y la velocidad de Timmy.</div></li>
+        <li><input type="checkbox" data-id="C4" aria-label="Código 4"><div><strong>Código repetido</strong> <span class="tag p-media">Media</span><span class="tag e-trabajo">Lleva trabajo</span>
+          <ul>
+            <li>Stan y Kyle tienen la misma lógica de disparo copiada, unas 40 líneas. <code>entities/plants.py:124-145</code> y <code>entities/plants.py:220-240</code></li>
+            <li>Kenny y el Picante repiten el esquema de "explotar al plantarse".</li>
+            <li>Casi todos los zombies repiten la misma línea para elegir el sprite.</li>
+          </ul></div></li>
+        <li><input type="checkbox" data-id="C5" aria-label="Código 5"><div><strong>Archivos largos:</strong> <code>zombies.py</code> (669 líneas) y <code>plants.py</code> (546) todavía se leen bien. En <code>plants.py</code>, unas 50 líneas son dibujos con formas que ya casi no se usan porque hay sprites para todo.</div></li>
+        <li><input type="checkbox" data-id="C6" aria-label="Código 6"><div><strong>Otros:</strong> <code>scenes/equipo.py</code> importa una función interna del HUD (<code>_card_bg</code>). Un comentario menciona un "test automático" que no existe en el repo.</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 6 ============================ -->
+<section id="s6">
+  <div class="tablon">
+    <h2 class="px" data-px="6. IDEAS NUEVAS" data-scale="4" data-color="#fff0c8">6. Ideas nuevas</h2>
+    <div class="papel"><p>Personajes ya usados en el juego: Cartman, Stan, Kyle, Ike, Kenny, Butters, Toallín y Timmy.</p></div>
+
+    <h3 id="s6-plantas" class="px" data-px="PLANTAS (ELEGÍ LAS QUE QUIERAS)" data-scale="3" data-color="#fff0c8">Plantas (elegí las que quieras)</h3>
+    <div class="tarjetas">
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P1" data-id="P1"><span class="num">1</span><label for="P1">Terrance y Phillip</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Guisantera Partida del original.</dd>
+          <dt>Qué hace</dt><dd>Uno mira para cada lado y se tiran pedos para adelante y para atrás. <strong>Sirve contra el excavador.</strong></dd>
+          <dt>Costo</dt><dd><span class="costo">125</span></dd>
+          <dt>Por qué encaja</dt><dd>Es su chiste de siempre: los dos juntos, cada uno para un lado.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P2" data-id="P2"><span class="num">2</span><label for="P2">PC Principal</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Nuez Alta.</dd>
+          <dt>Qué hace</dt><dd>Muro de 8000 de vida que la pértiga no puede saltar y donde el bungee no puede caer.</dd>
+          <dt>Costo</dt><dd><span class="costo">125</span></dd>
+          <dt>Por qué encaja</dt><dd>Nadie le pasa por encima al director.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P3" data-id="P3"><span class="num">3</span><label for="P3">Mr. Mackey</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Seta Helada.</dd>
+          <dt>Qué hace</dt><dd>Da una charla ("las drogas son malas, m'kay") que congela a todos los zombies de la pantalla durante 4 s. Se usa una vez.</dd>
+          <dt>Costo</dt><dd><span class="costo">75</span></dd>
+          <dt>Por qué encaja</dt><dd>Su charla aburre a cualquiera.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P4" data-id="P4"><span class="num">4</span><label for="P4">Shelley</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Planta Carnívora.</dd>
+          <dt>Qué hace</dt><dd>Le pega al zombie que tiene adelante con muchísimo daño y después descansa 15 s.</dd>
+          <dt>Costo</dt><dd><span class="costo">150</span></dd>
+          <dt>Por qué encaja</dt><dd>Le pega a todo el mundo, sobre todo a Stan.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P5" data-id="P5"><span class="num">5</span><label for="P5">Wendy</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Repetidora.</dd>
+          <dt>Qué hace</dt><dd>Tira 2 bolas de nieve por disparo.</dd>
+          <dt>Costo</dt><dd><span class="costo">200</span></dd>
+          <dt>Por qué encaja</dt><dd>Es Stan pero más eficaz.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P6" data-id="P6"><span class="num">6</span><label for="P6">Randy (tu idea)</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Carambola.</dd>
+          <dt>Qué hace</dt><dd>Tira cosas en 5 direcciones al azar.</dd>
+          <dt>Costo</dt><dd><span class="costo">125</span></dd>
+          <dt>Por qué encaja</dt><dd>El caos de Randy.</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P7" data-id="P7"><span class="num">7</span><label for="P7">Mr. Hankey (tu idea)</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Pinchohierba.</dd>
+          <dt>Qué hace</dt><dd>Va en el piso, daña a todo zombie que pisa y no se lo pueden comer. Tractor y gigante lo rompen.</dd>
+          <dt>Costo</dt><dd><span class="costo">100</span></dd>
+          <dt>Por qué encaja</dt><dd>"¡Hola hola hola!"</dd>
+        </dl>
+      </div>
+      <div class="tarjeta">
+        <div class="cab"><input type="checkbox" id="P8" data-id="P8"><span class="num">8</span><label for="P8">Jimbo y Ned</label></div>
+        <dl>
+          <dt>Inspiración</dt><dd>La Humoseta.</dd>
+          <dt>Qué hace</dt><dd>Escopeta de corto alcance (3 casillas) que atraviesa puertas y diarios.</dd>
+          <dt>Costo</dt><dd><span class="costo">125</span></dd>
+          <dt>Por qué encaja</dt><dd>"¡Viene hacia nosotros!"</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="papel" style="margin-top:16px">
+      <p><strong>Sobre tus otras dos ideas:</strong> Kenny y Butters ya están en el juego. Propongo convertirlas en mejoras de los que ya existen:</p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="M1" aria-label="Mejora Kenny"><div>Kenny: explota y <strong>revive en la misma casilla 30 s después</strong>.</div></li>
+        <li><input type="checkbox" data-id="M2" aria-label="Mejora Butters"><div>Butters: al romperse <strong>se convierte en Profesor Caos</strong>, que ataca su fila durante 5 s.</div></li>
+      </ul>
+    </div>
+
+    <h3 id="s6-otras" class="px" data-px="OTRAS IDEAS" data-scale="3" data-color="#fff0c8">Otras ideas</h3>
+    <div class="papel">
+      <p><strong>Zombies:</strong></p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="Z1" aria-label="Gente Cangrejo"><div>Gente Cangrejo: caminan de costado y cambian de fila.</div></li>
+        <li><input type="checkbox" data-id="Z2" aria-label="Gnomos"><div>Gnomos de los calzones: se roban los dedos de energía del piso. "Fase 1: robar dedos. Fase 2: ?. Fase 3: ganancia."</div></li>
+        <li><input type="checkbox" data-id="Z3" aria-label="Zombie hippie"><div>Zombie hippie: en grupo arman una nube de humo que tapa a los zombies, y Stan no les apunta.</div></li>
+      </ul>
+      <p><strong>Jefe:</strong></p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="J1" aria-label="ManBearPig"><div>ManBearPig, al final del nivel 3 o en un nivel 4, con 3 fases (hombre, oso, cerdo).</div></li>
+      </ul>
+      <p><strong>Objetos:</strong></p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="O1" aria-label="Cheesy Poofs"><div>Bolsa de Cheesy Poofs (un clic da 100 de energía, aparece rara vez).</div></li>
+        <li><input type="checkbox" data-id="O2" aria-label="Chinpokomon"><div>Cartas Chinpokomon coleccionables que caen de los zombies.</div></li>
+      </ul>
+      <p><strong>Modos:</strong></p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="MO1" aria-label="Black Friday"><div>Black Friday: supervivencia con hordas infinitas.</div></li>
+        <li><input type="checkbox" data-id="MO2" aria-label="Imaginationland"><div>Imaginationland: nivel con niebla.</div></li>
+        <li><input type="checkbox" data-id="MO3" aria-label="Nivel nevado"><div>Nivel nevado: los zombies resbalan.</div></li>
+        <li><input type="checkbox" data-id="MO4" aria-label="Guardar progreso"><div>Guardar el progreso en <code>config.json</code>.</div></li>
+      </ul>
+      <p><strong>Detalles:</strong></p>
+      <ul class="lista-chk">
+        <li><input type="checkbox" data-id="D1" aria-label="Mataron a Kenny"><div>"¡Mataron a Kenny!" cuando explota Kenny.</div></li>
+        <li><input type="checkbox" data-id="D2" aria-label="Respeten mi autoridad"><div>"¡Respeten mi autoridad!" al plantar a Cartman.</div></li>
+        <li><input type="checkbox" data-id="D3" aria-label="Logro"><div>Un logro "Screw you guys, I'm going home" al salir del juego.</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer id="cierre">
+  <div class="papel">
+    <p>Decime qué arreglos y qué ideas sumamos.</p>
+    <div class="nota">No probé con mouse real (todo fue en automático y sin ventana), ni el menú, la intro, las opciones, la música o cómo se ve en otras resoluciones. El balance sale de una sola defensa automática: tomalo como orientación, no como medida exacta. Los scripts de prueba quedaron en <code>C:\Users\geron\AppData\Local\Temp\claude\1d4b08cb02bfcb75\073f3096-46b5-44e0-ac50-ec3722db8fb2\scratchpad\sim.py</code> por si sirven para comprobar los arreglos.</div>
+  </div>
+</footer>
+
+</div>
+
+<div class="contador" aria-live="polite">Marcados: <span id="n">0</span> · <a href="#" id="limpiar">limpiar</a></div>
+
+<script>
+// Letras 5x7 copiadas de ui/pixel_font.py (la misma fuente del juego)
+const GLYPHS = {"A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"], "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."], "C": [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."], "D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."], "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"], "F": ["#####", "#....", "#....", "####.", "#....", "#....", "#...."], "G": [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".###."], "H": ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"], "I": [".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."], "J": ["..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."], "K": ["#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"], "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"], "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"], "N": ["#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"], "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."], "P": ["####.", "#...#", "#...#", "####.", "#....", "#....", "#...."], "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"], "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"], "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."], "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."], "U": ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."], "V": ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."], "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"], "X": ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"], "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."], "Z": ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"], "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."], "1": ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."], "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"], "3": ["####.", "....#", "....#", ".###.", "....#", "....#", "####."], "4": ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."], "5": ["#####", "#....", "####.", "....#", "....#", "#...#", ".###."], "6": [".###.", "#....", "#....", "####.", "#...#", "#...#", ".###."], "7": ["#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."], "8": [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."], "9": [".###.", "#...#", "#...#", ".####", "....#", "....#", ".###."], ".": [".....", ".....", ".....", ".....", ".....", ".##..", ".##.."], ",": [".....", ".....", ".....", ".....", ".##..", "..#..", ".#..."], "!": ["..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#.."], "?": [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."], "-": [".....", ".....", ".....", "#####", ".....", ".....", "....."], ":": [".....", ".##..", ".##..", ".....", ".##..", ".##..", "....."], "/": ["....#", "....#", "...#.", "..#..", ".#...", "#....", "#...."], ">": ["#....", ".#...", "..#..", "...#.", "..#..", ".#...", "#...."], "<": ["....#", "...#.", "..#..", ".#...", "..#..", "...#.", "....#"], "'": ["..#..", "..#..", ".#...", ".....", ".....", ".....", "....."], " ": [".....", ".....", ".....", ".....", ".....", ".....", "....."], "Á": ["...#.", ".###.", "#...#", "#####", "#...#", "#...#", "#...#"], "É": ["...#.", "#####", "#....", "####.", "#....", "#....", "#####"], "Í": ["...#.", ".###.", "..#..", "..#..", "..#..", "..#..", ".###."], "Ó": ["...#.", ".###.", "#...#", "#...#", "#...#", "#...#", ".###."], "Ú": ["...#.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."], "Ü": [".#.#.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."], "Ñ": [".###.", ".....", "#...#", "##..#", "#.#.#", "#..##", "#...#"], "¡": ["..#..", ".....", "..#..", "..#..", "..#..", "..#..", "..#.."], "¿": ["..#..", ".....", "..#..", ".#...", "#....", "#...#", ".###."], "(": ["...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#."], ")": [".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..."], "+": [".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."], "=": [".....", ".....", "#####", ".....", "#####", ".....", "....."], "%": ["##..#", "##..#", "...#.", "..#..", ".#...", "#..##", "#..##"], "^": ["..#..", ".###.", "#####", "..#..", "..#..", "..#..", "..#.."], "\"": [".#.#.", ".#.#.", ".....", ".....", ".....", ".....", "....."]};
+
+function dibujarPixel(el) {
+  const texto = el.dataset.px, s = +(el.dataset.scale || 4), color = el.dataset.color || "#fff";
+  const borde = "#3c2818", paso = 6;                       // 5 de letra + 1 de espacio
+  const w = texto.length * paso + 1, h = 9;                // +1 px de contorno a cada lado
+  const c = document.createElement("canvas");
+  c.width = w * s; c.height = h * s;
+  const g = c.getContext("2d");
+  const pintar = (col, dx, dy) => {
+    g.fillStyle = col;
+    [...texto].forEach((ch, i) => {
+      const gl = GLYPHS[ch] || GLYPHS[ch.toUpperCase()] || GLYPHS[" "];
+      gl.forEach((fila, y) => [...fila].forEach((p, x) => {
+        if (p === "#") g.fillRect((1 + i * paso + x + dx) * s, (1 + y + dy) * s, s, s);
+      }));
+    });
+  };
+  for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,1],[-1,1],[1,-1]]) pintar(borde, dx, dy);
+  pintar(color, 0, 0);
+  const alt = document.createElement("span");
+  alt.className = "alt"; alt.textContent = el.textContent;
+  c.setAttribute("aria-hidden", "true");
+  el.textContent = ""; el.append(c, alt);
+}
+document.querySelectorAll(".px[data-px]").forEach(dibujarPixel);
+
+// Checkboxes: se guardan en este navegador
+const KEY = "informe_revision_marcados";
+const guardado = JSON.parse(localStorage.getItem(KEY) || "{}");
+const cajas = [...document.querySelectorAll("input[type=checkbox][data-id]")];
+const contar = () => document.getElementById("n").textContent = cajas.filter(c => c.checked).length;
+cajas.forEach(c => {
+  c.checked = !!guardado[c.dataset.id];
+  c.addEventListener("change", () => {
+    guardado[c.dataset.id] = c.checked;
+    localStorage.setItem(KEY, JSON.stringify(guardado));
+    contar();
+  });
+});
+contar();
+document.getElementById("limpiar").addEventListener("click", e => {
+  e.preventDefault();
+  cajas.forEach(c => c.checked = false);
+  localStorage.removeItem(KEY); for (const k in guardado) delete guardado[k];
+  contar();
+});
+</script>
+</body>
+</html>

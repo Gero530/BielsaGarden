@@ -36,6 +36,7 @@ class Grid:
         self.cols = GRID_COLS
         self.rect = pygame.Rect(GRID_X, GRID_Y, GRID_COLS * CELL_W, GRID_ROWS * CELL_H)
         self.cells = [[None for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
+        self.ladders = set()      # (fila, col) con una escalera apoyada (la dejó el zombie con escalera)
 
     # --- Conversión de coordenadas ---
     def cell_at(self, pos):
@@ -69,6 +70,7 @@ class Grid:
 
     def remove(self, row, col):
         self.cells[row][col] = None
+        self.ladders.discard((row, col))
 
     def plants(self):
         for row in self.cells:
@@ -82,7 +84,7 @@ class Grid:
             for c in range(self.cols):
                 p = self.cells[r][c]
                 if p is not None and not p.alive:
-                    self.cells[r][c] = None
+                    self.remove(r, c)
 
     # --- Dibujo ---
     def draw(self, surface):
