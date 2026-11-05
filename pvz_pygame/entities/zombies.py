@@ -15,7 +15,8 @@ HIPNO_TINTE = (190, 130, 255)     # color que se multiplica sobre el sprite hipn
 HIPNO_ALCANCE = 36                 # a qué distancia (px) muerde a otro zombie
 NIEVE_TINTE = (150, 200, 255)      # celeste mientras está ralentizado por la nieve de Stan
 CONGELADO_TINTE = (110, 160, 255)  # azul mientras está congelado por la charla de Mr. Mackey
-from ui.sprites import draw_sprite, has_sprite, anim_duration, SPRITES
+from ui.sprites import draw_sprite, has_sprite, anim_duration, frame_index, SPRITES
+ADELANTE_ATAQUE = (0, 1, 2, 3, 3, 2, 1, 0)   # cuánto se estira la cabeza al morder (igual que ATACAR en tools/generar_vecinos.py)
 
 
 class Zombie:
@@ -236,6 +237,10 @@ class Zombie:
         key, t = self.sprite_state()
         if not has_sprite(key):
             key = self.sprite_key if has_sprite(self.sprite_key) else "zombie_normal"
+        # Si hay una animación de ataque para el estado actual, usarla al comer.
+        # Los estados especiales (salto, baile, golpe, etc.) conservan su lógica.
+        if self.eating and has_sprite(key + "_atacar"):
+            key, t = key + "_atacar", self.t
         if has_sprite(key):
             self.draw_with_sprite(surface, key, t)
         else:
@@ -243,7 +248,9 @@ class Zombie:
 
     def draw_with_sprite(self, surface, key, t):
         # Pies apoyados en el fondo de la fila (el sprite se ve x2: medio alto = frame_h)
-        cx, cy = int(self.x), self.y_top + CELL_H - SPRITES[key]["frame_h"] - self.lift
+        cfg = SPRITES[key]
+        factor = max(1, round(2 * cfg.get("mult", 1.0)))
+        cx, cy = int(self.x), self.y_top + CELL_H - cfg["frame_h"] * factor // 2 - self.lift
         # Mirando a la derecha (hipnotizado o excavador que ya salió): el sprite se espeja
         flip = self.hypno or self.dir > 0
         lado = 1 if flip else -1
@@ -251,7 +258,9 @@ class Zombie:
                                                else (NIEVE_TINTE if self.slow > 0 else None))
         dx = 3 * lado if self.eating and int(self.t * 8) % 2 == 0 else 0     # cabeceo al morder
         draw_sprite(surface, key, (cx + dx, cy), 1.0, t, flash=self.hit_flash > 0, flip=flip, tint=tint)
-        self.draw_armor(surface, (cx + 4 * lado + dx, self.y_top + 22 - self.lift))
+        # Cono / balde sobre la cabeza; al morder siguen a la cabeza que se estira
+        adel = ADELANTE_ATAQUE[frame_index(key, t) % 8] * 2 if key.endswith("_atacar") else 0
+        self.draw_armor(surface, (cx + (4 + adel) * lado + dx, self.y_top + 36 - self.lift))
         if not self.airborne:
             self.draw_health_bar(surface)
 
@@ -260,13 +269,14 @@ class Zombie:
         no entra, se dibuja a tamaño de dibujo (x1). Siempre por un entero, sin suavizado."""
         key = self.sprite_key if has_sprite(self.sprite_key) else "zombie_normal"
         cfg = SPRITES[key]
-        f = 2
-        if box and (cfg["frame_w"] * 2 > box[0] or cfg["frame_h"] * 2 > box[1]):
+        f = max(1, round(2 * cfg.get("mult", 1.0)))
+        if box and (cfg["frame_w"] * f > box[0] or cfg["frame_h"] * f > box[1]):
             f = 1
         self.x, self.y_top = midbottom[0], midbottom[1] - CELL_H
-        draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), f / 2, None)
+        scale = f / (2 * cfg.get("mult", 1.0))
+        draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), scale, None)
         if f == 2:
-            self.draw_armor(surface, (midbottom[0] - 4, self.y_top + 22))
+            self.draw_armor(surface, (midbottom[0] - 4, self.y_top + 36))
 
     def draw_health_bar(self, surface):
         r = self.rect
@@ -705,9 +715,10 @@ class GiantZombie(Zombie):
         return True
 
     def sprite_state(self):
+        suf = "" if self.tiene_mini else "_sin"          # después de lanzar al mini, sin él en la espalda
         if self.golpe is not None:
-            return "zombie_gigante_golpe", self.golpe[0]
-        return self.sprite_key, self.t
+            return "zombie_gigante_golpe" + suf, self.golpe[0]
+        return self.sprite_key + suf, self.t
 
 
 class MiniZombie(Zombie):
