@@ -13,9 +13,6 @@ LEVEL = {
     "nombre": "Nivel 1 - El jardín",
     "sol_inicial": 100,
     "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
-    # Personajes que se pueden elegir en este nivel. Nuevo: Mr. Hankey (le hace daño al de la puerta
-    # desde abajo). Picante y PC Principal llegan en el 2; Aplastadora y Mr. Mackey en el 3.
-    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman", "hankey"],
 
     "oleadas": [
         # Arranque: de a uno, para armar la economía con Cartman

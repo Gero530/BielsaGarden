@@ -8,9 +8,6 @@ LEVEL = {
     "nombre": "Nivel 2 - La calle",
     "sol_inicial": 100,
     "intervalo_sol_cielo": 8.0,
-    # Nuevos en este nivel: Picante y PC Principal (frena a la pértiga)
-    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman", "hankey",
-                "picante", "principal"],
 
     "oleadas": [
         {"t": 18,  "zombies": ["normal"]},

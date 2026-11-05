@@ -8,9 +8,6 @@ LEVEL = {
     "nombre": "Nivel 3 - El centro",
     "sol_inicial": 250,
     "intervalo_sol_cielo": 8.0,
-    # Nuevos en este nivel: Aplastadora y Mr. Mackey (congela la pantalla)
-    "plantas": ["girasol", "lanzaguisantes", "nuez", "kyle", "kenny", "toallin", "iman", "hankey",
-                "picante", "principal", "aplastadora", "mackey"],
 
     "oleadas": [
         {"t": 20,  "zombies": ["normal"]},

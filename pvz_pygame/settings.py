@@ -132,30 +132,6 @@ PLANT_DATA = {
         "preparacion": 0.5,        # cuánto se agacha antes de saltar (s)
         "salto": 0.55,             # cuánto dura el vuelo (s)
     },
-    # PC Principal: como la Nuez Alta. Muro con muchísima vida; la pértiga no lo puede saltar
-    # (se le cae la pértiga y lo muerde) y el bungee no puede caer en su casilla.
-    "principal": {
-        "costo": 125,
-        "vida": 8000,
-        "recarga": 30.0,
-    },
-    # Mr. Hankey: como la Pinchohierba. Va en el piso: los zombies le pasan por encima y les hace
-    # "dano" cada "cadencia" s mientras lo pisan. No se lo pueden comer; tractor y gigante lo rompen.
-    "hankey": {
-        "costo": 100,
-        "vida": 300,
-        "recarga": 7.5,
-        "dano": 20,
-        "cadencia": 1.0,
-    },
-    # Mr. Mackey: como la Seta Helada. Da su charla y congela a todos los zombies de la pantalla
-    # durante "congela" s. Se usa una vez.
-    "mackey": {
-        "costo": 75,
-        "vida": 300,
-        "recarga": 50.0,
-        "congela": 4.0,
-    },
 }
 
 # --- Zombies ---

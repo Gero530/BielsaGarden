@@ -45,24 +45,11 @@ PERSONAJES = {
         "nombre": "Aplastadora",
         "descripcion": "Salta sobre el zombie que tenga enfrente y lo aplasta. Se queda donde cae y, después de descansar, salta de nuevo.",
     },
-    "principal": {
-        "nombre": "PC Principal",
-        "descripcion": "Un muro de músculos. La pértiga no lo puede saltar y el bungee no se anima a caerle encima.",
-    },
-    "hankey": {
-        "nombre": "Mr. Hankey",
-        "descripcion": "Va en el piso y los zombies que lo pisan se arrepienten. No se lo pueden comer (¿quién querría?).",
-    },
-    "mackey": {
-        "nombre": "Mr. Mackey",
-        "descripcion": "Da una charla tan aburrida que todos los zombies de la pantalla se quedan congelados un rato. M'kay.",
-    },
 }
 
 # Frases en pixel art que aparecen un momento sobre el personaje
 FRASES_AL_PLANTAR = {
     "girasol": "¡Respeten mi autoridad!",
-    "mackey": "Las drogas son malas, m'kay",
 }
 FRASES_SOLO_LA_PRIMERA_VEZ = {"girasol"}      # estas salen solo la primera vez que lo plantás en el nivel
 FRASE_KENNY_EXPLOTA = "¡Mataron a Kenny!"

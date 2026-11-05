@@ -541,70 +541,8 @@ class Aplastadora(Plant):
             pygame.draw.ellipse(surface, (70, 170, 60), (cx - 30, cy - 20, 60, 50))
 
 
-class Principal(WallNut):
-    """PC Principal (como la Nuez Alta): muro con muchísima vida. La pértiga no lo puede
-    saltar y el bungee no puede caer en su casilla (ver entities/zombies.py)."""
-    key = "principal"
-    ANIM_COMIDO = "principal"    # todavía no tiene animación propia mientras lo comen
-    alto = True
-
-
-class Hankey(Plant):
-    """Mr. Hankey (como la Pinchohierba): va en el piso. Los zombies le pasan por encima (no
-    se lo pueden comer) y mientras lo pisan les hace daño cada "cadencia" s. El tractor y el
-    gigante lo rompen al pasar."""
-    key = "hankey"
-    pisable = True
-
-    def __init__(self, row, col, grid):
-        super().__init__(row, col, grid)
-        self.timer = 0.0
-
-    def take_damage(self, amount):
-        pass                     # no se lo pueden comer
-
-    def update(self, dt, world):
-        super().update(dt, world)
-        self.timer -= dt
-        if self.timer > 0:
-            return
-        r = self.rect
-        pisan = [z for z in world.zombies if z.alive and not z.hypno and not z.airborne
-                 and not z.underground and z.row == self.row and r.left <= z.x <= r.right]
-        for z in pisan:
-            z.take_damage(self.data["dano"], frontal=False)    # desde abajo: la puerta no lo frena
-        if pisan:
-            self.timer = self.data["cadencia"]
-
-
-class Mackey(Plant):
-    """Mr. Mackey (como la Seta Helada): da su charla (la animación) y al terminarla congela a
-    todos los zombies de la pantalla durante "congela" s. Se usa una vez."""
-    key = "mackey"
-
-    def __init__(self, row, col, grid):
-        super().__init__(row, col, grid)
-        self.age = 0.0
-
-    def take_damage(self, amount):
-        pass                     # termina la charla antes de que lo coman
-
-    def sprite_state(self):
-        return self.key, self.age
-
-    def update(self, dt, world):
-        super().update(dt, world)
-        self.age += dt
-        if self.age >= (anim_duration(self.key) or 1.0):
-            for z in world.zombies:
-                if z.alive and not z.hypno and z.x < SCREEN_W:
-                    z.freeze(self.data["congela"])
-            world.effects.append(Flash(world.grid.rect, (150, 200, 255)))
-            self.alive = False
-
-
 PLANT_CLASSES = {cls.key: cls for cls in (Sunflower, Peashooter, WallNut, Catapult, Kenny, Toallin, Magnet,
-                                          Picante, Aplastadora, Principal, Hankey, Mackey)}
+                                          Picante, Aplastadora)}
 
 
 def create_plant(key, row, col, grid):

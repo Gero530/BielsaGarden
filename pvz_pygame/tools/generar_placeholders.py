@@ -150,59 +150,6 @@ def aplastadora_salto():
     return tira([_calabaza(28, 21), _calabaza(30, 18), _calabaza(20, 32), _calabaza(22, 30), _calabaza(36, 14)])
 
 
-def _principal(b):
-    """PC Principal: grandote, rapado rubio, anteojos de sol y chomba rosa. b = respiración."""
-    s = nuevo(40, 40)
-    s.fill(CAQUI, (13, 30, 6, 8)); s.fill(CAQUI, (21, 30, 6, 8))          # pantalón
-    s.fill(NEGRO, (12, 38, 7, 2)); s.fill(NEGRO, (21, 38, 7, 2))          # zapatos
-    pygame.draw.ellipse(s, ROSA, (7, 14 - b, 26, 18 + b))                 # torso
-    pygame.draw.ellipse(s, PIEL, (3, 16 - b, 8, 12)); pygame.draw.ellipse(s, PIEL, (29, 16 - b, 8, 12))
-    pygame.draw.ellipse(s, PIEL, (11, 2 - b, 18, 14))                     # cabeza
-    s.fill(PELO_RUBIO, (12, 1 - b, 16, 3))                                # rapado
-    s.fill(NEGRO, (13, 6 - b, 6, 3)); s.fill(NEGRO, (21, 6 - b, 6, 3)); s.fill(NEGRO, (19, 7 - b, 2, 1))
-    s.fill(NEGRO, (17, 12 - b, 6, 1))                                     # boca seria
-    return contorno(s)
-
-
-def principal():
-    return tira([_principal(0), _principal(1)])
-
-
-def _hankey(b):
-    """Mr. Hankey en el piso, con gorro de Papá Noel. b = salta un píxel."""
-    s = nuevo(40, 40)
-    pygame.draw.ellipse(s, CAFE, (9, 24 + b, 22, 14 - b))
-    pygame.draw.ellipse(s, CAFE_CL, (12, 26 + b, 8, 4))
-    pygame.draw.polygon(s, ROJO, [(13, 25 + b), (27, 25 + b), (23, 17 + b)])
-    s.fill(BLANCO, (12, 24 + b, 16, 2)); s.fill(BLANCO, (22, 16 + b, 3, 3))
-    ojos(s, 14, 27 + b, enojado=False)
-    s.fill(NEGRO, (16, 34 + b, 8, 1)); s.fill(NEGRO, (15, 33 + b, 1, 1)); s.fill(NEGRO, (24, 33 + b, 1, 1))
-    return contorno(s)
-
-
-def hankey():
-    return tira([_hankey(0), _hankey(1)])
-
-
-def _mackey(i):
-    """Mr. Mackey dando la charla: cabezota, camisa celeste y corbata. La boca se abre y cierra."""
-    s = nuevo(40, 40)
-    s.fill(CELESTE, (13, 27, 14, 10)); s.fill(ROJO, (19, 27, 2, 7))       # camisa y corbata
-    s.fill(AZUL, (14, 36, 5, 3)); s.fill(AZUL, (21, 36, 5, 3))           # pantalón
-    pygame.draw.ellipse(s, PIEL, (4, 2, 32, 26))                          # cabezota
-    s.fill(MARRON, (5, 10, 3, 6)); s.fill(MARRON, (32, 10, 3, 6))         # pelo a los costados
-    ojos(s, 14, 10, enojado=False)
-    s.fill(NEGRO, (16, 20, 8, 3 if i % 2 else 1))                         # habla
-    if i == 5:                                                            # "m'kay"
-        for k in range(3):
-            s.fill(BLANCO, (36, 4 + k * 3, 3, 1))
-    return contorno(s)
-
-
-def mackey():
-    return tira([_mackey(i) for i in range(6)])
-
-
 def cartman_festejo():
     """4 frames de 32x40: tu Cartman (plantas/cartman_idle.png) saltando con los brazos arriba."""
     hoja = pygame.image.load(os.path.join(ASSETS, "plantas", "cartman_idle.png")).convert_alpha()
@@ -447,10 +394,7 @@ GENERADORES = {
     "picante_fuego.png": picante_fuego,
     "aplastadora.png": aplastadora,
     "aplastadora_salto.png": aplastadora_salto,
-    "principal.png": principal,
     "cartman_festejo.png": cartman_festejo,
-    "hankey.png": hankey,
-    "mackey.png": mackey,
     # Zombies
     "zombie_puerta.png": lambda: con(base_zombie(), puerta),
     "zombie_diario.png": lambda: con(base_zombie(), diario),
