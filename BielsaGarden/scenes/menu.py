@@ -3,14 +3,18 @@ Menú principal con la intro estilo South Park en pixel art.
 
 Al arrancar:  la cabeza de Stan se acerca, caen las calles/cuerpos/cabezas de Cartman,
 Kyle, Stan y Kenny en la parada del bus, todo sincronizado con la canción. Cuando
-aterriza la cabeza de Cartman aparecen los botones (JUGAR / CATÁLOGO / OPCIONES / SALIR) y la
-canción sigue sonando de fondo, con el bus pasando y los chicos cabeceando al ritmo.
+aterriza la cabeza de Cartman aparecen los botones (CONTINUAR / NUEVA PARTIDA / CATÁLOGO /
+OPCIONES / SALIR) y la canción sigue sonando de fondo, con el bus pasando y los chicos cabeceando
+al ritmo. CONTINUAR solo aparece si hay partidas guardadas (guardado.py).
+
+Al volver al menú se guarda sola la partida en curso (guardado.autoguardar).
 
 Se puede saltear la intro con un clic, Enter, Espacio o Esc. Cuando se vuelve al menú
 (desde Opciones o desde una partida) no se repite la intro: queda el menú directo.
 """
 import pygame
 import display
+import guardado
 from settings import SCREEN_W, SCREEN_H, COLORS
 from scenes.base import Scene
 from ui import intro_art as A, musica
@@ -18,10 +22,11 @@ from ui.pixel_font import draw_pixel_text
 from ui import button
 from settings import MUSICA_DURACION as DURACION
 
-BOTONES = ["JUGAR", "CATÁLOGO", "OPCIONES", "SALIR"]
 BTN_X = 805
-BTN_Y = [192, 270, 348, 426]
-BTN_W, BTN_H = 114, 24            # tamaño interno (se agranda x3 en pantalla)
+BTN_Y0 = 196                      # centro del primer botón
+BTN_DY = 68                       # distancia entre botones
+BTN_W, BTN_H = 176, 26            # tamaño interno (se agranda xBTN_ESC en pantalla)
+BTN_ESC = 2                       # x2 (no x3 como el resto): así "NUEVA PARTIDA" entra en el ancho
 T_BOTON = 0.16                    # retraso entre un botón y el siguiente al aparecer
 EMPIEZA_SIN_INTRO = 3.4           # segundo de la canción desde el que suena si se vuelve al menú
 
@@ -45,7 +50,14 @@ class MenuScene(Scene):
         self.shift = 0.0                      # cuánto se adelantó la intro al saltearla
         self.sel = 0
         self._img = {}
-        self._destellos = [button.Destello() for _ in BOTONES]
+        # Se guarda sola la partida en curso; si no había lugar, se avisa
+        self.aviso = None
+        if guardado.autoguardar(game) == "sin_lugar":
+            self.aviso = ["No hay ranuras libres: la partida no se guardó", 5.0]
+        self.botones = ([("CONTINUAR", self.continuar)] if guardado.hay_partidas() else []) + [
+            ("NUEVA PARTIDA", self.nueva_partida), ("CATÁLOGO", self.catalogo),
+            ("OPCIONES", self.opciones), ("SALIR", self.salir)]
+        self._destellos = [button.Destello() for _ in self.botones]
 
         # Música: arranca con la intro; si se vuelve al menú sigue sonando o arranca sin la intro
         if self.intro:
@@ -62,10 +74,16 @@ class MenuScene(Scene):
     # ------------------------------------------------------------------
     # Acciones
     # ------------------------------------------------------------------
-    def jugar(self):
+    def nueva_partida(self):
+        # Progreso de cero; se guarda en una ranura libre la primera vez que se autoguarde.
         # La música sigue en el mapa; se apaga recién al entrar a un nivel
+        guardado.nueva(self.game)
         from scenes.mapa import MapaScene
         self.game.change_scene(MapaScene(self.game))
+
+    def continuar(self):
+        from scenes.partidas import PartidasScene
+        self.game.change_scene(PartidasScene(self.game, "cargar"))
 
     def catalogo(self):
         from scenes.catalogo import CatalogoScene
@@ -79,12 +97,12 @@ class MenuScene(Scene):
         self.game.quit()
 
     def _activar(self, i):
-        (self.jugar, self.catalogo, self.opciones, self.salir)[i]()
+        self.botones[i][1]()
 
     def _apretar(self, i):
         """El tablón se hunde, saltan astillas y a los 0,1 s se hace la acción."""
         if not button.ocupado():
-            button.apretar(self._rect_boton(i), A.ESCALA, lambda: self._activar(i), ("menu", i))
+            button.apretar(self._rect_boton(i), BTN_ESC, lambda: self._activar(i), ("menu", i))
 
     def _menu_visible(self):
         return self.vt >= self.t_menu + 0.1
@@ -98,9 +116,13 @@ class MenuScene(Scene):
     # Eventos
     # ------------------------------------------------------------------
     def _rect_boton(self, i):
-        r = pygame.Rect(0, 0, BTN_W * A.ESCALA, BTN_H * A.ESCALA)
-        r.center = (BTN_X, BTN_Y[i])
+        r = pygame.Rect(0, 0, BTN_W * BTN_ESC, BTN_H * BTN_ESC)
+        r.center = (BTN_X, self._y(i))
         return r
+
+    def _y(self, i):
+        # Con 4 botones (sin CONTINUAR) quedan más abajo, en el lugar de los 4 de abajo
+        return BTN_Y0 + (i + 5 - len(self.botones)) * BTN_DY
 
     def handle_event(self, event):
         if not self._menu_visible():
@@ -109,20 +131,20 @@ class MenuScene(Scene):
                 self._saltar()
             return
         if event.type == pygame.MOUSEMOTION:
-            for i in range(len(BOTONES)):
+            for i in range(len(self.botones)):
                 if self._rect_boton(i).collidepoint(event.pos):
                     self.sel = i
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for i in range(len(BOTONES)):
+            for i in range(len(self.botones)):
                 if self._rect_boton(i).collidepoint(event.pos):
                     self.sel = i
                     self._apretar(i)
                     return
         elif event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_DOWN, pygame.K_s):
-                self.sel = (self.sel + 1) % len(BOTONES)
+                self.sel = (self.sel + 1) % len(self.botones)
             elif event.key in (pygame.K_UP, pygame.K_w):
-                self.sel = (self.sel - 1) % len(BOTONES)
+                self.sel = (self.sel - 1) % len(self.botones)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._apretar(self.sel)
 
@@ -143,6 +165,10 @@ class MenuScene(Scene):
             self.vt = max(self.vt, self.mt + self.shift)
         if self.intro and self.vt >= A.T_MENU + 0.8:
             self.game.intro_done = True
+        if self.aviso:
+            self.aviso[1] -= dt
+            if self.aviso[1] <= 0:
+                self.aviso = None
 
     # ------------------------------------------------------------------
     # Dibujo
@@ -173,11 +199,11 @@ class MenuScene(Scene):
     def _cartel(self, texto, w, h, esc, estado, destello=None):
         if destello is not None:
             s = A.con_destello(A.build_cartel(texto, w, h, esc, estado=estado), destello)
-            return pygame.transform.scale(s, (w * A.ESCALA, h * A.ESCALA))
+            return pygame.transform.scale(s, (w * BTN_ESC, h * BTN_ESC))
         key = (texto, w, h, esc, estado)
         if key not in self._img:
             s = A.build_cartel(texto, w, h, esc, estado=estado)
-            self._img[key] = pygame.transform.scale(s, (w * A.ESCALA, h * A.ESCALA))
+            self._img[key] = pygame.transform.scale(s, (w * BTN_ESC, h * BTN_ESC))
         return self._img[key]
 
     def draw(self, surface):
@@ -195,7 +221,7 @@ class MenuScene(Scene):
             # Cartel colgante: las sogas llegan hasta arriba de la pantalla
             titulo = A.colgante_escalado("BIELSA GARDEN", 172, 34, 2, self.mt, cuerda=18)
             surface.blit(titulo, titulo.get_rect(midbottom=(385, 104 + 51 - int(220 * (1 - u)))))
-            for i, txt in enumerate(BOTONES):
+            for i, (txt, _) in enumerate(self.botones):
                 ui = A.ease_out((tm - i * T_BOTON) / 0.5)
                 if ui <= 0:
                     continue
@@ -203,13 +229,16 @@ class MenuScene(Scene):
                 estado = "apretado" if button.apretado(("menu", i)) else ("hover" if hover else "normal")
                 img = self._cartel(txt, BTN_W, BTN_H, 2, estado,
                                    self._destellos[i].fase(estado == "hover"))
-                r = img.get_rect(center=(BTN_X + int(520 * (1 - ui)) - (14 if hover else 0), BTN_Y[i]))
+                r = img.get_rect(center=(BTN_X + int(520 * (1 - ui)) - (10 if hover else 0), self._y(i)))
                 surface.blit(img, r)
                 if hover:                                          # flechita al lado del tablón elegido
                     draw_pixel_text(surface, ">", (255, 220, 60), 4, center=(r.x - 22, r.centery), outline=(60, 40, 10))
             if tm > 1.2:
                 draw_pixel_text(surface, "FLECHAS: ELEGIR    ENTER: ACEPTAR", (255, 255, 255), 2,
                                 center=(SCREEN_W // 2, 24), outline=(30, 40, 70))
+            if self.aviso:
+                draw_pixel_text(surface, self.aviso[0], (255, 230, 140), 2, outline=(60, 20, 10),
+                                center=(SCREEN_W // 2, SCREEN_H - 20))
         elif self.intro and vt < A.T_MENU + 2:
             pass
         if self.intro and vt < A.T_CARTMAN - 0.2:

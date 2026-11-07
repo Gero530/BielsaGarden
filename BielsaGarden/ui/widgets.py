@@ -154,13 +154,14 @@ class Selector:
 class Checkbox:
     """Casilla tallada con una tilde amarilla. Se puede hacer clic en la casilla o en el texto."""
 
-    def __init__(self, label, value, topleft, on_change):
+    def __init__(self, label, value, topleft, on_change, escala=3):
         self.label = label
         self.value = value
         self.on_change = on_change
+        self.escala = escala
         x, y = topleft
         from ui.pixel_font import text_width
-        ancho_texto = text_width(label, 3) + 24                      # la casilla va después del texto
+        ancho_texto = text_width(label, escala) + 24                      # la casilla va después del texto
         self.box = pygame.Rect(x + ancho_texto, y + 4, 11 * ESC, 11 * ESC)
         self.rect = pygame.Rect(x, y, ancho_texto + self.box.w + 10, 42)   # zona clickeable (texto + casilla)
 
@@ -173,5 +174,91 @@ class Checkbox:
 
     def draw(self, surface):
         hover = self.rect.collidepoint(display.get_mouse_pos())
-        draw_pixel_text(surface, self.label, CREMA, 3, outline=OSCURO, midleft=(self.rect.x, self.rect.centery))
+        draw_pixel_text(surface, self.label, CREMA, self.escala, outline=OSCURO,
+                        midleft=(self.rect.x, self.box.centery))
         surface.blit(_casilla(self.value, hover), self.box)
+
+
+def _perilla(estado):
+    """Tablón chico vertical que se arrastra por el hueco del slider."""
+    key = ("perilla", estado)
+    if key not in _cache:
+        from ui.intro_art import build_cartel
+        s = build_cartel("", 8, 13, 1, estado=estado)
+        _cache[key] = pygame.transform.scale(s, (8 * ESC, 13 * ESC))
+    return _cache[key]
+
+
+class Slider:
+    """Etiqueta + hueco tallado con la barra de volumen y una perilla que se arrastra, el valor en %
+    y al lado una casilla de silencio. Rueda del mouse encima: de a 5.
+    on_change(valor, silenciado) se llama con cada cambio."""
+
+    ANCHO_BARRA = 300
+
+    def __init__(self, label, valor, silenciado, topleft, on_change, x_barra=170):
+        self.label = label
+        self.valor = int(valor)
+        self.silenciado = silenciado
+        self.on_change = on_change
+        self.arrastrando = False
+        x, y = topleft
+        self.rect = pygame.Rect(x, y, 0, 36)
+        self.barra = pygame.Rect(x + x_barra, y + 9, self.ANCHO_BARRA, 6 * ESC)
+        self.zona = self.barra.inflate(24, 20)           # zona clickeable (incluye la perilla en las puntas)
+        self.valor_pos = (self.barra.right + 48, self.rect.centery)
+        self.box = pygame.Rect(self.barra.right + 100, y + 2, 11 * ESC, 11 * ESC)
+        self.rect.w = self.box.right - x
+
+    def _desde_x(self, x):
+        u = (x - self.barra.x) / self.barra.w
+        nuevo = int(round(max(0.0, min(1.0, u)) * 100))
+        if nuevo != self.valor:
+            self.valor = nuevo
+            self.on_change(self.valor, self.silenciado)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.box.inflate(8, 8).collidepoint(event.pos):
+                self.silenciado = not self.silenciado
+                self.on_change(self.valor, self.silenciado)
+                return True
+            if self.zona.collidepoint(event.pos):
+                self.arrastrando = True
+                self._desde_x(event.pos[0])
+                return True
+        elif event.type == pygame.MOUSEMOTION and self.arrastrando:
+            self._desde_x(event.pos[0])
+            return True
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.arrastrando:
+            self.arrastrando = False
+            return True
+        elif event.type == pygame.MOUSEWHEEL:
+            if self.zona.collidepoint(display.get_mouse_pos()):
+                nuevo = max(0, min(100, self.valor + 5 * event.y))
+                if nuevo != self.valor:
+                    self.valor = nuevo
+                    self.on_change(self.valor, self.silenciado)
+                return True
+        return False
+
+    def draw(self, surface):
+        mouse = display.get_mouse_pos()
+        apagado = self.silenciado
+        color = GRIS if apagado else CREMA
+        draw_pixel_text(surface, self.label, color, 2, outline=OSCURO, midleft=(self.rect.x, self.rect.centery))
+        surface.blit(_hueco(self.barra.w, self.barra.h), self.barra)
+        # Relleno: franja de "volumen" dentro del hueco (en píxeles de dibujo de ESC)
+        lleno = (self.barra.w - 2 * ESC) * self.valor // 100 // ESC * ESC
+        if lleno > 0:
+            r = pygame.Rect(self.barra.x + ESC, self.barra.y + ESC, lleno, self.barra.h - 2 * ESC)
+            surface.fill((120, 116, 110) if apagado else (226, 170, 40), r)
+            surface.fill((160, 156, 150) if apagado else (255, 222, 96), (r.x, r.y, r.w, ESC))   # brillo arriba
+        perilla_estado = ("hover" if self.arrastrando or self.zona.collidepoint(mouse) else "normal")
+        if apagado:
+            perilla_estado = "bloqueado"
+        img = _perilla(perilla_estado)
+        px = self.barra.x + (self.barra.w - 2 * ESC) * self.valor // 100 // ESC * ESC + ESC
+        surface.blit(img, img.get_rect(center=(px, self.barra.centery + ESC)))
+        draw_pixel_text(surface, f"{self.valor}%", color, 2, outline=OSCURO, center=self.valor_pos)
+        surface.blit(_casilla(self.silenciado, self.box.inflate(8, 8).collidepoint(mouse)), self.box)

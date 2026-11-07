@@ -9,7 +9,8 @@ se encarga de escalarla a la resolución/pantalla completa elegida.
 """
 import pygame
 import display
-from ui import button
+import guardado
+from ui import button, audio
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
 
 CORTINA = 0.3          # segundos que tarda la cortina de cartulina en cruzar la pantalla
@@ -21,6 +22,7 @@ class Game:
         pygame.init()
         pygame.display.set_caption(TITLE)
         display.load_config()
+        audio.cargar()
         display.apply()
         self.screen = pygame.Surface((SCREEN_W, SCREEN_H)).convert()
         self.clock = pygame.time.Clock()
@@ -32,6 +34,9 @@ class Game:
         # Ids de niveles ganados. Solo en memoria: cada vez que se abre el juego arranca vacío
         # (solo el tutorial disponible).
         self.progreso = set()
+        # Partida actual (ver guardado.py): si hay una en curso y en qué ranura se guarda
+        self.en_partida = False
+        self.ranura = None
 
         # Import aquí para evitar imports circulares (las escenas importan Game)
         from scenes.loading import LoadingScene
@@ -74,6 +79,10 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.quit()
+                elif event.type in (pygame.WINDOWFOCUSLOST, pygame.WINDOWMINIMIZED):
+                    audio.set_foco(False)        # silencia si está marcado "en segundo plano"
+                elif event.type == pygame.WINDOWFOCUSGAINED:
+                    audio.set_foco(True)
                 else:
                     self.scene.handle_event(display.convert_event(event))
 
@@ -84,4 +93,5 @@ class Game:
             button.dibujar_efectos(self.screen)
             display.present(self.screen)
 
+        guardado.autoguardar(self)            # al cerrar el juego se guarda la partida en curso
         pygame.quit()

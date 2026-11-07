@@ -55,7 +55,7 @@ python main.py
 
 Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
 
-**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno, el progreso dura mientras el juego está abierto). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
+**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno; el progreso se guarda en partidas, ver "Partidas guardadas" más abajo). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -155,9 +155,9 @@ Al ejecutar `python main.py` pasa esto, en orden:
 
 1. **Pantalla de carga** (`scenes/loading.py`): "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio.
 2. **Intro** (`scenes/menu.py` + `ui/intro_art.py`): estilo la intro de South Park en pixel art. Se acerca la cabeza de Stan y caen la calle, los cuerpos y las cabezas de Cartman, Kyle, Stan y Kenny en la parada del bus. Está sincronizada con la canción `assets/musica/intro.mp3`.
-3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / CATÁLOGO / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
+3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones CONTINUAR (solo si hay partidas guardadas) / NUEVA PARTIDA / CATÁLOGO / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
 
-Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR se abre el mapa de niveles; la música se apaga con un fundido al entrar a un nivel.
+Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar NUEVA PARTIDA (o elegir una partida en CONTINUAR) se abre el mapa de niveles; la música se apaga con un fundido al entrar a un nivel.
 
 Cosas que se pueden tocar:
 
@@ -167,7 +167,20 @@ Cosas que se pueden tocar:
 | Cambiar la canción | reemplazar `assets/musica/intro.mp3` y ajustar `MUSICA_DURACION` en `settings.py` |
 | Cuándo aterriza cada cabeza | `KIDS` (`head_t`, `body_t`) en `ui/intro_art.py` |
 | Orden y lugar de los chicos | `KIDS` (`x`) en `ui/intro_art.py` |
-| Botones (textos, posición) | `BOTONES` y `BTN_Y` en `scenes/menu.py` |
+| Botones (textos, posición) | `self.botones` en `MenuScene.__init__` y `BTN_X`, `BTN_Y0`, `BTN_DY` en `scenes/menu.py` |
 | Sprites de los chicos | `assets/plantas/cartman_idle.png`, `kyle_idle.png`, `kenny_explosion.png` y `assets/personajes/stan_idle.png` (se usa el frame 0 de cada uno) |
 
 La canción va a 145 BPM (un pulso cada 0,414 s) y los momentos clave de la intro caen sobre esos pulsos: Kenny en el pulso 5, Stan en el 6 y Cartman en el 7 (justo en la pausa de la canción).
+
+## Partidas guardadas
+
+Hay 10 ranuras ("Partida 1" a "Partida 10") en `partidas.json`, al lado de `main.py` (no se sube a git). Cada partida guarda los niveles ganados y la velocidad; un nivel a medio jugar no se guarda (al continuar se vuelve al mapa). La lógica está en `guardado.py` y el panel en `scenes/partidas.py`.
+
+- **Nueva partida** arranca el progreso de cero, todavía sin ranura.
+- **Continuar** abre el panel con las partidas y carga la elegida.
+- **Pausa > Guardar** guarda en una ranura vacía, o pisa otra después de preguntar "¿De verdad quieres sobreescribir esta partida?". La partida pasa a usar esa ranura.
+- **Guardado automático** al volver al menú principal, al ganar un nivel y al cerrar el juego: en la ranura de la partida o, si es nueva, en la primera libre. Si no hay ninguna libre no se guarda (el menú lo avisa).
+
+## Sonido
+
+Opciones > Sonido tiene un volumen General y uno para Música, Efectos, Personajes y Enemigos (slider de 0 a 100 % y casilla de silencio cada uno), más "Silenciar en segundo plano" (marcada por defecto). Los cambios se escuchan al momento y se guardan con Aplicar en `config.json` (clave `"sonido"`). Qué efecto va en cada categoría: `CATEGORIA` en `ui/sonidos.py`; el cálculo del volumen está en `ui/audio.py`. Desde la pausa también se puede abrir Opciones.

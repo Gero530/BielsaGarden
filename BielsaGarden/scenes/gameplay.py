@@ -5,6 +5,7 @@ y las condiciones de victoria/derrota.
 import random
 import pygame
 import display
+import guardado
 from settings import SCREEN_W, SCREEN_H, COLORS, GRID_X, HOUSE_X, PLANT_DATA
 from settings import BRAINS_INTERVALO, RUIDO_ZOMBIE_INTERVALO
 from scenes.base import Scene
@@ -57,10 +58,10 @@ class GameplayScene(Scene):
         self.selected = None          # key de planta, "pala" o None
         self.paused = False
         self.velocidad = getattr(game, "velocidad", 1)    # x1 / x2 / x3, se recuerda entre niveles
-        acciones = (("CONTINUAR", self.toggle_pausa), ("VOLVER AL MAPA", self.ir_mapa),
-                    ("MENÚ PRINCIPAL", self.ir_menu))
+        acciones = (("CONTINUAR", self.toggle_pausa), ("GUARDAR", self.ir_guardar), ("OPCIONES", self.ir_opciones),
+                    ("VOLVER AL MAPA", self.ir_mapa), ("MENÚ PRINCIPAL", self.ir_menu))
         ancho = max(ancho_tablon(t, 96) for t, _ in acciones)
-        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 316 + i * 58), fn, size=(ancho, 15))
+        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 292 + i * 56), fn, size=(ancho, 15))
                            for i, (t, fn) in enumerate(acciones)]
         self.banner = None            # (texto, segundos_restantes)
         self.kills = 0
@@ -256,7 +257,24 @@ class GameplayScene(Scene):
 
     def ir_menu(self):
         from scenes.menu import MenuScene
-        self.game.change_scene(MenuScene(self.game))
+        self.game.change_scene(MenuScene(self.game))         # el menú guarda solo la partida
+
+    def captura(self):
+        """La partida tal como se ve, sin el cartel de pausa (fondo de Guardar)."""
+        img = pygame.Surface((SCREEN_W, SCREEN_H))
+        pausado, self.paused = self.paused, False
+        self.draw(img, show_cursor=False)
+        self.paused = pausado
+        return img
+
+    def ir_guardar(self):
+        """Pausa > Guardar: elegir ranura. Al volver, la partida sigue en pausa donde estaba."""
+        from scenes.partidas import PartidasScene
+        self.game.change_scene(PartidasScene(self.game, "guardar", volver_a=self, fondo=self.captura()))
+
+    def ir_opciones(self):
+        from scenes.options import OptionsScene
+        self.game.change_scene(OptionsScene(self.game, volver_a=self))
 
     def toggle_select(self, key):
         if key != "pala":
@@ -392,6 +410,7 @@ class GameplayScene(Scene):
         self._result = victory
         if victory:
             self.game.progreso.add(self.level["id"])     # desbloquea el siguiente en el mapa
+            guardado.autoguardar(self.game)
         sonidos.canto(False)
         sonidos.masticar(False)
         musica.partida_parar(500)
