@@ -6,6 +6,7 @@ import random
 import pygame
 import display
 import guardado
+import logros
 from settings import SCREEN_W, SCREEN_H, COLORS, GRID_X, HOUSE_X, PLANT_DATA
 from settings import BRAINS_INTERVALO, RUIDO_ZOMBIE_INTERVALO
 from scenes.base import Scene
@@ -65,6 +66,7 @@ class GameplayScene(Scene):
                            for i, (t, fn) in enumerate(acciones)]
         self.banner = None            # (texto, segundos_restantes)
         self.kills = 0
+        self.timmy_en_final = False   # Timmy salió durante la oleada final (logro)
         self.frases_dichas = set()    # frases que salen una sola vez por nivel (ej. Cartman)
         self.time = 0.0
         self.end_delay = None         # pequeña pausa antes de mostrar victoria
@@ -156,6 +158,7 @@ class GameplayScene(Scene):
                 s.alive = False
                 self.sun += s.value
                 self.juntados += 1
+                logros.sumar("energia", s.value)
                 sonidos.reproducir("carne")
                 return True
         return False
@@ -375,6 +378,9 @@ class GameplayScene(Scene):
         self.actualizar_canto()
         self.actualizar_mastica(dt)
         before = len(self.zombies)
+        for z in self.zombies:
+            if not z.alive and not z.hypno and z.muerto_por:
+                logros.sumar("muertes_" + z.muerto_por)        # muertes por personaje (logros)
         self.zombies = [z for z in self.zombies if z.alive]
         self.kills += before - len(self.zombies)
         self.projectiles = [p for p in self.projectiles if p.alive]
@@ -407,10 +413,17 @@ class GameplayScene(Scene):
         return getattr(self, "_result", None)
 
     def finish(self, victory):
+        if self.result is not None:          # ya terminó: no volver a contar la victoria (logros, guardado)
+            return
         self._result = victory
         if victory:
             self.game.progreso.add(self.level["id"])     # desbloquea el siguiente en el mapa
             guardado.autoguardar(self.game)
+            logros.agregar("niveles", self.level["id"])
+            if self.timmy_en_final:
+                logros.sumar("timmy_final")
+            if any(p.key == "nuez" and p.alive for p in self.grid.plants()):
+                logros.sumar("butters_sobrevive")
         sonidos.canto(False)
         sonidos.masticar(False)
         musica.partida_parar(500)

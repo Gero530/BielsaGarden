@@ -184,3 +184,15 @@ Hay 10 ranuras ("Partida 1" a "Partida 10") en `partidas.json`, al lado de `main
 ## Sonido
 
 Opciones > Sonido tiene un volumen General y uno para Música, Efectos, Personajes y Enemigos (slider de 0 a 100 % y casilla de silencio cada uno), más "Silenciar en segundo plano" (marcada por defecto). Los cambios se escuchan al momento y se guardan con Aplicar en `config.json` (clave `"sonido"`). Qué efecto va en cada categoría: `CATEGORIA` en `ui/sonidos.py`; el cálculo del volumen está en `ui/audio.py`. Desde la pausa también se puede abrir Opciones.
+
+## Logros
+
+Botón LOGROS abajo a la izquierda del menú. Son 13 logros que **no dependen de la partida**: se guardan aparte en `logros.json` (no se sube a git) y, una vez completados, quedan así aunque se empiece otra partida. En la lista, los pendientes se ven en gris con su progreso y los completados a color, con la fecha. Al completar uno aparece el cartel "¡LOGRO DESBLOQUEADO!" en cualquier pantalla.
+
+| Dónde | Qué |
+|---|---|
+| `logros.py` | Lista `LOGROS` (nombre, descripción, ícono, tipo y meta) y el progreso (`sumar`, `agregar`, `maximo`) |
+| `scenes/logros.py` | Pantalla con la lista (rueda, flechas o barra para desplazarse) |
+| `ui/aviso_logro.py` | Íconos (sprites de los personajes) y cartel de logro desbloqueado |
+
+Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todas las partidas; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el tractor y el gigante no).

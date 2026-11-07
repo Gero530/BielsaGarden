@@ -17,6 +17,7 @@ from data.catalogo import FRASE_KENNY_EXPLOTA, FRASES_AL_PLANTAR
 from entities.sun import Sun
 from ui.sprites import draw_sprite, has_sprite, anim_duration, SPRITES
 from ui import sonidos
+import logros
 
 
 class Plant:
@@ -309,9 +310,12 @@ class Kenny(Plant):
         area = self.area()
         sonidos.reproducir("explosion")
         sonidos.reproducir("kenny")
+        muertos = 0
         for z in world.zombies:
             if self.en_area(z, area):
-                z.take_damage(self.data["dano"], frontal=False)   # explosión: la puerta no la frena
+                z.take_damage(self.data["dano"], frontal=False, fuente="kenny")   # la puerta no la frena
+                muertos += not z.alive
+        logros.maximo("kenny_simultaneas", muertos)
         world.effects.append(Flash(area.clip(world.grid.rect)))
         world.effects.append(FloatingText(FRASE_KENNY_EXPLOTA, (self.rect.centerx, self.rect.top + 10)))
 
@@ -414,6 +418,7 @@ class Magnet(Plant):
                     start = self.target.metal_pos()
                     self.target.remove_metal()
                     sonidos.reproducir("iman")
+                    logros.sumar("santi_defensas")
                     world.effects.append(FlyingMetal(start, self))
                     self.target = None          # queda esperando a que llegue el balde
                 else:                           # murió o lo perdió en el medio: vuelve a buscar
@@ -464,13 +469,16 @@ class Picante(Plant):
     def explode(self, world):
         g = world.grid
         col_rect = g.cell_rect(0, self.col)
+        muertos = 0
         for z in world.zombies:
             if not z.alive or z.hypno or z.airborne:
                 continue
             en_fila = z.row == self.row and g.rect.left - 20 <= z.x <= SCREEN_W
             en_col = col_rect.left - 20 < z.x < col_rect.right + 20     # el cuerpo toca la columna
             if en_fila or en_col:
-                z.take_damage(self.data["dano"], frontal=False)
+                z.take_damage(self.data["dano"], frontal=False, fuente="picante")
+                muertos += not z.alive
+        logros.maximo("picante_simultaneas", muertos)
         # En su propia casilla va la explosión del sprite; el fuego, en el resto de la cruz
         cells = [(self.row, c) for c in range(g.cols) if c != self.col] + \
                 [(r, self.col) for r in range(g.rows) if r != self.row]
@@ -574,7 +582,7 @@ class Aplastadora(Plant):
             for z in world.zombies:
                 if z.alive and not z.hypno and not z.underground and not z.airborne \
                         and z.row == self.row and r.left - 10 <= z.x <= r.right + extra:
-                    z.kill()
+                    z.kill(fuente="aplastadora")
             self.state, self.st = "aterriza", 0.0
         elif self.state == "aterriza" and self.st >= self.ATERRIZA:
             self.state = "listo"

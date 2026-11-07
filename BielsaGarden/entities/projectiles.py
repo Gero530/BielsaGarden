@@ -24,6 +24,7 @@ class Pea:
         self.row = row
         self.damage = damage
         self.alive = True
+        self.fuente = "lanzaguisantes"     # quién la tiró (logros: muertes de Stan)
 
     def update(self, dt, world):
         self.x += GUISANTE_VEL * dt
@@ -39,7 +40,7 @@ class Pea:
                 return
 
     def hit(self, zombie):
-        zombie.take_damage(self.damage)
+        zombie.take_damage(self.damage, fuente=self.fuente)
 
     def draw(self, surface):
         c = (int(self.x), int(self.y))
@@ -54,7 +55,7 @@ class Snowball(Pea):
 
     def hit(self, zombie):
         en_la_puerta = zombie.shield > 0 and not zombie.escudo_total   # rebota en la puerta: no lo frena
-        zombie.take_damage(self.damage)
+        zombie.take_damage(self.damage, fuente=self.fuente)
         if not en_la_puerta:
             zombie.slow_down(NIEVE_DURACION)
 
@@ -112,7 +113,7 @@ class Ike:
                     best = z
         if best is not None:
             sonidos.reproducir("impacto")
-            best.take_damage(self.damage, frontal=False)   # cae de arriba: la puerta no lo frena
+            best.take_damage(self.damage, frontal=False, fuente="kyle")   # cae de arriba: la puerta no lo frena
         self.alive = False
 
     def frame(self):

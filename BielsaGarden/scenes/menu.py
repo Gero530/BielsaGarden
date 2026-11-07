@@ -27,6 +27,7 @@ BTN_Y0 = 196                      # centro del primer botón
 BTN_DY = 68                       # distancia entre botones
 BTN_W, BTN_H = 176, 26            # tamaño interno (se agranda xBTN_ESC en pantalla)
 BTN_ESC = 2                       # x2 (no x3 como el resto): así "NUEVA PARTIDA" entra en el ancho
+LOGROS_W, LOGROS_H = BTN_W // 2, BTN_H // 2    # botón LOGROS: la mitad de los otros, abajo a la izquierda
 T_BOTON = 0.16                    # retraso entre un botón y el siguiente al aparecer
 EMPIEZA_SIN_INTRO = 3.4           # segundo de la canción desde el que suena si se vuelve al menú
 
@@ -57,6 +58,8 @@ class MenuScene(Scene):
         self.botones = ([("CONTINUAR", self.continuar)] if guardado.hay_partidas() else []) + [
             ("NUEVA PARTIDA", self.nueva_partida), ("CATÁLOGO", self.catalogo),
             ("OPCIONES", self.opciones), ("SALIR", self.salir)]
+        self.n_grandes = len(self.botones)          # los de la columna; después va LOGROS (chico)
+        self.botones.append(("LOGROS", self.logros))
         self._destellos = [button.Destello() for _ in self.botones]
 
         # Música: arranca con la intro; si se vuelve al menú sigue sonando o arranca sin la intro
@@ -93,6 +96,10 @@ class MenuScene(Scene):
         from scenes.options import OptionsScene
         self.game.change_scene(OptionsScene(self.game))
 
+    def logros(self):
+        from scenes.logros import LogrosScene
+        self.game.change_scene(LogrosScene(self.game))
+
     def salir(self):
         self.game.quit()
 
@@ -115,14 +122,21 @@ class MenuScene(Scene):
     # ------------------------------------------------------------------
     # Eventos
     # ------------------------------------------------------------------
+    def _chico(self, i):
+        return i >= self.n_grandes
+
     def _rect_boton(self, i):
+        if self._chico(i):
+            r = pygame.Rect(0, 0, LOGROS_W * BTN_ESC, LOGROS_H * BTN_ESC)
+            r.bottomleft = (14, SCREEN_H - 12)
+            return r
         r = pygame.Rect(0, 0, BTN_W * BTN_ESC, BTN_H * BTN_ESC)
         r.center = (BTN_X, self._y(i))
         return r
 
     def _y(self, i):
         # Con 4 botones (sin CONTINUAR) quedan más abajo, en el lugar de los 4 de abajo
-        return BTN_Y0 + (i + 5 - len(self.botones)) * BTN_DY
+        return BTN_Y0 + (i + 5 - self.n_grandes) * BTN_DY
 
     def handle_event(self, event):
         if not self._menu_visible():
@@ -227,6 +241,15 @@ class MenuScene(Scene):
                     continue
                 hover = (i == self.sel) and self._menu_visible()
                 estado = "apretado" if button.apretado(("menu", i)) else ("hover" if hover else "normal")
+                if self._chico(i):                                 # LOGROS: entra desde la izquierda
+                    img = self._cartel(txt, LOGROS_W, LOGROS_H, 1, estado,
+                                       self._destellos[i].fase(estado == "hover"))
+                    r = self._rect_boton(i).move(-int(300 * (1 - ui)) + (6 if hover else 0), 0)
+                    surface.blit(img, r)
+                    if hover:
+                        draw_pixel_text(surface, "<", (255, 220, 60), 3, center=(r.right + 16, r.centery),
+                                        outline=(60, 40, 10))
+                    continue
                 img = self._cartel(txt, BTN_W, BTN_H, 2, estado,
                                    self._destellos[i].fase(estado == "hover"))
                 r = img.get_rect(center=(BTN_X + int(520 * (1 - ui)) - (10 if hover else 0), self._y(i)))

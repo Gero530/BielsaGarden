@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 partidas.json
 partidas.json.tmp
+logros.json
+logros.json.tmp

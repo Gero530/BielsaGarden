@@ -14,8 +14,14 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 os.chdir(RAIZ)
 
+import tempfile
 import pygame
 import game as gm
+import guardado
+import logros
+# Las pruebas no tocan las partidas ni los logros del jugador: usan archivos temporales
+guardado.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_partidas.json")
+logros.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_logros.json")
 from settings import GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
 from scenes.gameplay import GameplayScene
 from scenes.result import ResultScene

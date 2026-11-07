@@ -25,6 +25,7 @@ class WaveManager:
         self.pending = []            # (segundo, tipo, fila)
         notices = list(level.get("avisos", []))
         self.flags = []              # segundos de las hordas con bandera (y la final)
+        self.final_t = None          # segundo en que arranca la oleada final (None: no tiene)
         for w in level["oleadas"]:
             horda = w.get("bandera") or w.get("final")
             cada = w.get("cada", 0.8 if horda else 1.5)
@@ -34,6 +35,7 @@ class WaveManager:
             if horda:
                 self.flags.append(w["t"])
                 if w.get("final"):
+                    self.final_t = w["t"] if self.final_t is None else min(self.final_t, w["t"])
                     notices.append((max(0.0, w["t"] - AVISO_ANTES), TXT_FINAL, ("oleada", "sirena")))
                 else:
                     notices.append((max(0.0, w["t"] - AVISO_ANTES), TXT_HORDA, "sirena"))
@@ -69,6 +71,11 @@ class WaveManager:
             # (texto, sonido): el sonido es opcional (3er dato del aviso en el nivel)
             notices.append((aviso[1], aviso[2] if len(aviso) > 2 else None))
         return to_spawn, notices
+
+    @property
+    def en_final(self):
+        """True desde que arrancó la oleada final."""
+        return self.final_t is not None and self.elapsed >= self.final_t
 
     @property
     def finished(self):

@@ -12,6 +12,7 @@ import random
 import pygame
 from settings import ZOMBIE_DATA, SCREEN_W, CELL_H, CELL_W, GRID_X, NIEVE_RALENTIZA, ALIEN_CASILLAS
 from ui import sonidos
+import logros
 HIPNO_TINTE = (190, 130, 255)     # color que se multiplica sobre el sprite hipnotizado
 HIPNO_ALCANCE = 36                 # a qué distancia (px) muerde a otro zombie
 NIEVE_TINTE = (150, 200, 255)      # celeste mientras está ralentizado por la nieve de Stan
@@ -54,6 +55,7 @@ class Zombie:
         self.hit_flash = 0.0
         self.t = random.random() * 2
         self.hypno = False         # True: pelea de nuestro lado
+        self.muerto_por = None     # clave de la planta que lo mató (para los logros)
         self.stun = 0.0            # frenado un instante porque un hipnotizado lo está mordiendo
         self.slow = 0.0            # segundos que le quedan ralentizado (bola de nieve de Stan)
         self.dir = -1              # -1 camina a la izquierda (hacia la casa), 1 a la derecha
@@ -86,8 +88,9 @@ class Zombie:
     def rect(self):
         return pygame.Rect(int(self.x) - 20, self.y_top + 8, 40, CELL_H - 16)
 
-    def take_damage(self, amount, frontal=True):
-        """frontal=False: el golpe viene de arriba o es una explosión (no lo frena la puerta)."""
+    def take_damage(self, amount, frontal=True, fuente=None):
+        """frontal=False: el golpe viene de arriba o es una explosión (no lo frena la puerta).
+        fuente: clave de la planta que pega (si lo mata, queda en muerto_por para los logros)."""
         self.hit_flash = 0.08
         if self.shield > 0 and (frontal or self.escudo_total):
             absorbed = min(self.shield, amount)
@@ -101,9 +104,13 @@ class Zombie:
             amount -= absorbed
         self.hp -= amount
         if self.hp <= 0:
+            if self.alive:
+                self.muerto_por = fuente
             self.alive = False
 
-    def kill(self):
+    def kill(self, fuente=None):
+        if self.alive:
+            self.muerto_por = fuente
         self.hp = 0
         self.alive = False
 
@@ -224,6 +231,7 @@ class Zombie:
                 target.alive = False
                 self.hypnotize()
                 sonidos.reproducir("hipnosis")
+                logros.agregar("toallin_tipos", self.key)
                 return
             if self.on_plant(target, world):
                 return

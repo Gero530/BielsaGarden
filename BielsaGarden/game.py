@@ -10,7 +10,8 @@ se encarga de escalarla a la resolución/pantalla completa elegida.
 import pygame
 import display
 import guardado
-from ui import button, audio
+import logros
+from ui import button, audio, aviso_logro
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
 
 CORTINA = 0.3          # segundos que tarda la cortina de cartulina en cruzar la pantalla
@@ -43,6 +44,7 @@ class Game:
         self.change_scene(LoadingScene(self))
 
     def change_scene(self, new_scene):
+        logros.guardar()                    # el progreso de los logros se guarda al cambiar de pantalla
         if self.scene is not None:          # la primera escena no tiene transición
             self.cortina = [self.screen.copy(), 0.0]
         self.scene = new_scene
@@ -91,7 +93,9 @@ class Game:
             self.scene.draw(self.screen)
             self.dibujar_cortina(dt)
             button.dibujar_efectos(self.screen)
+            aviso_logro.dibujar(self.screen, dt)
             display.present(self.screen)
 
         guardado.autoguardar(self)            # al cerrar el juego se guarda la partida en curso
+        logros.guardar()
         pygame.quit()
