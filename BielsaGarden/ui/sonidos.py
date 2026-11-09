@@ -11,6 +11,7 @@ import os
 import time
 import pygame
 from settings import SFX_VOLUMEN, SFX_VOLUMENES, SFX_ESPERA
+from ui import audio
 
 CARPETA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "sonidos")
 
@@ -33,6 +34,14 @@ ARCHIVOS = {
     "oleada": "oleada.mp3",                # cartel de oleada final
     "sirena": "sirena.mp3",                # llegan los zombies / después de oleada
     "hablar": "sans.mp3",                  # sonidito de cada letra cuando habla Bielsa (estilo Sans)
+}
+
+# Categoría de cada efecto para los volúmenes de Opciones > Sonido (ui/audio.py).
+# Los que no están en la lista son "efectos".
+CATEGORIA = {
+    "disparo": "personajes", "kenny": "personajes", "hipnosis": "personajes", "iman": "personajes",
+    "timmy": "personajes", "canto": "personajes", "hablar": "personajes",
+    "zombie_comiendo": "enemigos", "brains": "enemigos", "ruido_zombie": "enemigos",
 }
 
 _cache = {}          # nombre -> pygame.mixer.Sound (o None si no se pudo cargar)
@@ -61,11 +70,25 @@ def _cargar(nombre):
         if archivo and _mixer():
             try:
                 sonido = pygame.mixer.Sound(os.path.join(CARPETA, archivo))
-                sonido.set_volume(SFX_VOLUMEN * SFX_VOLUMENES.get(nombre, 1.0))
+                sonido.set_volume(_volumen(nombre))
             except (pygame.error, FileNotFoundError, OSError) as e:
                 print(f"[sonidos] No se pudo cargar '{archivo}': {e}")
         _cache[nombre] = sonido
     return _cache[nombre]
+
+
+def _volumen(nombre):
+    return SFX_VOLUMEN * SFX_VOLUMENES.get(nombre, 1.0) * audio.factor(CATEGORIA.get(nombre, "efectos"))
+
+
+def aplicar_volumen():
+    """Recalcula el volumen de los efectos cargados (también cambia los que ya están sonando)."""
+    for nombre, sonido in _cache.items():
+        if sonido is not None:
+            try:
+                sonido.set_volume(_volumen(nombre))
+            except pygame.error:
+                pass
 
 
 def precargar():

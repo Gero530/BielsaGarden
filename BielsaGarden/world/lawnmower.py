@@ -56,6 +56,8 @@ class LawnMower:
                     self.active = True
                     self.shout = DURACION_GRITO
                     sonidos.reproducir("timmy")
+                    if getattr(world, "waves", None) is not None and world.waves.en_final:
+                        world.timmy_en_final = True      # logro "¡TIMMAEH!" si después se gana
                     break
         if self.active:
             self.x += VELOCIDAD * dt

@@ -228,6 +228,20 @@ TABLON_PAL = {
 TABLON_SOMBRA = (0, 0, 0, 90)
 
 
+def _lugar_texto(img, ancho, top, ph, esc):
+    """Dónde va el texto en el tablón. Se centra en la cara de la madera (sin el borde) lo que
+    se ve: las letras (7 filas) más la luz tallada de abajo (1 fila más). La fila de la tilde
+    (Á, É...) no cuenta: sube al margen de arriba en vez de empujar las letras contra el borde
+    de abajo. Si sobra una fila impar, va abajo."""
+    cara_y, cara_h = top + 1, ph - 2                 # filas entre el borde de arriba y el de abajo
+    bloque = 8 * esc                                 # 7 de letra + 1 de luz
+    tilde = img.get_height() - 7 * esc               # fila de más arriba si hay tildes
+    r = img.get_rect()
+    r.centerx = ancho // 2
+    r.top = cara_y + max(0, cara_h - bloque) // 2 - tilde
+    return r
+
+
 def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, color_texto=None):
     """Tablón de madera de 3 tonos con letras talladas (en píxeles de dibujo; se agranda afuera).
     estado: "normal" (apoyado, con sombra abajo), "hover" (más claro y levantado 1 píxel),
@@ -251,7 +265,7 @@ def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, col
     s.fill(osc, (inner.x, inner.bottom - 1, inner.w, 1)); s.fill(osc, (inner.right - 1, inner.y, 1, inner.h))
     # Franja del texto: las vetas no pasan por ahí (no tachan las letras)
     img = pixel_text(texto, color_texto or letra, escala_texto) if texto else None
-    tr = img.get_rect(center=(ancho // 2, top + ph // 2 + 1)) if img else pygame.Rect(0, 0, 0, 0)
+    tr = _lugar_texto(img, ancho, top, ph, escala_texto) if img else pygame.Rect(0, 0, 0, 0)
     franja = range(tr.top - 1, tr.bottom + escala_texto + 1) if img else range(0)
     rnd = random.Random(ancho * 31 + alto * 7)
     for y in range(inner.y + 3, inner.bottom - 2, 3):           # vetas cortas

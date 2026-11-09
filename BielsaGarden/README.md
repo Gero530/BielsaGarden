@@ -55,7 +55,20 @@ python main.py
 
 Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
 
-**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno, el progreso dura mientras el juego está abierto). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
+**Niveles** (se desbloquean de a uno; el progreso es de la cuenta del jugador, ver "Cuentas" más abajo). Cada uno presenta uno o dos zombies nuevos, de a uno, antes de mezclarlos en las hordas:
+
+| Nivel | Lugar del mapa | Zombies nuevos | Azar |
+|---|---|---|---|
+| Tutorial | Las casas de arriba (a la derecha del parque) | Normal | 0 |
+| 1 | El jardín (casas de abajo a la derecha) | Cono | 0,1 |
+| 2 | La escuela | Diario | 0,2 |
+| 3 | La mansión | Balde, puerta | 0,35 |
+| 4 | El lago | Pértiga, escalera | 0,5 |
+| 5 | El parque | Bailarín, excavador | 0,65 |
+| 6 | El centro comercial | Bungee, alien | 0,8 |
+| 7 | El bosque | Tractor, gigante | 1 |
+
+Las oleadas están en `levels/*.py` (formato explicado en `world/wave_manager.py`). Cada oleada dice **cuántos** zombies de cada tipo vienen (`{"normal": 3, "cono": (1, 2)}`; un par es un rango que se sortea). En cada partida salen **mezclados** y por **filas al azar** (repartidos entre las 5 filas, sin repetir la del anterior). El `"azar"` del nivel hace que las partidas cambien más: tiempos irregulares, ráfagas de zombies casi juntos y, en las oleadas comunes, algún zombie sorpresa de los que ya aparecen en el nivel. Las hordas con bandera y la oleada final tienen cartel. Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -72,14 +85,15 @@ scenes/
   result.py          Pantalla de victoria / derrota (pixel art)
   mapa.py            Mapa de niveles (desbloqueo, candados)
   equipo.py          Elegí tu equipo antes de cada nivel (máximo EQUIPO_MAX de settings.py)
-  catalogo.py        Catálogo de personajes y zombies
+  catalogo.py        Catálogo (almanaque): grilla de retratos animados + ficha con frase de Bielsa; los zombies no vistos van en silueta
 
 data/
   mapa.py            Fondo del mapa y posición de cada botón de nivel
-  catalogo.py        Nombres y descripciones del catálogo
+  catalogo.py        Nombres, descripciones y frases de Bielsa del catálogo
 
 tools/
   generar_placeholders.py   Crea los sprites placeholder de assets/sprites/nuevos/ (no pisa los existentes)
+  mapa_pueblo.py            Dibuja el mapa del pueblo nevado en pixel art (assets/mapa/pueblo_pixel.png); qué mapa se usa: data/mapa.py
 
 world/
   grid.py            Grilla 5x9: celdas, colocación de plantas, dibujo del césped
@@ -107,7 +121,7 @@ assets/
 levels/
   __init__.py        Lista de niveles
   tutorial.py        Tutorial guiado (pasos con diálogo)
-  level_1.py ... level_3.py   Oleadas de cada nivel
+  level_1.py ... level_7.py   Oleadas de cada nivel
   dialogos.py        Diálogos de Bielsa por nivel
 ```
 
@@ -115,7 +129,7 @@ levels/
 
 - **Nueva planta**: datos en `settings.PLANT_DATA` → clase en `entities/plants.py` → registrar en `PLANT_CLASSES` → nombre y descripción en `data/catalogo.py`. Aparece sola en la pantalla de equipo (un nivel puede limitar las opciones con `"plantas": [...]`).
 - **Nuevo zombie**: datos en `settings.ZOMBIE_DATA` → clase en `entities/zombies.py` → registrar en `ZOMBIE_CLASSES`.
-- **Nuevo nivel**: copiar `levels/level_3.py` como `level_4.py` (con un `"id"` nuevo), cambiar las oleadas, agregarlo a `LEVELS` en `levels/__init__.py` y sumar su botón en `data/mapa.py`.
+- **Nuevo nivel**: copiar `levels/level_7.py` como `level_8.py` (con un `"id"` nuevo), cambiar las oleadas, agregarlo a `LEVELS` en `levels/__init__.py` y sumar su botón en `data/mapa.py`.
 - **Sprites**: poné la tira horizontal (PNG transparente) en `assets/` y agregá una línea en `SPRITES` dentro de `ui/sprites.py`
   con el archivo, el tamaño de un frame y los fps. Se escala x2 automáticamente. Si falta el archivo se usa el dibujo con formas.
   Animaciones de acción (como el disparo) llevan `"loop": False` y se reproducen una vez.
@@ -155,9 +169,9 @@ Al ejecutar `python main.py` pasa esto, en orden:
 
 1. **Pantalla de carga** (`scenes/loading.py`): "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio.
 2. **Intro** (`scenes/menu.py` + `ui/intro_art.py`): estilo la intro de South Park en pixel art. Se acerca la cabeza de Stan y caen la calle, los cuerpos y las cabezas de Cartman, Kyle, Stan y Kenny en la parada del bus. Está sincronizada con la canción `assets/musica/intro.mp3`.
-3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / CATÁLOGO / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
+3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / CATÁLOGO / OPCIONES / SALIR, más dos chicos: LOGROS (abajo a la izquierda) y el nombre del jugador (arriba a la derecha). La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
 
-Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR se abre el mapa de niveles; la música se apaga con un fundido al entrar a un nivel.
+Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR se abre el mapa de niveles con el progreso de la cuenta activa; la música se apaga con un fundido al entrar a un nivel.
 
 Cosas que se pueden tocar:
 
@@ -167,7 +181,34 @@ Cosas que se pueden tocar:
 | Cambiar la canción | reemplazar `assets/musica/intro.mp3` y ajustar `MUSICA_DURACION` en `settings.py` |
 | Cuándo aterriza cada cabeza | `KIDS` (`head_t`, `body_t`) en `ui/intro_art.py` |
 | Orden y lugar de los chicos | `KIDS` (`x`) en `ui/intro_art.py` |
-| Botones (textos, posición) | `BOTONES` y `BTN_Y` en `scenes/menu.py` |
+| Botones (textos, posición) | `self.botones` en `MenuScene.__init__` y `BTN_X`, `BTN_Y0`, `BTN_DY` en `scenes/menu.py` |
 | Sprites de los chicos | `assets/plantas/cartman_idle.png`, `kyle_idle.png`, `kenny_explosion.png` y `assets/personajes/stan_idle.png` (se usa el frame 0 de cada uno) |
 
 La canción va a 145 BPM (un pulso cada 0,414 s) y los momentos clave de la intro caen sobre esos pulsos: Kenny en el pulso 5, Stan en el 6 y Cartman en el 7 (justo en la pausa de la canción).
+
+## Cuentas
+
+El jugador tiene una cuenta con su nombre, y en ella se guardan su progreso (niveles ganados y velocidad) y sus logros (también los zombies descubiertos del catálogo). Todo va en `cuentas.json`, al lado de `main.py` (no se sube a git). La pantalla y el sonido son de la compu, no de la cuenta (`config.json`).
+
+- **Primera vez**: después de la pantalla de carga, Bielsa pide el nombre (`scenes/nombre.py`) y se crea la cuenta.
+- **Al abrir el juego** se entra con la última cuenta activa.
+- **Botón con el nombre** (arriba a la derecha del menú) → `scenes/cuentas.py`: clic en una cuenta para jugar con ella, NUEVA CUENTA, EDITAR (cambiar el nombre) y BORRAR (pregunta antes). Si se borra la única cuenta, se vuelve a pedir un nombre.
+- Nombres de hasta 12 letras, sin repetir; hasta 6 cuentas (`MAX_NOMBRE` y `MAX_CUENTAS` en `cuentas.py`).
+- **Guardado automático**: al ganar un nivel, al volver al menú, al cambiar de cuenta y al cerrar el juego.
+- **Migración**: la primera cuenta que se crea hereda lo de la versión anterior (`logros.json` y la partida de `partidas.json` con más niveles), si esos archivos existen. Después se pueden borrar.
+
+## Sonido
+
+Opciones > Sonido tiene un volumen General y uno para Música, Efectos, Personajes y Enemigos (slider de 0 a 100 % y casilla de silencio cada uno), más "Silenciar en segundo plano" (marcada por defecto). Los cambios se escuchan al momento y se guardan con Aplicar en `config.json` (clave `"sonido"`). Qué efecto va en cada categoría: `CATEGORIA` en `ui/sonidos.py`; el cálculo del volumen está en `ui/audio.py`. Desde la pausa también se puede abrir Opciones.
+
+## Logros
+
+Botón LOGROS abajo a la izquierda del menú. Son 13 logros y son **de la cuenta**: se guardan en `cuentas.json` dentro de la cuenta activa y, una vez completados, quedan así. Cada cuenta tiene los suyos. En la lista, los pendientes se ven en gris con su progreso y los completados a color, con la fecha. Al completar uno aparece el cartel "¡LOGRO DESBLOQUEADO!" en cualquier pantalla.
+
+| Dónde | Qué |
+|---|---|
+| `logros.py` | Lista `LOGROS` (nombre, descripción, ícono, tipo y meta) y el progreso (`sumar`, `agregar`, `maximo`) |
+| `scenes/logros.py` | Pantalla con la lista (rueda, flechas o barra para desplazarse) |
+| `ui/aviso_logro.py` | Íconos (sprites de los personajes) y cartel de logro desbloqueado |
+
+Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todo lo que se juega con la cuenta; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el tractor y el gigante no).

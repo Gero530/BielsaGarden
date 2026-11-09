@@ -85,10 +85,10 @@ def empezar_nivel(game, idx):
 
 def zombies_del_nivel(level):
     """Tipos de zombie que aparecen en el nivel, en orden de aparición y sin repetir."""
+    from world.wave_manager import tipos_de_oleada
     vistos = []
     for w in level["oleadas"]:
-        for z in w["zombies"]:
-            k = z if isinstance(z, str) else z[0]
+        for k in tipos_de_oleada(w):
             if k not in vistos:
                 vistos.append(k)
     return vistos

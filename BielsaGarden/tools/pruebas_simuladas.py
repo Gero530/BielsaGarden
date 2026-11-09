@@ -14,10 +14,19 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 os.chdir(RAIZ)
 
+import tempfile
 import pygame
 import game as gm
-from settings import GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
+import cuentas
+# Las pruebas no tocan las cuentas del jugador: usan un archivo temporal, vacío al empezar
+# (sin cuenta activa, los logros se cuentan en memoria y no se guardan)
+cuentas.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_cuentas.json")
+if os.path.exists(cuentas.RUTA):
+    os.remove(cuentas.RUTA)
+cuentas.recargar()
+from settings import CELL_W, GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
 from scenes.gameplay import GameplayScene
+from levels import LEVELS
 from scenes.result import ResultScene
 from scenes.mapa import MapaScene
 from scenes.equipo import EquipoScene
@@ -370,7 +379,8 @@ def _():
     z.hp = z.max_hp * 0.4
     correr(sc, 2.0)
     minis = [m for m in sc.zombies if m.key == "mini"]
-    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + 170)
+    # El gigante lo tira al azar entre GRID_X + 30 y GRID_X + 2 casillas (zombies.py): ese es el rango
+    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + CELL_W * 2 + 10)
     return ("Butters (4000) aplastado a los %.1f s; mini lanzado: %s; cae cerca de la casa: %s"
             % (t, bool(minis), bool(lugar))), t <= 1.6 and bool(minis) and bool(lugar) and not z.tiene_mini
 
@@ -547,11 +557,12 @@ def _():
     textos = lambda r: [b.text for b in r.botones] if hasattr(r, "botones") else [b.text for b in r.buttons]
     try:
         a = textos(ResultScene(G, True, 1))
-        b = textos(ResultScene(G, True, 3))
+        ultimo = len(LEVELS) - 1                     # el último nivel del juego (hoy, el 6)
+        b = textos(ResultScene(G, True, ultimo))
         c = textos(ResultScene(G, False, 1))
     except AttributeError:
         return "no se pudieron leer los botones", False
-    return "gana nivel 1: %s | gana nivel 3: %s | pierde: %s" % (a, b, c), \
+    return "gana nivel 1: %s | gana el último (%d): %s | pierde: %s" % (a, ultimo, b, c), \
         "SIGUIENTE NIVEL" in a and "SIGUIENTE NIVEL" not in b and "SIGUIENTE NIVEL" not in c
 
 

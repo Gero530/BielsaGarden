@@ -1,7 +1,24 @@
 {
   "resolucion": [
-    1000,
-    600
+    1600,
+    900
   ],
-  "pantalla_completa": false
+  "pantalla_completa": false,
+  "sonido": {
+    "volumen": {
+      "general": 9,
+      "musica": 100,
+      "efectos": 100,
+      "personajes": 100,
+      "enemigos": 100
+    },
+    "silencio": {
+      "general": false,
+      "musica": false,
+      "efectos": false,
+      "personajes": false,
+      "enemigos": false
+    },
+    "silenciar_fondo": true
+  }
 }

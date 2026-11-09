@@ -1,43 +1,34 @@
 """
-Nivel 1 — El jardín (~3,5 min). Presenta al zombie con puerta.
+Nivel 1 — El jardín (~3.3 min). Zombie nuevo: cono. El más tranquilo después del tutorial.
 
-Los personajes se eligen antes de jugar (pantalla de equipo, entre todos). Si querés
-limitar los que se pueden elegir en un nivel, agregá "plantas": ["girasol", ...].
-
-Formato de oleadas: ver world/wave_manager.py. Resumen:
-    {"t": segundo, "zombies": [tipo, (tipo, fila), ...], "bandera": True, "final": True, "cada": s}
+Cada oleada dice cuántos zombies de cada tipo vienen; salen mezclados y por filas al azar,
+distinto en cada partida. (mín, máx) = la cantidad también se sortea. Formato completo y qué
+hace "azar": world/wave_manager.py.
 """
 
 LEVEL = {
     "id": "nivel1",
     "nombre": "Nivel 1 - El jardín",
-    "fondo": "fondos/nivel1.png",          # lo genera tools/fondos.py a partir de fondos/jardin.png
+    "fondo": "fondos/tutorial.png",          # por ahora todos usan el fondo nevado del tutorial
     "sol_inicial": 100,
     "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
+    "azar": 0.1,                     # 0 = siempre parecido, 1 = muy distinto en cada partida
 
     "oleadas": [
-        # Arranque: de a uno, para armar la economía con Cartman
-        {"t": 18,  "zombies": [("normal", 2)]},
-        {"t": 38,  "zombies": ["normal"]},
-        {"t": 54,  "zombies": ["normal", "normal"]},
-        {"t": 68,  "zombies": ["cono"]},
-        {"t": 82,  "zombies": ["normal", "cono"]},
-        {"t": 98,  "zombies": ["puerta"]},                           # nuevo: puerta
-        # Horda intermedia
-        {"t": 120, "bandera": True, "zombies": ["normal", "normal", "cono", "normal", "cono", "puerta", "normal", "cubeta"]},
-        # Se pone más pesado
-        {"t": 146, "zombies": ["cono", "normal", "cono"]},
-        {"t": 160, "zombies": ["cubeta", "normal", "normal"]},
-        {"t": 175, "zombies": ["puerta", "cono"]},
-        {"t": 188, "zombies": ["cono", "normal"]},
-        # Oleada final
-        {"t": 208, "final": True, "zombies": [
-            "normal", "cono", "normal", "puerta", "cono", "cubeta",
-            "normal", "cono", "normal", "puerta", "cubeta", "normal"]},
+        {"t": 18, "zombies": {"normal": 1}},
+        {"t": 36, "zombies": {"normal": 1}},
+        {"t": 52, "zombies": {"normal": 2}},
+        {"t": 68, "zombies": {"cono": 1}},   # nuevo: cono
+        {"t": 84, "zombies": {"normal": 1, "cono": 1}},
+        {"t": 100, "zombies": {"normal": 2}},
+        {"t": 120, "bandera": True, "zombies": {"normal": 4, "cono": 2}},   # horda
+        {"t": 146, "zombies": {"normal": 2, "cono": 1}},
+        {"t": 162, "zombies": {"cono": 1, "normal": 1}},
+        {"t": 186, "final": True, "zombies": {"normal": 5, "cono": 3}},   # oleada final
     ],
 
     "avisos": [
         # (segundo, texto, sonido). Los carteles de horda y oleada final salen solos (ver wave_manager).
-        (15,  "¡Se acercan los zombies!", "sirena"),
+        (14, "¡Se acercan los zombies!", "sirena"),
     ],
 }

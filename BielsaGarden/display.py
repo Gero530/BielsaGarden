@@ -42,22 +42,35 @@ def load_config():
     """Lee config.json. Si no existe o está roto, usa los valores por defecto."""
     config.clear()
     config.update(DEFAULT_CONFIG)
-    try:
-        with open(CONFIG_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-        res = data.get("resolucion")
-        if isinstance(res, list) and len(res) == 2 and tuple(res) in RESOLUCIONES:
-            config["resolucion"] = list(res)
-        config["pantalla_completa"] = bool(data.get("pantalla_completa", False))
-    except (OSError, ValueError):
-        pass
+    data = leer_config_json()
+    res = data.get("resolucion")
+    if isinstance(res, list) and len(res) == 2 and tuple(res) in RESOLUCIONES:
+        config["resolucion"] = list(res)
+    config["pantalla_completa"] = bool(data.get("pantalla_completa", False))
     return config
 
 
 def save_config():
+    escribir_config_json(config)
+
+
+def leer_config_json():
+    """Todo el contenido de config.json como dict ({} si no existe o está roto)."""
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def escribir_config_json(cambios):
+    """Actualiza solo las claves de `cambios` en config.json (pantalla y sonido comparten archivo)."""
+    data = leer_config_json()
+    data.update(cambios)
     try:
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2)
+            json.dump(data, f, indent=2, ensure_ascii=False)
     except OSError as e:
         print(f"[display] No se pudo guardar la configuración: {e}")
 

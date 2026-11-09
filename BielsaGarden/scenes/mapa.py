@@ -1,8 +1,8 @@
 """
 Mapa de niveles: Tutorial -> Nivel 1 -> Nivel 2 -> Nivel 3.
 
-Los niveles se desbloquean de a uno (game.progreso, solo en memoria). Los ganados se
-pueden volver a jugar. Fondo y posiciones de los botones: data/mapa.py.
+Los niveles se desbloquean de a uno (game.progreso, de la cuenta activa). Los ganados se
+pueden volver a jugar. Qué mapa se usa, su fondo y dónde va cada botón: data/mapa.py.
 """
 import os
 import pygame
@@ -12,7 +12,8 @@ from scenes.base import Scene
 from levels import LEVELS
 from data import mapa as M
 from ui.sprites import ASSETS_DIR
-from ui.button import CartelButton, tablon
+from ui.button import tablon
+from ui import button
 from ui.pixel_font import pixel_text, text_width, draw_pixel_text
 from ui import intro_art as A, musica
 
@@ -40,6 +41,34 @@ FLECHA = [
 
 _cache = {}
 
+# Botón de volver: tablón chico con una flecha tallada hacia la izquierda (píxeles de dibujo, x3)
+VOLVER_W, VOLVER_H, VOLVER_ESC = 18, 14, 3
+FLECHA_VOLVER = [
+    "...#.......",
+    "..##.......",
+    ".##########",
+    "###########",
+    ".##########",
+    "..##.......",
+    "...#.......",
+]
+
+
+def volver_img(estado):
+    key = ("volver", estado)
+    if key not in _cache:
+        s = A.build_cartel("", VOLVER_W, VOLVER_H, 1, estado=estado).copy()
+        top = {"normal": 1, "hover": 0, "apretado": 2}[estado]
+        x0 = (VOLVER_W - len(FLECHA_VOLVER[0])) // 2
+        y0 = top + (VOLVER_H - 2 - len(FLECHA_VOLVER)) // 2
+        for capa, color, dy in ((1, (236, 200, 140), 1), (0, (40, 22, 6), 0)):   # luz tallada abajo y la flecha
+            for y, fila in enumerate(FLECHA_VOLVER):
+                for x, ch in enumerate(fila):
+                    if ch == "#":
+                        s.set_at((x0 + x, y0 + y + dy), color)
+        _cache[key] = pygame.transform.scale(s, (VOLVER_W * VOLVER_ESC, VOLVER_H * VOLVER_ESC))
+    return _cache[key]
+
 
 def flecha_img():
     if "flecha" not in _cache:
@@ -52,17 +81,49 @@ def flecha_img():
     return _cache["flecha"]
 
 
-def fondo():
-    """Tu dibujo (assets/mapa/fondo_mapa.png) o, si no está, el mapa simple de abajo."""
-    if "fondo" not in _cache:
-        path = os.path.join(ASSETS_DIR, M.FONDO)
+def mapa_elegido():
+    """(config, imagen) del mapa de data/mapa.py. Si falta su PNG se usa el "original", y si
+    tampoco está, el mapa simple dibujado por código (con los botones del original)."""
+    for nombre in (M.MAPA, "original"):
+        cfg = M.MAPAS[nombre]
+        path = os.path.join(ASSETS_DIR, cfg["fondo"])
         if os.path.exists(path):
-            img = pygame.image.load(path).convert()
-        else:
-            img = fondo_simple()
-        # scale (vecino más cercano), nunca smoothscale: el pixel art queda nítido
-        _cache["fondo"] = pygame.transform.scale(img, (M.ANCHO * M.ESCALA, M.ALTO * M.ESCALA))
+            return cfg, pygame.image.load(path).convert()
+    return M.MAPAS["original"], fondo_simple()
+
+
+def _armar_fondo():
+    """El dibujo agrandado/achicado para que entre ENTERO en 1000x600 sin deformarse, centrado,
+    con franjas del color de relleno si sobra lugar. Guarda la escala y el corrimiento para
+    pasar las posiciones de los botones (píxeles del dibujo) a la pantalla."""
+    cfg, img = mapa_elegido()
+    w, h = img.get_size()
+    k = min(SCREEN_W / w, SCREEN_H / h)
+    tam = (round(w * k), round(h * k))
+    if k == int(k):
+        img = pygame.transform.scale(img, tam)          # pixel art agrandado x entero: nítido
+    else:
+        img = pygame.transform.smoothscale(img, tam)    # ilustración achicada: suave, sin perder líneas
+    pantalla = pygame.Surface((SCREEN_W, SCREEN_H))
+    pantalla.fill(cfg["relleno"])
+    off = ((SCREEN_W - tam[0]) // 2, (SCREEN_H - tam[1]) // 2)
+    pantalla.blit(img, off)
+    _cache["fondo"] = pantalla
+    _cache["mapa"] = (cfg, k, off)
+
+
+def fondo():
+    if "fondo" not in _cache:
+        _armar_fondo()
     return _cache["fondo"]
+
+
+def niveles_en_pantalla():
+    """[(id, (x, y) en pantalla)] de los botones del mapa elegido."""
+    if "mapa" not in _cache:
+        _armar_fondo()
+    cfg, k, (ox, oy) = _cache["mapa"]
+    return [(n["id"], (round(ox + n["pos"][0] * k), round(oy + n["pos"][1] * k))) for n in cfg["niveles"]]
 
 
 # Lugares de South Park, uno por nivel (en píxeles del dibujo de 250x150). Ninguno toca el camino
@@ -94,7 +155,7 @@ def fondo_simple():
     for i in range(0, M.ANCHO, 9):                            # manchones de nieve
         s.fill(A.NIEVE, (i * 7 % M.ANCHO, 44 + i * 13 % 100, 6, 2))
     # Camino de tierra uniendo los niveles
-    pts = [n["pos"] for n in M.NIVELES]
+    pts = [n["pos"] for n in M.MAPAS["original"]["niveles"]]
     for a, b in zip(pts, pts[1:]):
         pygame.draw.line(s, (90, 60, 30), a, b, 9)
     for p in pts:
@@ -180,16 +241,16 @@ class MapaScene(Scene):
         self.salida = None            # (indice_nivel, tiempo) mientras se hace el fundido
         self.botones = []             # (indice_nivel, rect en pantalla, etiqueta)
         ids = [lv["id"] for lv in LEVELS]
-        for n in M.NIVELES:
-            if n["id"] not in ids:
-                raise ValueError(f'data/mapa.py: el nivel "{n["id"]}" no existe. '
+        for nid, centro in niveles_en_pantalla():
+            if nid not in ids:
+                raise ValueError(f'data/mapa.py: el nivel "{nid}" no existe. '
                                  f'Los ids válidos (levels/__init__.py) son: {", ".join(ids)}')
-            idx = ids.index(n["id"])
+            idx = ids.index(nid)
             etiqueta = "T" if idx == 0 else str(idx)
             r = pygame.Rect(0, 0, (RADIO * 2 + 2) * M.ESCALA, (RADIO * 2 + 2) * M.ESCALA)
-            r.center = (n["pos"][0] * M.ESCALA, n["pos"][1] * M.ESCALA)
+            r.center = centro
             self.botones.append((idx, r, etiqueta))
-        self.volver_btn = CartelButton("VOLVER", (96, 40), self.volver, size=(50, 14))
+        self.volver_rect = pygame.Rect(12, 12, VOLVER_W * VOLVER_ESC, VOLVER_H * VOLVER_ESC)
         if not musica.sonando():
             from scenes.menu import EMPIEZA_SIN_INTRO
             musica.reproducir(EMPIEZA_SIN_INTRO)
@@ -219,7 +280,9 @@ class MapaScene(Scene):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.volver()
             return
-        if self.volver_btn.handle_event(event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.volver_rect.collidepoint(event.pos):
+            if not button.ocupado():
+                button.apretar(self.volver_rect, VOLVER_ESC, self.volver, "mapa_volver")
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for idx, r, _ in self.botones:
@@ -240,9 +303,13 @@ class MapaScene(Scene):
 
     def draw(self, surface):
         surface.blit(fondo(), (0, 0))
-        titulo = A.colgante_escalado("ELEGÍ UN NIVEL", 96, 16, 1, self.t, cuerda=6)
-        surface.blit(titulo, titulo.get_rect(midtop=(SCREEN_W // 2, 0)))
-        self.volver_btn.draw(surface)
+        if button.apretado("mapa_volver"):
+            estado = "apretado"
+        elif self.volver_rect.collidepoint(display.get_mouse_pos()):
+            estado = "hover"
+        else:
+            estado = "normal"
+        surface.blit(volver_img(estado), self.volver_rect.move(-VOLVER_ESC * 2 if estado == "hover" else 0, 0))
 
         for idx, r, etiqueta in self.botones:
             est = self.estado(idx)
@@ -267,8 +334,6 @@ class MapaScene(Scene):
             pos.clamp_ip(surface.get_rect())
             surface.blit(cartel, pos)
 
-        draw_pixel_text(surface, "ESC: VOLVER AL MENÚ", (255, 255, 255), 2, outline=(30, 20, 10),
-                        bottomright=(SCREEN_W - 12, SCREEN_H - 10))
 
         if self.salida is not None:
             veil = pygame.Surface((SCREEN_W, SCREEN_H))
