@@ -3,31 +3,32 @@ Menú principal con la intro estilo South Park en pixel art.
 
 Al arrancar:  la cabeza de Stan se acerca, caen las calles/cuerpos/cabezas de Cartman,
 Kyle, Stan y Kenny en la parada del bus, todo sincronizado con la canción. Cuando
-aterriza la cabeza de Cartman aparecen los botones (CONTINUAR / NUEVA PARTIDA / CATÁLOGO /
-OPCIONES / SALIR) y la canción sigue sonando de fondo, con el bus pasando y los chicos cabeceando
-al ritmo. CONTINUAR solo aparece si hay partidas guardadas (guardado.py).
+aterriza la cabeza de Cartman aparecen los botones (JUGAR / CATÁLOGO / OPCIONES / SALIR) y la
+canción sigue sonando de fondo, con el bus pasando y los chicos cabeceando al ritmo.
+Además, dos tablones chicos: LOGROS (abajo a la izquierda) y el nombre del jugador (arriba a la
+derecha), que abre la pantalla de cuentas (cambiar, crear, editar o borrar).
 
-Al volver al menú se guarda sola la partida en curso (guardado.autoguardar).
+Al volver al menú se guarda solo el progreso en la cuenta activa (cuentas.guardar_desde).
 
 Se puede saltear la intro con un clic, Enter, Espacio o Esc. Cuando se vuelve al menú
 (desde Opciones o desde una partida) no se repite la intro: queda el menú directo.
 """
 import pygame
 import display
-import guardado
+import cuentas
 from settings import SCREEN_W, SCREEN_H, COLORS
 from scenes.base import Scene
 from ui import intro_art as A, musica
 from ui.pixel_font import draw_pixel_text
 from ui import button
+from ui.button import ancho_tablon
 from settings import MUSICA_DURACION as DURACION
 
 BTN_X = 805
-BTN_Y0 = 196                      # centro del primer botón
-BTN_DY = 68                       # distancia entre botones
-BTN_W, BTN_H = 176, 26            # tamaño interno (se agranda xBTN_ESC en pantalla)
-BTN_ESC = 2                       # x2 (no x3 como el resto): así "NUEVA PARTIDA" entra en el ancho
-LOGROS_W, LOGROS_H = BTN_W // 2, BTN_H // 2    # botón LOGROS: la mitad de los otros, abajo a la izquierda
+BTN_Y = [192, 270, 348, 426]
+BTN_W, BTN_H = 114, 24            # tamaño interno (se agranda xBTN_ESC en pantalla)
+BTN_ESC = 3
+CHICO_W, CHICO_H = BTN_W // 2, 14    # LOGROS y el del jugador: la mitad de ancho (14 de alto para que el texto respire)
 T_BOTON = 0.16                    # retraso entre un botón y el siguiente al aparecer
 EMPIEZA_SIN_INTRO = 3.4           # segundo de la canción desde el que suena si se vuelve al menú
 
@@ -51,15 +52,14 @@ class MenuScene(Scene):
         self.shift = 0.0                      # cuánto se adelantó la intro al saltearla
         self.sel = 0
         self._img = {}
-        # Se guarda sola la partida en curso; si no había lugar, se avisa
-        self.aviso = None
-        if guardado.autoguardar(game) == "sin_lugar":
-            self.aviso = ["No hay ranuras libres: la partida no se guardó", 5.0]
-        self.botones = ([("CONTINUAR", self.continuar)] if guardado.hay_partidas() else []) + [
-            ("NUEVA PARTIDA", self.nueva_partida), ("CATÁLOGO", self.catalogo),
-            ("OPCIONES", self.opciones), ("SALIR", self.salir)]
-        self.n_grandes = len(self.botones)          # los de la columna; después va LOGROS (chico)
+        cuentas.guardar_desde(game)           # al volver al menú se guarda el progreso de la cuenta
+        self.botones = [("JUGAR", self.jugar), ("CATÁLOGO", self.catalogo),
+                        ("OPCIONES", self.opciones), ("SALIR", self.salir)]
+        self.n_grandes = len(self.botones)    # los de la columna; después van los dos chicos
+        self.i_logros = len(self.botones)
         self.botones.append(("LOGROS", self.logros))
+        self.i_cuenta = len(self.botones)
+        self.botones.append((cuentas.nombre_activa().upper() or "JUGADOR", self.abrir_cuentas))
         self._destellos = [button.Destello() for _ in self.botones]
 
         # Música: arranca con la intro; si se vuelve al menú sigue sonando o arranca sin la intro
@@ -77,16 +77,14 @@ class MenuScene(Scene):
     # ------------------------------------------------------------------
     # Acciones
     # ------------------------------------------------------------------
-    def nueva_partida(self):
-        # Progreso de cero; se guarda en una ranura libre la primera vez que se autoguarde.
+    def jugar(self):
         # La música sigue en el mapa; se apaga recién al entrar a un nivel
-        guardado.nueva(self.game)
         from scenes.mapa import MapaScene
         self.game.change_scene(MapaScene(self.game))
 
-    def continuar(self):
-        from scenes.partidas import PartidasScene
-        self.game.change_scene(PartidasScene(self.game, "cargar"))
+    def abrir_cuentas(self):
+        from scenes.cuentas import CuentasScene
+        self.game.change_scene(CuentasScene(self.game))
 
     def catalogo(self):
         from scenes.catalogo import CatalogoScene
@@ -127,16 +125,19 @@ class MenuScene(Scene):
 
     def _rect_boton(self, i):
         if self._chico(i):
-            r = pygame.Rect(0, 0, LOGROS_W * BTN_ESC, LOGROS_H * BTN_ESC)
-            r.bottomleft = (14, SCREEN_H - 12)
+            w = ancho_tablon(self.botones[i][0], CHICO_W)
+            r = pygame.Rect(0, 0, w * BTN_ESC, CHICO_H * BTN_ESC)
+            if i == self.i_logros:
+                r.bottomleft = (14, SCREEN_H - 12)
+            else:
+                r.topright = (SCREEN_W - 14, 14)
             return r
         r = pygame.Rect(0, 0, BTN_W * BTN_ESC, BTN_H * BTN_ESC)
         r.center = (BTN_X, self._y(i))
         return r
 
     def _y(self, i):
-        # Con 4 botones (sin CONTINUAR) quedan más abajo, en el lugar de los 4 de abajo
-        return BTN_Y0 + (i + 5 - self.n_grandes) * BTN_DY
+        return BTN_Y[i]
 
     def handle_event(self, event):
         if not self._menu_visible():
@@ -179,10 +180,7 @@ class MenuScene(Scene):
             self.vt = max(self.vt, self.mt + self.shift)
         if self.intro and self.vt >= A.T_MENU + 0.8:
             self.game.intro_done = True
-        if self.aviso:
-            self.aviso[1] -= dt
-            if self.aviso[1] <= 0:
-                self.aviso = None
+
 
     # ------------------------------------------------------------------
     # Dibujo
@@ -241,14 +239,8 @@ class MenuScene(Scene):
                     continue
                 hover = (i == self.sel) and self._menu_visible()
                 estado = "apretado" if button.apretado(("menu", i)) else ("hover" if hover else "normal")
-                if self._chico(i):                                 # LOGROS: entra desde la izquierda
-                    img = self._cartel(txt, LOGROS_W, LOGROS_H, 1, estado,
-                                       self._destellos[i].fase(estado == "hover"))
-                    r = self._rect_boton(i).move(-int(300 * (1 - ui)) + (6 if hover else 0), 0)
-                    surface.blit(img, r)
-                    if hover:
-                        draw_pixel_text(surface, "<", (255, 220, 60), 3, center=(r.right + 16, r.centery),
-                                        outline=(60, 40, 10))
+                if self._chico(i):
+                    self._dibujar_chico(surface, i, txt, estado, hover, ui)
                     continue
                 img = self._cartel(txt, BTN_W, BTN_H, 2, estado,
                                    self._destellos[i].fase(estado == "hover"))
@@ -259,11 +251,24 @@ class MenuScene(Scene):
             if tm > 1.2:
                 draw_pixel_text(surface, "FLECHAS: ELEGIR    ENTER: ACEPTAR", (255, 255, 255), 2,
                                 center=(SCREEN_W // 2, 24), outline=(30, 40, 70))
-            if self.aviso:
-                draw_pixel_text(surface, self.aviso[0], (255, 230, 140), 2, outline=(60, 20, 10),
-                                center=(SCREEN_W // 2, SCREEN_H - 20))
         elif self.intro and vt < A.T_MENU + 2:
             pass
         if self.intro and vt < A.T_CARTMAN - 0.2:
             draw_pixel_text(surface, "CLIC PARA SALTEAR", (200, 200, 200), 2, center=(SCREEN_W - 120, SCREEN_H - 20))
 
+    def _dibujar_chico(self, surface, i, txt, estado, hover, ui):
+        """LOGROS entra desde la izquierda; el del jugador, desde la derecha (con "JUGADOR" abajo)."""
+        r0 = self._rect_boton(i)
+        img = self._cartel(txt, r0.w // BTN_ESC, CHICO_H, 1, estado, self._destellos[i].fase(estado == "hover"))
+        if i == self.i_logros:
+            r = r0.move(-int(300 * (1 - ui)) + (6 if hover else 0), 0)
+            surface.blit(img, r)
+            if hover:
+                draw_pixel_text(surface, "<", (255, 220, 60), 3, center=(r.right + 16, r.centery), outline=(60, 40, 10))
+        else:
+            r = r0.move(int(400 * (1 - ui)) - (6 if hover else 0), 0)
+            surface.blit(img, r)
+            draw_pixel_text(surface, "JUGADOR", (255, 255, 255), 1, outline=(30, 40, 70),
+                            midtop=(r.centerx, r.bottom + 2))
+            if hover:
+                draw_pixel_text(surface, ">", (255, 220, 60), 3, center=(r.x - 16, r.centery), outline=(60, 40, 10))

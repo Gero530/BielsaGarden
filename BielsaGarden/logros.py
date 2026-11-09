@@ -1,6 +1,7 @@
 """
-Logros del juego. NO dependen de la partida: se guardan aparte, en logros.json (al lado de
-main.py), y valen para todas las partidas. Una vez completado, un logro queda completado.
+Logros del juego. Son de la CUENTA del jugador (cuentas.py): se guardan dentro de su cuenta en
+cuentas.json y valen para todo lo que juegue con ella. Una vez completado, queda completado.
+Sin cuenta activa (solo en las pruebas) se cuentan en memoria y no se guardan.
 
 El juego avisa lo que pasa con cuatro funciones (las llaman las entidades y gameplay.py):
     sumar("muertes_kyle")              contador += 1   (o sumar(clave, n))
@@ -17,12 +18,9 @@ meta) y llamá a sumar/agregar/maximo con su clave donde pase la acción.
   tipo "maximo":   progreso = mejor valor alcanzado       (meta = número)
   icono: (clave de sprite de ui/sprites.py, n.º de frame) o ("retrato", clave de ui/dialogo.py)
 """
-import json
-import os
 import time
+import cuentas
 from levels import LEVELS
-
-RUTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logros.json")
 
 
 def _tipos_hipnotizables():
@@ -46,7 +44,7 @@ LOGROS = [
      "icono": ("cartman_festejo", 0), "tipo": "conjunto", "clave": "niveles",
      "meta": [lv["id"] for lv in LEVELS if lv["id"] != "tutorial"]},
     {"id": "huesos_grandes", "nombre": "No soy gordo, soy de huesos grandes",
-     "descripcion": "Consigue 10000 de energía (sumando todas las partidas).",
+     "descripcion": "Consigue 10000 de energía (sumando todo lo que juegues).",
      "icono": ("girasol", 2), "tipo": "contador", "clave": "energia", "meta": 10000},
     {"id": "mataron_a_kenny", "nombre": "¡Oh, Dios mío! Mataron a Kenny",
      "descripcion": "Utiliza a Kenny para matar a 6 zombies al mismo tiempo.",
@@ -84,7 +82,7 @@ LOGROS = [
      "descripcion": "Completa el tutorial.",
      "icono": ("retrato", "tutorial"), "tipo": "conjunto", "clave": "niveles", "meta": ["tutorial"]},
 ]
-_datos = None          # lo que está en logros.json (se carga la primera vez que hace falta)
+_sin_cuenta = None     # logros en memoria cuando no hay cuenta activa (pruebas)
 _sucio = False         # hay progreso sin guardar
 _nuevos = []           # logros recién completados, para el cartel de aviso
 
@@ -94,41 +92,30 @@ def _vacio():
 
 
 def _cargar():
-    global _datos
-    if _datos is None:
-        _datos = _vacio()
-        try:
-            with open(RUTA, encoding="utf-8") as f:
-                data = json.load(f)
-            for k in _datos:
-                if isinstance(data.get(k), dict):
-                    _datos[k].update(data[k])
-        except (OSError, ValueError):
-            pass
-    return _datos
+    """Los logros de la cuenta activa (o los de memoria si no hay cuenta)."""
+    global _sin_cuenta
+    d = cuentas.logros_activa()
+    if d is None:
+        if _sin_cuenta is None:
+            _sin_cuenta = _vacio()
+        d = _sin_cuenta
+    for k, v in _vacio().items():               # cuentas viejas o datos incompletos
+        d.setdefault(k, v)
+    return d
 
 
 def recargar():
-    """Olvida lo que está en memoria y vuelve a leer logros.json (lo usan las pruebas)."""
-    global _datos, _sucio
-    _datos, _sucio = None, False
+    """Olvida lo pendiente (al cambiar de cuenta y en las pruebas)."""
+    global _sin_cuenta, _sucio
+    _sin_cuenta, _sucio = None, False
     _nuevos.clear()
-    _cargar()
 
 
 def guardar():
-    """Escribe logros.json si hay progreso nuevo (archivo temporal + reemplazo: no se rompe si se corta)."""
+    """Guarda la cuenta si hay progreso de logros nuevo."""
     global _sucio
-    if not _sucio or _datos is None:
-        return
-    tmp = RUTA + ".tmp"
-    try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(_datos, f, indent=2, ensure_ascii=False)
-        os.replace(tmp, RUTA)
+    if _sucio and cuentas.activa() is not None and cuentas.guardar():
         _sucio = False
-    except OSError as e:
-        print(f"[logros] No se pudo guardar: {e}")
 
 
 # ----------------------------------------------------------------------
@@ -181,6 +168,11 @@ def progreso(logro):
         return sum(1 for v in objetivo if v in tiene), len(objetivo)
     valor = d["contadores" if tipo == "contador" else "maximos"].get(clave, 0)
     return min(valor, objetivo), objetivo
+
+
+def conjunto(clave):
+    """Los valores guardados en un conjunto (ej. "zombies_vistos", que usa el catálogo)."""
+    return set(_cargar()["conjuntos"].get(clave, []))
 
 
 def completado(logro_id):

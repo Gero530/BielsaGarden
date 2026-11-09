@@ -17,12 +17,14 @@ os.chdir(RAIZ)
 import tempfile
 import pygame
 import game as gm
-import guardado
-import logros
-# Las pruebas no tocan las partidas ni los logros del jugador: usan archivos temporales
-guardado.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_partidas.json")
-logros.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_logros.json")
-from settings import GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
+import cuentas
+# Las pruebas no tocan las cuentas del jugador: usan un archivo temporal, vacío al empezar
+# (sin cuenta activa, los logros se cuentan en memoria y no se guardan)
+cuentas.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_cuentas.json")
+if os.path.exists(cuentas.RUTA):
+    os.remove(cuentas.RUTA)
+cuentas.recargar()
+from settings import CELL_W, GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
 from scenes.gameplay import GameplayScene
 from scenes.result import ResultScene
 from scenes.mapa import MapaScene
@@ -376,7 +378,8 @@ def _():
     z.hp = z.max_hp * 0.4
     correr(sc, 2.0)
     minis = [m for m in sc.zombies if m.key == "mini"]
-    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + 170)
+    # El gigante lo tira al azar entre GRID_X + 30 y GRID_X + 2 casillas (zombies.py): ese es el rango
+    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + CELL_W * 2 + 10)
     return ("Butters (4000) aplastado a los %.1f s; mini lanzado: %s; cae cerca de la casa: %s"
             % (t, bool(minis), bool(lugar))), t <= 1.6 and bool(minis) and bool(lugar) and not z.tiene_mini
 

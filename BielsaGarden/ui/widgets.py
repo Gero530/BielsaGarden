@@ -262,3 +262,58 @@ class Slider:
         surface.blit(img, img.get_rect(center=(px, self.barra.centery + ESC)))
         draw_pixel_text(surface, f"{self.valor}%", color, 2, outline=OSCURO, center=self.valor_pos)
         surface.blit(_casilla(self.silenciado, self.box.inflate(8, 8).collidepoint(mouse)), self.box)
+
+
+class CampoTexto:
+    """Hueco tallado donde se escribe (nombre de la cuenta). Solo acepta letras que la fuente pixel
+    sabe dibujar; Retroceso borra; Enter llama a on_enter. El texto se ve en mayúsculas."""
+
+    def __init__(self, texto, center, max_letras, on_enter, escala=3):
+        self.texto = texto
+        self.max = max_letras
+        self.on_enter = on_enter
+        self.escala = escala
+        from ui.pixel_font import AVANCE
+        w = (max_letras + 1) * AVANCE * escala + 36
+        self.rect = pygame.Rect(0, 0, w // ESC * ESC, 20 * ESC)
+        self.rect.center = center
+        self.t = 0.0
+        try:
+            pygame.key.start_text_input()
+        except pygame.error:
+            pass
+
+    @staticmethod
+    def _valida(c):
+        from ui.pixel_font import _G
+        return c.upper() in _G and c not in "\r\n\t"
+
+    def handle_event(self, event):
+        if event.type == pygame.TEXTINPUT:
+            for c in event.text:
+                if self._valida(c) and len(self.texto) < self.max:
+                    self.texto += c
+            self.t = 0.0
+            return True
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.texto = self.texto[:-1]
+                self.t = 0.0
+                return True
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.on_enter()
+                return True
+        return False
+
+    def update(self, dt):
+        self.t += dt
+
+    def draw(self, surface):
+        surface.blit(_hueco(self.rect.w, self.rect.h), self.rect)
+        x = self.rect.x + 18
+        r = draw_pixel_text(surface, self.texto.upper(), CREMA, self.escala, outline=OSCURO,
+                            midleft=(x, self.rect.centery)) if self.texto else pygame.Rect(x, 0, 0, 0)
+        if int(self.t * 2) % 2 == 0:                 # cursor que titila (se queda fijo mientras escribís)
+            alto = 7 * self.escala
+            surface.fill((255, 214, 64), (r.right + (4 if self.texto else 0), self.rect.centery - alto // 2,
+                                          self.escala * 2, alto))

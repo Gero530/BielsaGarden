@@ -278,9 +278,10 @@ class Zombie:
         if not self.airborne:
             self.draw_health_bar(surface)
 
-    def draw_icon(self, surface, midbottom, box=None):
-        """Dibujo quieto para el catálogo (sin barra de vida). box=(ancho, alto): si al doble
-        no entra, se dibuja a tamaño de dibujo (x1). Siempre por un entero, sin suavizado."""
+    def draw_icon(self, surface, midbottom, box=None, t=None):
+        """Dibujo para el catálogo (sin barra de vida). box=(ancho, alto): si al doble no entra,
+        se dibuja a tamaño de dibujo (x1). Siempre por un entero, sin suavizado.
+        t: tiempo de la animación (None = quieto, primer frame)."""
         key = self.sprite_key if has_sprite(self.sprite_key) else "zombie_normal"
         cfg = SPRITES[key]
         f = max(1, round(2 * cfg.get("mult", 1.0)))
@@ -288,7 +289,7 @@ class Zombie:
             f = 1
         self.x, self.y_top = midbottom[0], midbottom[1] - CELL_H
         scale = f / (2 * cfg.get("mult", 1.0))
-        draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), scale, None)
+        draw_sprite(surface, key, (midbottom[0], midbottom[1] - cfg["frame_h"] * f // 2), scale, t)
         if f == 2:
             self.draw_armor(surface, (midbottom[0] - 9, self.y_top + 22))
 

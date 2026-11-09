@@ -55,7 +55,7 @@ python main.py
 
 Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
 
-**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno; el progreso se guarda en partidas, ver "Partidas guardadas" más abajo). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
+**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno; el progreso es de la cuenta del jugador, ver "Cuentas" más abajo). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -72,11 +72,11 @@ scenes/
   result.py          Pantalla de victoria / derrota (pixel art)
   mapa.py            Mapa de niveles (desbloqueo, candados)
   equipo.py          Elegí tu equipo antes de cada nivel (máximo EQUIPO_MAX de settings.py)
-  catalogo.py        Catálogo de personajes y zombies
+  catalogo.py        Catálogo (almanaque): grilla de retratos animados + ficha con frase de Bielsa; los zombies no vistos van en silueta
 
 data/
   mapa.py            Fondo del mapa y posición de cada botón de nivel
-  catalogo.py        Nombres y descripciones del catálogo
+  catalogo.py        Nombres, descripciones y frases de Bielsa del catálogo
 
 tools/
   generar_placeholders.py   Crea los sprites placeholder de assets/sprites/nuevos/ (no pisa los existentes)
@@ -155,9 +155,9 @@ Al ejecutar `python main.py` pasa esto, en orden:
 
 1. **Pantalla de carga** (`scenes/loading.py`): "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio.
 2. **Intro** (`scenes/menu.py` + `ui/intro_art.py`): estilo la intro de South Park en pixel art. Se acerca la cabeza de Stan y caen la calle, los cuerpos y las cabezas de Cartman, Kyle, Stan y Kenny en la parada del bus. Está sincronizada con la canción `assets/musica/intro.mp3`.
-3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones CONTINUAR (solo si hay partidas guardadas) / NUEVA PARTIDA / CATÁLOGO / OPCIONES / SALIR. La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
+3. **Menú**: cuando aterriza la cabeza de Cartman (a los 2,9 s) aparecen los tablones JUGAR / CATÁLOGO / OPCIONES / SALIR, más dos chicos: LOGROS (abajo a la izquierda) y el nombre del jugador (arriba a la derecha). La canción sigue sonando en bucle, los chicos cabecean al ritmo y de vez en cuando pasa el bus.
 
-Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar NUEVA PARTIDA (o elegir una partida en CONTINUAR) se abre el mapa de niveles; la música se apaga con un fundido al entrar a un nivel.
+Controles del menú: mouse, o flechas arriba/abajo + Enter. Un clic (o Enter/Espacio/Esc) saltea la intro. Al volver al menú desde Opciones o desde una partida no se repite la intro. Al tocar JUGAR se abre el mapa de niveles con el progreso de la cuenta activa; la música se apaga con un fundido al entrar a un nivel.
 
 Cosas que se pueden tocar:
 
@@ -172,14 +172,16 @@ Cosas que se pueden tocar:
 
 La canción va a 145 BPM (un pulso cada 0,414 s) y los momentos clave de la intro caen sobre esos pulsos: Kenny en el pulso 5, Stan en el 6 y Cartman en el 7 (justo en la pausa de la canción).
 
-## Partidas guardadas
+## Cuentas
 
-Hay 10 ranuras ("Partida 1" a "Partida 10") en `partidas.json`, al lado de `main.py` (no se sube a git). Cada partida guarda los niveles ganados y la velocidad; un nivel a medio jugar no se guarda (al continuar se vuelve al mapa). La lógica está en `guardado.py` y el panel en `scenes/partidas.py`.
+El jugador tiene una cuenta con su nombre, y en ella se guardan su progreso (niveles ganados y velocidad) y sus logros (también los zombies descubiertos del catálogo). Todo va en `cuentas.json`, al lado de `main.py` (no se sube a git). La pantalla y el sonido son de la compu, no de la cuenta (`config.json`).
 
-- **Nueva partida** arranca el progreso de cero, todavía sin ranura.
-- **Continuar** abre el panel con las partidas y carga la elegida.
-- **Pausa > Guardar** guarda en una ranura vacía, o pisa otra después de preguntar "¿De verdad quieres sobreescribir esta partida?". La partida pasa a usar esa ranura.
-- **Guardado automático** al volver al menú principal, al ganar un nivel y al cerrar el juego: en la ranura de la partida o, si es nueva, en la primera libre. Si no hay ninguna libre no se guarda (el menú lo avisa).
+- **Primera vez**: después de la pantalla de carga, Bielsa pide el nombre (`scenes/nombre.py`) y se crea la cuenta.
+- **Al abrir el juego** se entra con la última cuenta activa.
+- **Botón con el nombre** (arriba a la derecha del menú) → `scenes/cuentas.py`: clic en una cuenta para jugar con ella, NUEVA CUENTA, EDITAR (cambiar el nombre) y BORRAR (pregunta antes). Si se borra la única cuenta, se vuelve a pedir un nombre.
+- Nombres de hasta 12 letras, sin repetir; hasta 6 cuentas (`MAX_NOMBRE` y `MAX_CUENTAS` en `cuentas.py`).
+- **Guardado automático**: al ganar un nivel, al volver al menú, al cambiar de cuenta y al cerrar el juego.
+- **Migración**: la primera cuenta que se crea hereda lo de la versión anterior (`logros.json` y la partida de `partidas.json` con más niveles), si esos archivos existen. Después se pueden borrar.
 
 ## Sonido
 
@@ -187,7 +189,7 @@ Opciones > Sonido tiene un volumen General y uno para Música, Efectos, Personaj
 
 ## Logros
 
-Botón LOGROS abajo a la izquierda del menú. Son 13 logros que **no dependen de la partida**: se guardan aparte en `logros.json` (no se sube a git) y, una vez completados, quedan así aunque se empiece otra partida. En la lista, los pendientes se ven en gris con su progreso y los completados a color, con la fecha. Al completar uno aparece el cartel "¡LOGRO DESBLOQUEADO!" en cualquier pantalla.
+Botón LOGROS abajo a la izquierda del menú. Son 13 logros y son **de la cuenta**: se guardan en `cuentas.json` dentro de la cuenta activa y, una vez completados, quedan así. Cada cuenta tiene los suyos. En la lista, los pendientes se ven en gris con su progreso y los completados a color, con la fecha. Al completar uno aparece el cartel "¡LOGRO DESBLOQUEADO!" en cualquier pantalla.
 
 | Dónde | Qué |
 |---|---|
@@ -195,4 +197,4 @@ Botón LOGROS abajo a la izquierda del menú. Son 13 logros que **no dependen de
 | `scenes/logros.py` | Pantalla con la lista (rueda, flechas o barra para desplazarse) |
 | `ui/aviso_logro.py` | Íconos (sprites de los personajes) y cartel de logro desbloqueado |
 
-Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todas las partidas; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el tractor y el gigante no).
+Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todo lo que se juega con la cuenta; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el tractor y el gigante no).

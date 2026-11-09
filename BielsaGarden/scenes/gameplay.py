@@ -5,7 +5,7 @@ y las condiciones de victoria/derrota.
 import random
 import pygame
 import display
-import guardado
+import cuentas
 import logros
 from settings import SCREEN_W, SCREEN_H, COLORS, GRID_X, HOUSE_X, PLANT_DATA
 from settings import BRAINS_INTERVALO, RUIDO_ZOMBIE_INTERVALO
@@ -59,14 +59,15 @@ class GameplayScene(Scene):
         self.selected = None          # key de planta, "pala" o None
         self.paused = False
         self.velocidad = getattr(game, "velocidad", 1)    # x1 / x2 / x3, se recuerda entre niveles
-        acciones = (("CONTINUAR", self.toggle_pausa), ("GUARDAR", self.ir_guardar), ("OPCIONES", self.ir_opciones),
+        acciones = (("CONTINUAR", self.toggle_pausa), ("OPCIONES", self.ir_opciones),
                     ("VOLVER AL MAPA", self.ir_mapa), ("MENÚ PRINCIPAL", self.ir_menu))
         ancho = max(ancho_tablon(t, 96) for t, _ in acciones)
-        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 292 + i * 56), fn, size=(ancho, 15))
+        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 316 + i * 58), fn, size=(ancho, 15))
                            for i, (t, fn) in enumerate(acciones)]
         self.banner = None            # (texto, segundos_restantes)
         self.kills = 0
         self.timmy_en_final = False   # Timmy salió durante la oleada final (logro)
+        self.vistos = logros.conjunto("zombies_vistos")   # zombies ya descubiertos (catálogo)
         self.frases_dichas = set()    # frases que salen una sola vez por nivel (ej. Cartman)
         self.time = 0.0
         self.end_delay = None         # pequeña pausa antes de mostrar victoria
@@ -260,20 +261,7 @@ class GameplayScene(Scene):
 
     def ir_menu(self):
         from scenes.menu import MenuScene
-        self.game.change_scene(MenuScene(self.game))         # el menú guarda solo la partida
-
-    def captura(self):
-        """La partida tal como se ve, sin el cartel de pausa (fondo de Guardar)."""
-        img = pygame.Surface((SCREEN_W, SCREEN_H))
-        pausado, self.paused = self.paused, False
-        self.draw(img, show_cursor=False)
-        self.paused = pausado
-        return img
-
-    def ir_guardar(self):
-        """Pausa > Guardar: elegir ranura. Al volver, la partida sigue en pausa donde estaba."""
-        from scenes.partidas import PartidasScene
-        self.game.change_scene(PartidasScene(self.game, "guardar", volver_a=self, fondo=self.captura()))
+        self.game.change_scene(MenuScene(self.game))         # el menú guarda el progreso de la cuenta
 
     def ir_opciones(self):
         from scenes.options import OptionsScene
@@ -373,6 +361,13 @@ class GameplayScene(Scene):
         for s in self.suns:
             s.update(dt)
 
+        # Zombies que aparecen por primera vez: se descubren en el catálogo (también los que
+        # invocan el bailarín o tira el gigante)
+        for z in self.zombies:
+            if z.key not in self.vistos:
+                self.vistos.add(z.key)
+                logros.agregar("zombies_vistos", z.key)
+
         # Limpieza
         self.grid.cleanup()
         self.actualizar_canto()
@@ -413,12 +408,12 @@ class GameplayScene(Scene):
         return getattr(self, "_result", None)
 
     def finish(self, victory):
-        if self.result is not None:          # ya terminó: no volver a contar la victoria (logros, guardado)
+        if self.result is not None:          # ya terminó: no volver a contar la victoria (logros, cuenta)
             return
         self._result = victory
         if victory:
             self.game.progreso.add(self.level["id"])     # desbloquea el siguiente en el mapa
-            guardado.autoguardar(self.game)
+            cuentas.guardar_desde(self.game)            # el nivel ganado queda en la cuenta
             logros.agregar("niveles", self.level["id"])
             if self.timmy_en_final:
                 logros.sumar("timmy_final")

@@ -9,7 +9,7 @@ se encarga de escalarla a la resolución/pantalla completa elegida.
 """
 import pygame
 import display
-import guardado
+import cuentas
 import logros
 from ui import button, audio, aviso_logro
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
@@ -32,12 +32,9 @@ class Game:
 
         self.cortina = None               # transición entre pantallas en curso
         self.intro_done = False     # la intro del menú se ve una sola vez por ejecución
-        # Ids de niveles ganados. Solo en memoria: cada vez que se abre el juego arranca vacío
-        # (solo el tutorial disponible).
+        # Ids de niveles ganados de la cuenta activa (cuentas.py los guarda en cuentas.json)
         self.progreso = set()
-        # Partida actual (ver guardado.py): si hay una en curso y en qué ranura se guarda
-        self.en_partida = False
-        self.ranura = None
+        cuentas.cargar_en(self)               # se entra con la última cuenta activa (si hay)
 
         # Import aquí para evitar imports circulares (las escenas importan Game)
         from scenes.loading import LoadingScene
@@ -96,6 +93,6 @@ class Game:
             aviso_logro.dibujar(self.screen, dt)
             display.present(self.screen)
 
-        guardado.autoguardar(self)            # al cerrar el juego se guarda la partida en curso
+        cuentas.guardar_desde(self)           # al cerrar el juego se guarda el progreso de la cuenta
         logros.guardar()
         pygame.quit()
