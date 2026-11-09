@@ -55,7 +55,20 @@ python main.py
 
 Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
 
-**Niveles** (mapa: Tutorial → Nivel 1 → Nivel 2 → Nivel 3, se desbloquean de a uno; el progreso es de la cuenta del jugador, ver "Cuentas" más abajo). Las oleadas están en `levels/*.py`, con hordas con bandera y oleada final (formato explicado en `world/wave_manager.py`). Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
+**Niveles** (se desbloquean de a uno; el progreso es de la cuenta del jugador, ver "Cuentas" más abajo). Cada uno presenta uno o dos zombies nuevos, de a uno, antes de mezclarlos en las hordas:
+
+| Nivel | Lugar del mapa | Zombies nuevos | Azar |
+|---|---|---|---|
+| Tutorial | Las casas de arriba (a la derecha del parque) | Normal | 0 |
+| 1 | El jardín (casas de abajo a la derecha) | Cono | 0,1 |
+| 2 | La escuela | Diario | 0,2 |
+| 3 | La mansión | Balde, puerta | 0,35 |
+| 4 | El lago | Pértiga, escalera | 0,5 |
+| 5 | El parque | Bailarín, excavador | 0,65 |
+| 6 | El centro comercial | Bungee, alien | 0,8 |
+| 7 | El bosque | Tractor, gigante | 1 |
+
+Las oleadas están en `levels/*.py` (formato explicado en `world/wave_manager.py`). Cada oleada dice **cuántos** zombies de cada tipo vienen (`{"normal": 3, "cono": (1, 2)}`; un par es un rango que se sortea). En cada partida salen **mezclados** y por **filas al azar** (repartidos entre las 5 filas, sin repetir la del anterior). El `"azar"` del nivel hace que las partidas cambien más: tiempos irregulares, ráfagas de zombies casi juntos y, en las oleadas comunes, algún zombie sorpresa de los que ya aparecen en el nivel. Las hordas con bandera y la oleada final tienen cartel. Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
 
 ## Estructura
@@ -80,6 +93,7 @@ data/
 
 tools/
   generar_placeholders.py   Crea los sprites placeholder de assets/sprites/nuevos/ (no pisa los existentes)
+  mapa_pueblo.py            Dibuja el mapa del pueblo nevado en pixel art (assets/mapa/pueblo_pixel.png); qué mapa se usa: data/mapa.py
 
 world/
   grid.py            Grilla 5x9: celdas, colocación de plantas, dibujo del césped
@@ -107,7 +121,7 @@ assets/
 levels/
   __init__.py        Lista de niveles
   tutorial.py        Tutorial guiado (pasos con diálogo)
-  level_1.py ... level_3.py   Oleadas de cada nivel
+  level_1.py ... level_7.py   Oleadas de cada nivel
   dialogos.py        Diálogos de Bielsa por nivel
 ```
 
@@ -115,7 +129,7 @@ levels/
 
 - **Nueva planta**: datos en `settings.PLANT_DATA` → clase en `entities/plants.py` → registrar en `PLANT_CLASSES` → nombre y descripción en `data/catalogo.py`. Aparece sola en la pantalla de equipo (un nivel puede limitar las opciones con `"plantas": [...]`).
 - **Nuevo zombie**: datos en `settings.ZOMBIE_DATA` → clase en `entities/zombies.py` → registrar en `ZOMBIE_CLASSES`.
-- **Nuevo nivel**: copiar `levels/level_3.py` como `level_4.py` (con un `"id"` nuevo), cambiar las oleadas, agregarlo a `LEVELS` en `levels/__init__.py` y sumar su botón en `data/mapa.py`.
+- **Nuevo nivel**: copiar `levels/level_7.py` como `level_8.py` (con un `"id"` nuevo), cambiar las oleadas, agregarlo a `LEVELS` en `levels/__init__.py` y sumar su botón en `data/mapa.py`.
 - **Sprites**: poné la tira horizontal (PNG transparente) en `assets/` y agregá una línea en `SPRITES` dentro de `ui/sprites.py`
   con el archivo, el tamaño de un frame y los fps. Se escala x2 automáticamente. Si falta el archivo se usa el dibujo con formas.
   Animaciones de acción (como el disparo) llevan `"loop": False` y se reproducen una vez.

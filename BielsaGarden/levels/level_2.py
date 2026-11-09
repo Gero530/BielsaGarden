@@ -1,34 +1,35 @@
 """
-Nivel 2 — La calle (~4,5 min).
-Presenta de a uno: diario -> pértiga -> alien -> excavador -> escalera.
+Nivel 2 — La escuela (~3.8 min). Zombie nuevo: diario (el cono ya apareció en el jardín).
+
+Cada oleada dice cuántos zombies de cada tipo vienen; salen mezclados y por filas al azar,
+distinto en cada partida. (mín, máx) = la cantidad también se sortea. Formato completo y qué
+hace "azar": world/wave_manager.py.
 """
 
 LEVEL = {
     "id": "nivel2",
-    "nombre": "Nivel 2 - La calle",
-    "fondo": "fondos/nivel2.png",          # lo genera tools/fondos.py a partir de fondos/jardin.png
+    "nombre": "Nivel 2 - La escuela",
+    "fondo": "fondos/tutorial.png",          # por ahora todos usan el fondo nevado del tutorial
     "sol_inicial": 100,
-    "intervalo_sol_cielo": 8.0,
+    "intervalo_sol_cielo": 8.0,     # cada cuánto cae un sol del cielo
+    "azar": 0.2,                     # 0 = siempre parecido, 1 = muy distinto en cada partida
 
     "oleadas": [
-        {"t": 18,  "zombies": ["normal"]},
-        {"t": 38,  "zombies": ["normal"]},
-        {"t": 48,  "zombies": ["cono"]},
-        {"t": 62,  "zombies": [("diario", 2)]},                      # nuevo: diario
-        {"t": 76,  "zombies": ["normal", "normal"]},
-        {"t": 90,  "zombies": ["pertiga"]},                          # nuevo: pértiga
-        {"t": 104, "zombies": ["cono", "diario"]},
-        {"t": 112, "zombies": ["alien"]},                           # nuevo: alien (apaga a los Chef)
-        {"t": 124, "bandera": True, "zombies": ["normal", "normal", "cono", "pertiga", "normal", "diario"]},
-        {"t": 140, "zombies": ["excavador"]},                        # nuevo: excavador (tramo tranquilo)
-        {"t": 150, "zombies": ["escalera", "normal"]},               # nuevo: escalera
-        {"t": 166, "zombies": ["cubeta", "pertiga"]},
-        {"t": 182, "zombies": ["normal"]},
-        {"t": 198, "zombies": ["escalera", "cono", "diario"]},
-        {"t": 222, "bandera": True, "zombies": ["normal", "cono", "normal", "cubeta", "escalera", "cono", "puerta", "normal", "alien"]},
-        {"t": 250, "zombies": ["excavador", "pertiga", "cono"]},
-        {"t": 278, "final": True, "zombies": [
-            "normal", "cono", "pertiga", "normal", "diario", "cubeta", "escalera", "cono",
-            "normal", "excavador", "pertiga", "cono", "diario", "cubeta", "normal"]},
+        {"t": 18, "zombies": {"normal": 1}},
+        {"t": 38, "zombies": {"normal": 1}},
+        {"t": 54, "zombies": {"normal": 2}},
+        {"t": 70, "zombies": {"cono": 1}},
+        {"t": 86, "zombies": {"normal": 1, "cono": 1}},
+        {"t": 102, "zombies": {"diario": 1}},   # nuevo: diario
+        {"t": 124, "bandera": True, "zombies": {"normal": 4, "cono": 2, "diario": 1}},   # horda
+        {"t": 150, "zombies": {"normal": 2, "cono": 1}},
+        {"t": 166, "zombies": {"diario": 1, "cono": 1}},
+        {"t": 182, "zombies": {"normal": 2, "diario": 1}},
+        {"t": 206, "final": True, "zombies": {"normal": 5, "cono": 3, "diario": 2}},   # oleada final
+    ],
+
+    "avisos": [
+        # (segundo, texto, sonido). Los carteles de horda y oleada final salen solos (ver wave_manager).
+        (14, "¡Se acercan los zombies!", "sirena"),
     ],
 }

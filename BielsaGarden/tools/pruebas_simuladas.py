@@ -26,6 +26,7 @@ if os.path.exists(cuentas.RUTA):
 cuentas.recargar()
 from settings import CELL_W, GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
 from scenes.gameplay import GameplayScene
+from levels import LEVELS
 from scenes.result import ResultScene
 from scenes.mapa import MapaScene
 from scenes.equipo import EquipoScene
@@ -556,11 +557,12 @@ def _():
     textos = lambda r: [b.text for b in r.botones] if hasattr(r, "botones") else [b.text for b in r.buttons]
     try:
         a = textos(ResultScene(G, True, 1))
-        b = textos(ResultScene(G, True, 3))
+        ultimo = len(LEVELS) - 1                     # el último nivel del juego (hoy, el 6)
+        b = textos(ResultScene(G, True, ultimo))
         c = textos(ResultScene(G, False, 1))
     except AttributeError:
         return "no se pudieron leer los botones", False
-    return "gana nivel 1: %s | gana nivel 3: %s | pierde: %s" % (a, b, c), \
+    return "gana nivel 1: %s | gana el último (%d): %s | pierde: %s" % (a, ultimo, b, c), \
         "SIGUIENTE NIVEL" in a and "SIGUIENTE NIVEL" not in b and "SIGUIENTE NIVEL" not in c
 
 

@@ -3,7 +3,7 @@
     1600,
     900
   ],
-  "pantalla_completa": true,
+  "pantalla_completa": false,
   "sonido": {
     "volumen": {
       "general": 9,

@@ -20,7 +20,7 @@ sys.path.insert(0, RAIZ)
 from data import mapa as M
 
 W, H = M.ANCHO, M.ALTO
-SALIDA = os.path.join(RAIZ, "assets", M.FONDO)
+SALIDA = os.path.join(RAIZ, "assets", M.MAPAS["original"]["fondo"])
 PAL.update({
     "1": (106, 176, 76), "2": (90, 154, 64), "3": (128, 186, 87),      # pasto (los verdes del jardín)
     "4": (196, 150, 90), "5": (154, 107, 62), "6": (224, 176, 122),    # camino de tierra
@@ -179,7 +179,7 @@ def generar():
         estampar(s, LOMA, x, 30 + (x // 22) % 2)
     mosaico(s, PASTO, (0, 35, W, H - 35))
     rnd = random.Random(7)
-    pts = [n["pos"] for n in M.NIVELES]
+    pts = [n["pos"] for n in M.MAPAS["original"]["niveles"]]
     botones = list(pts)
     for _ in range(70):                                        # manchones de nieve
         x, y = rnd.randrange(0, W - 5), rnd.randrange(38, H - 3)

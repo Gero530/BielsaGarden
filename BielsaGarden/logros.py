@@ -26,11 +26,11 @@ from levels import LEVELS
 def _tipos_hipnotizables():
     """Tipos de zombie que aparecen en los niveles y que Toallin puede hipnotizar."""
     from entities.zombies import ZOMBIE_CLASSES
+    from world.wave_manager import tipos_de_oleada
     tipos = {"normal"}                      # el bailarín invoca normales
     for lv in LEVELS:
         for w in lv.get("oleadas", []):
-            for z in w["zombies"]:
-                tipos.add(z if isinstance(z, str) else z[0])
+            tipos.update(tipos_de_oleada(w))
     if "gigante" in tipos:
         tipos.add("mini")                   # el gigante tira al mini
     orden = list(ZOMBIE_CLASSES)
