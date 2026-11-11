@@ -24,6 +24,10 @@ from ui import sonidos
 
 POR_FILA = 5
 ZANCHO = 540                    # ancho del tablón "Vienen" (px de pantalla)
+ZY = 206                        # dónde empieza el tablón "Vienen"
+ZALTO_MAX = 310                 # alto máximo: termina arriba del botón ¡A JUGAR! (no se sale de la pantalla)
+ZSEP = 8                        # espacio entre zombies
+ESCALAS = (1.0, 0.875, 0.75, 0.625, 0.5)    # si no entran a tamaño completo, se achican todos juntos
 _cache = {}
 
 
@@ -61,22 +65,32 @@ def tilde_img():
     return _cache["tilde"]
 
 
-def acomodar_zombies(zombies, ancho_max):
-    """Reparte los íconos (a x2) en filas que entren en ancho_max. Devuelve [(fila, alto), ...]
-    con fila = [(zombie, ancho), ...]. El ancho le descuenta el margen vacío del cuadro."""
-    filas, fila, usado = [], [], 0
-    for z in zombies:
-        key = z.icono_key if z.icono_key and has_sprite(z.icono_key) else (
-            z.sprite_key if has_sprite(z.sprite_key) else "zombie_normal")
-        f = max(1, round(2 * SPRITES[key].get("mult", 1.0)))
-        aj = SPRITES[key].get("ajuste", 1.0)
-        w, h = int(SPRITES[key]["frame_w"] * f * aj) - 8, int(SPRITES[key]["frame_h"] * f * aj)
-        if fila and usado + w > ancho_max:
-            filas.append(fila); fila, usado = [], 0
-        fila.append((z, w, h)); usado += w
-    if fila:
-        filas.append(fila)
-    return [([(z, w) for z, w, _ in f], max(h for _, _, h in f)) for f in filas]
+def icono_zombie(z):
+    """El zombie a tamaño de catálogo (x2, con cono o balde), recortado sin el aire de su cuadro."""
+    lienzo = pygame.Surface((300, 240), pygame.SRCALPHA)
+    z.draw_icon(lienzo, (150, 236))
+    caja = lienzo.get_bounding_rect()
+    return lienzo.subsurface(caja).copy() if caja.w and caja.h else None
+
+
+def acomodar_zombies(imagenes, ancho_max, alto_max):
+    """Reparte los íconos en filas que entren en ancho_max. Si todas las filas juntas no entran en
+    alto_max, prueba con los íconos más chicos (ESCALAS). Devuelve [(fila de imágenes, alto), ...]."""
+    filas = []
+    for k in ESCALAS:
+        imgs = [im if k == 1 else pygame.transform.scale(
+            im, (max(1, round(im.get_width() * k)), max(1, round(im.get_height() * k)))) for im in imagenes]
+        filas, fila, usado = [], [], 0
+        for im in imgs:
+            if fila and usado + im.get_width() > ancho_max:
+                filas.append(fila); fila, usado = [], 0
+            fila.append(im); usado += im.get_width() + ZSEP
+        if fila:
+            filas.append(fila)
+        filas = [(f, max(im.get_height() for im in f)) for f in filas]
+        if sum(h for _, h in filas) + ZSEP * (len(filas) - 1) <= alto_max:
+            break
+    return filas
 
 
 def empezar_nivel(game, idx):
@@ -127,10 +141,11 @@ class EquipoScene(Scene):
         grid = Grid()
         self.zombies = [ZOMBIE_CLASSES[k](0, grid) for k in zombies_del_nivel(self.level)]
         # Todos a x2: se acomodan en filas y el tablón crece según lo que entre
-        self.zfilas = acomodar_zombies(self.zombies, ZANCHO - 40)
-        alto = 40 + sum(h for _, h in self.zfilas) + 6 * (len(self.zfilas) - 1) + 18
+        imagenes = [im for im in (icono_zombie(z) for z in self.zombies) if im is not None]
+        self.zfilas = acomodar_zombies(imagenes, ZANCHO - 40, ZALTO_MAX - 40 - 18)
+        alto = 40 + sum(h for _, h in self.zfilas) + ZSEP * (len(self.zfilas) - 1) + 18
         self.zpanel = tablon("", ZANCHO // 3, (alto + 2) // 3, 3)
-        self.zpanel_rect = self.zpanel.get_rect(topright=(SCREEN_W - 12, 206))
+        self.zpanel_rect = self.zpanel.get_rect(topright=(SCREEN_W - 12, ZY))
 
         self.jugar_btn = CartelButton("¡A JUGAR!", (560, 548), self.jugar, size=(70, 15))
         self.volver_btn = CartelButton("VOLVER", (self.panel_rect.x + 106, 548), self.volver, size=(70, 15))
@@ -197,12 +212,9 @@ class EquipoScene(Scene):
                 SeedCard(self.equipo[i], r.x, r.y).draw(surface, 9999, False)
             else:
                 surface.blit(hueco_carta(), r)              # hueco tallado con un "+"
-        if self.aviso > 0:          # "elegí al menos uno" va en el lugar del contador
+        if self.aviso > 0:          # al tocar ¡A JUGAR! sin nadie en el equipo
             draw_pixel_text(surface, "ELEGÍ AL MENOS UN PERSONAJE", (255, 90, 60), 2, outline=(30, 10, 10),
                             midtop=(SCREEN_W // 2, self.lugares[0].bottom + 8))
-        else:
-            draw_pixel_text(surface, f"{len(self.equipo)} / {self.max}", (255, 255, 255), 2, outline=(30, 20, 10),
-                        midtop=(SCREEN_W // 2, self.lugares[0].bottom + 8))
 
         # Personajes para elegir
         surface.blit(self.panel, self.panel_rect)
@@ -220,12 +232,12 @@ class EquipoScene(Scene):
         draw_pixel_text(surface, "VIENEN", (255, 240, 200), 2, outline=(40, 24, 10),
                         midtop=(self.zpanel_rect.centerx, self.zpanel_rect.y + 16))
         y = self.zpanel_rect.y + 40
-        for fila, alto in self.zfilas:
-            x = self.zpanel_rect.centerx - sum(w for _, w in fila) // 2
-            for z, w in fila:
-                z.draw_icon(surface, (x + w // 2, y + alto))
-                x += w
-            y += alto + 6
+        for fila, alto in self.zfilas:                       # cada fila centrada, los pies en la misma línea
+            x = self.zpanel_rect.centerx - (sum(im.get_width() for im in fila) + ZSEP * (len(fila) - 1)) // 2
+            for im in fila:
+                surface.blit(im, im.get_rect(bottomleft=(x, y + alto)))
+                x += im.get_width() + ZSEP
+            y += alto + ZSEP
 
         self.jugar_btn.draw(surface)
         self.volver_btn.draw(surface)

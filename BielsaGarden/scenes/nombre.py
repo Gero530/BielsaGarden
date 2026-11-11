@@ -112,5 +112,3 @@ class NombreScene(Scene):
                             center=(SCREEN_W // 2, self.campo.rect.bottom + 22))
         for b in self.botones:
             b.draw(surface)
-        ayuda = "ENTER: ACEPTAR" if self.modo == "primera" else "ENTER: ACEPTAR    ESC: VOLVER"
-        draw_pixel_text(surface, ayuda, (255, 255, 255), 2, outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 14))

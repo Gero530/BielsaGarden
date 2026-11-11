@@ -234,8 +234,6 @@ class CatalogoScene(Scene):
             self.dibujar_contador(surface)
 
         self.dibujar_ficha(surface, self.keys[self.sel[self.tab]])
-        draw_pixel_text(surface, "CLIC O FLECHAS: ELEGIR    TAB: PESTAÑA    ESC: VOLVER", (255, 255, 255), 2,
-                        outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 20))
 
     def dibujar_celda(self, surface, i, key, r):
         elegida = i == self.sel[self.tab]
@@ -260,18 +258,18 @@ class CatalogoScene(Scene):
                         center=(r.centerx, adentro.bottom - alto_txt // 2))
 
     def dibujar_contador(self, surface):
-        """Cuántos zombies se descubrieron, en el hueco que deja la última fila de la grilla
-        (o abajo del tablón si la grilla está completa)."""
+        """Cuántos zombies se descubrieron ("9/15"), en el hueco que deja la última fila de la grilla
+        (o abajo del tablón si la grilla está completa). Grande si entra en el hueco."""
         vistos = sum(1 for k in self.keys if k in self.vistos)
+        texto = f"{vistos}/{len(self.keys)}"
         ultima = self.celdas[-1]
         libres = self.cols - 1 - (len(self.keys) - 1) % self.cols
         if libres:
             zona = pygame.Rect(ultima.right + GAP_CELDA, ultima.y, PANEL.right - 18 - ultima.right - GAP_CELDA, ultima.h)
+            esc = 3 if text_width(texto, 3) + 8 <= zona.w else 2
+            draw_pixel_text(surface, texto, DORADO, esc, outline=OSCURO, center=zona.center)
         else:
-            zona = pygame.Rect(PANEL.x, PANEL.bottom - 4, PANEL.w, 20)
-        draw_pixel_text(surface, "DESCUBIERTOS", CREMA, 2, outline=OSCURO, center=(zona.centerx, zona.centery - 16))
-        draw_pixel_text(surface, f"{vistos}/{len(self.keys)}", DORADO, 3, outline=OSCURO,
-                        center=(zona.centerx, zona.centery + 12))
+            draw_pixel_text(surface, texto, DORADO, 2, outline=OSCURO, center=(PANEL.centerx, PANEL.bottom + 24))
 
     def dibujar_ficha(self, surface, key):
         surface.blit(pergamino(PAGINA.w, PAGINA.h), PAGINA)

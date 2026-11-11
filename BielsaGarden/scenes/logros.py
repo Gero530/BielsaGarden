@@ -176,5 +176,3 @@ class LogrosScene(Scene):
             surface.blit(tablon("", perilla.w // 3, perilla.h // 3, 3, estado=estado), perilla)
 
         self.btn_volver.draw(surface)
-        draw_pixel_text(surface, "RUEDA / FLECHAS: MOVER    ESC: VOLVER", (255, 255, 255), 2,
-                        outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 12))
