@@ -49,8 +49,7 @@ LOGROS = [
     {"id": "mataron_a_kenny", "nombre": "¡Oh, Dios mío! Mataron a Kenny",
      "descripcion": "Utiliza a Kenny para matar a 6 zombies al mismo tiempo.",
      "icono": ("kenny", 0), "tipo": "maximo", "clave": "kenny_simultaneas", "meta": 6},
-    {"id": "toallin", "nombre": "Hoy aprendí algo, no debería drogarme para tener ideas, debería tener "
-                                "ideas y drogarme para premiarme a mí mismo",
+    {"id": "toallin", "nombre": "No olvides traer una toalla",
      "descripcion": "Usa la habilidad de Toallin y toma control de todos los tipos de zombies al menos una vez.",
      "icono": ("toallin", 0), "tipo": "conjunto", "clave": "toallin_tipos", "meta": None},   # ver meta()
     {"id": "patea_al_bebe", "nombre": "¿Listo, Ike? ¡Patea al bebé!",
@@ -68,7 +67,7 @@ LOGROS = [
     {"id": "butters", "nombre": "No eres malo en el fútbol, Butters. Eres malo en todos los deportes",
      "descripcion": "Haz que Butters sobreviva a un nivel 10 veces (ganarlo con Butters en el césped).",
      "icono": ("nuez", 0), "tipo": "contador", "clave": "butters_sobrevive", "meta": 10},
-    {"id": "jesus", "nombre": "Soy judío. Tengo ciertos complejos respecto a matar a Jesús",
+    {"id": "jesus", "nombre": "Jesús y sus amigos",
      "descripcion": "Utiliza a Jesús para matar a 6 zombies al mismo tiempo.",
      "icono": ("picante", 0), "tipo": "maximo", "clave": "picante_simultaneas", "meta": 6},
     {"id": "santi", "nombre": "Pero ya sabes, hoy he aprendido algo. He aprendido que las personas que "

@@ -269,5 +269,3 @@ class OptionsScene(Scene):
 
         self.btn_apply.draw(surface)
         self.btn_back.draw(surface)
-        draw_pixel_text(surface, "ESC: VOLVER", (255, 255, 255), 2, outline=(30, 40, 70),
-                        center=(SCREEN_W // 2, SCREEN_H - 20))

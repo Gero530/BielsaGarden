@@ -62,7 +62,7 @@ class GameplayScene(Scene):
         acciones = (("CONTINUAR", self.toggle_pausa), ("OPCIONES", self.ir_opciones),
                     ("VOLVER AL MAPA", self.ir_mapa), ("MENÚ PRINCIPAL", self.ir_menu))
         ancho = max(ancho_tablon(t, 96) for t, _ in acciones)
-        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 316 + i * 58), fn, size=(ancho, 15))
+        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 262 + i * 58), fn, size=(ancho, 15))
                            for i, (t, fn) in enumerate(acciones)]
         self.banner = None            # (texto, segundos_restantes)
         self.kills = 0
@@ -517,9 +517,8 @@ class GameplayScene(Scene):
         if self.paused:
             surface.blit(dither((SCREEN_W, SCREEN_H), 2), (0, 0))
             # Cartel colgante (las sogas bajan desde arriba de la pantalla)
-            cartel = A.colgante_escalado("PAUSA", 0, 24, 3, pygame.time.get_ticks() / 1000, cuerda=44)
+            cartel = A.colgante_escalado("PAUSA", 0, 22, 2, pygame.time.get_ticks() / 1000, cuerda=40)
             surface.blit(cartel, cartel.get_rect(midtop=(SCREEN_W // 2, 0)))
-            draw_pixel_text(surface, "P / ESC PARA CONTINUAR", (255, 255, 255), 3, outline=(30, 20, 10), center=(SCREEN_W // 2, 236))
             for b in self.pausa_btns:
                 b.draw(surface)
 

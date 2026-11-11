@@ -248,16 +248,11 @@ class MenuScene(Scene):
                 surface.blit(img, r)
                 if hover:                                          # flechita al lado del tablón elegido
                     draw_pixel_text(surface, ">", (255, 220, 60), 4, center=(r.x - 22, r.centery), outline=(60, 40, 10))
-            if tm > 1.2:
-                draw_pixel_text(surface, "FLECHAS: ELEGIR    ENTER: ACEPTAR", (255, 255, 255), 2,
-                                center=(SCREEN_W // 2, 24), outline=(30, 40, 70))
         elif self.intro and vt < A.T_MENU + 2:
             pass
-        if self.intro and vt < A.T_CARTMAN - 0.2:
-            draw_pixel_text(surface, "CLIC PARA SALTEAR", (200, 200, 200), 2, center=(SCREEN_W - 120, SCREEN_H - 20))
 
     def _dibujar_chico(self, surface, i, txt, estado, hover, ui):
-        """LOGROS entra desde la izquierda; el del jugador, desde la derecha (con "JUGADOR" abajo)."""
+        """LOGROS entra desde la izquierda; el del jugador, desde la derecha."""
         r0 = self._rect_boton(i)
         img = self._cartel(txt, r0.w // BTN_ESC, CHICO_H, 1, estado, self._destellos[i].fase(estado == "hover"))
         if i == self.i_logros:
@@ -268,7 +263,5 @@ class MenuScene(Scene):
         else:
             r = r0.move(int(400 * (1 - ui)) - (6 if hover else 0), 0)
             surface.blit(img, r)
-            draw_pixel_text(surface, "JUGADOR", (255, 255, 255), 1, outline=(30, 40, 70),
-                            midtop=(r.centerx, r.bottom + 2))
             if hover:
                 draw_pixel_text(surface, ">", (255, 220, 60), 3, center=(r.x - 16, r.centery), outline=(60, 40, 10))

@@ -155,10 +155,9 @@ class CuentasScene(Scene):
 
         self.btn_nueva.draw(surface)
         self.btn_volver.draw(surface)
-        ayuda = "CLIC EN UNA CUENTA PARA JUGAR CON ELLA    ESC: VOLVER"
-        if not self.btn_nueva.enabled:
-            ayuda = f"MÁXIMO {cuentas.MAX_CUENTAS} CUENTAS: BORRÁ UNA PARA CREAR OTRA"
-        draw_pixel_text(surface, ayuda, (255, 255, 255), 2, outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 14))
+        if not self.btn_nueva.enabled:             # no es un control: explica por qué NUEVA CUENTA está bloqueado
+            draw_pixel_text(surface, f"MÁXIMO {cuentas.MAX_CUENTAS} CUENTAS: BORRÁ UNA PARA CREAR OTRA", (255, 255, 255), 2,
+                            outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 14))
 
         if self.confirmar is not None:
             self._dibujar_confirmacion(surface)
