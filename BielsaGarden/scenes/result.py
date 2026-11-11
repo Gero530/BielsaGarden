@@ -13,6 +13,7 @@ from ui.button import CartelButton, tablon, ancho_tablon
 from ui.pixel_font import draw_pixel_text
 from ui.sprites import draw_sprite, anim_duration
 from data.catalogo import FRASE_KENNY_EXPLOTA
+from ui import musica
 
 # Papelitos del festejo: colores planos y tamaños en píxeles de 3 (como los tablones)
 PAPELITOS = ((220, 40, 40), (255, 214, 64), (60, 110, 220), (60, 190, 80), (255, 255, 255), (246, 146, 34))
@@ -48,9 +49,13 @@ class ResultScene(Scene):
         self.papelitos = [[random.uniform(0, SCREEN_W), random.uniform(-SCREEN_H // 2, SCREEN_H), random.uniform(70, 130),
                            random.uniform(0, 6.3), random.choice(PAPELITOS), random.choice(((6, 6), (9, 6), (6, 9)))]
                           for _ in range(N_PAPELITOS)] if victory else []
+        # Música: tema alegre en bucle al ganar; el "wah wah waaah" una vez al perder
+        musica.victoria() if victory else musica.derrota()
 
     def _jugar(self, idx):
         from scenes.equipo import empezar_nivel       # antes de cada nivel se elige el equipo
+        if LEVELS[idx].get("tutorial"):               # va directo al nivel: se apaga la música
+            musica.desvanecer(400)                    # (si no, la pantalla de equipo pone la del menú)
         self.game.change_scene(empezar_nivel(self.game, idx))
 
     def siguiente(self):

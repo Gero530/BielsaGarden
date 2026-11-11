@@ -97,7 +97,7 @@ class Tabs:
 class Selector:
     """Etiqueta + valor en un hueco tallado, con flechas  <  valor  >  para recorrer opciones."""
 
-    def __init__(self, label, options, index, topleft, on_change, width=600):
+    def __init__(self, label, options, index, topleft, on_change, width=600, x_valor=250, ancho_valor=90):
         self.label = label
         self.options = options          # lista de (valor, texto)
         self.index = index
@@ -106,9 +106,9 @@ class Selector:
         self.note = None                # texto aclaratorio cuando está deshabilitado
         x, y = topleft
         self.rect = pygame.Rect(x, y, width, 42)
-        vx = x + 250
+        vx = x + x_valor                # dónde empiezan las flechas (después de la etiqueta)
         self.left = pygame.Rect(vx, y, 12 * ESC, 14 * ESC)
-        self.value_rect = pygame.Rect(self.left.right + 6, y, 90 * ESC, 14 * ESC)
+        self.value_rect = pygame.Rect(self.left.right + 6, y, ancho_valor * ESC, 14 * ESC)
         self.right = pygame.Rect(self.value_rect.right + 6, y, 12 * ESC, 14 * ESC)
 
     @property

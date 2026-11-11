@@ -429,8 +429,12 @@ class GameplayScene(Scene):
         self.draw(snapshot, show_cursor=False)
         stats = {"kills": self.kills, "time": self.time}
         # Primero el diálogo de victoria/derrota (si hay) y al cerrarlo, la pantalla de resultado
-        self.al_cerrar_dialogo = lambda: self.game.change_scene(
-            ResultScene(self.game, victory, self.level_index, snapshot, stats))
+        if victory and self.level_index == len(LEVELS) - 1:     # ganó el último: juego completado
+            from scenes.final import FinalScene
+            self.al_cerrar_dialogo = lambda: self.game.change_scene(FinalScene(self.game))
+        else:
+            self.al_cerrar_dialogo = lambda: self.game.change_scene(
+                ResultScene(self.game, victory, self.level_index, snapshot, stats))
         self.dialogo = self.crear_dialogo("victoria" if victory else "derrota")
         if not self.dialogo:
             self.al_cerrar_dialogo()

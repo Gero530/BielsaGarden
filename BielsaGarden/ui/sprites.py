@@ -139,7 +139,7 @@ SPRITES = {
     "aplastadora_salto":      {"archivo": "plantas/aplastadora_salto.png",   "frame_w": 40, "frame_h": 40, "fps": 1, "mult": 1.5, "dy_px": 4},
     "aplastadora_cansada":    {"archivo": "plantas/aplastadora_cansada.png", "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4},
     # Cartman festejando en la pantalla de victoria: 4 frames 32x40 (salta con los brazos arriba)
-    "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 32, "frame_h": 40, "fps": 6, "mult": 1.5},
+    "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 40, "frame_h": 46, "fps": 12, "mult": 1.5},
     # PC Principal: 2 frames 40x40 (respira)
     "principal":              {"archivo": "sprites/nuevos/principal.png",         "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
     # Mr. Hankey: 2 frames 40x40, dibujado abajo del frame (va en el piso)

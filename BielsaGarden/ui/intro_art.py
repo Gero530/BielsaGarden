@@ -351,9 +351,10 @@ def colgante_escalado(texto, ancho, alto, escala_texto, t, esc=ESCALA, cuerda=8,
 _vivo = {}
 
 
-def fondo_vivo(t):
+def fondo_vivo(t, bus=True):
     """El paisaje del menú (montañas, nieve y la calle) con nubes que pasan y el bus que cruza
-    cada ~16 s (sin la parada: asomaba detrás de los paneles). Devuelve la imagen agrandada x ESCALA."""
+    cada ~16 s (sin la parada: asomaba detrás de los paneles). bus=False: sin el bus (cuando hay
+    personajes parados en la vereda). Devuelve la imagen agrandada x ESCALA."""
     if not _vivo:
         _vivo["mundo"] = pygame.Surface((W, H))
         _vivo["pantalla"] = pygame.Surface((W * ESCALA, H * ESCALA))
@@ -364,7 +365,7 @@ def fondo_vivo(t):
         x = (x0 + v * t) % (W + 2 * ancho) - ancho
         m.blit(build_nube(ancho), (int(x), y))
     tb = t - 2.0
-    if tb >= 0:
+    if bus and tb >= 0:
         x = W + 6 - (tb % 16.0) * 62
         if x > -190:
             m.blit(build_bus(), (int(x), FEET + 14 - 46))

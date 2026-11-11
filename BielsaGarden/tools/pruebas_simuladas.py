@@ -35,6 +35,9 @@ from entities.zombies import create_zombie
 
 DT = 1 / 60
 G = gm.Game()
+import ajustes                       # las pruebas usan los valores originales (sin Opciones > Juego)
+ajustes.config.clear()
+ajustes.aplicar()
 RESULTADOS = []
 
 

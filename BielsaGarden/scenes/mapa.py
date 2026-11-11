@@ -271,7 +271,8 @@ class MapaScene(Scene):
     def jugar(self, idx):
         if self.salida is None:
             self.salida = (idx, 0.0)
-            musica.desvanecer(int(SALIDA * 1000))
+            if LEVELS[idx].get("tutorial"):                # el tutorial arranca directo: se apaga la música
+                musica.desvanecer(int(SALIDA * 1000))      # (los demás la siguen en la pantalla de equipo)
 
     # ------------------------------------------------------------------
     def handle_event(self, event):

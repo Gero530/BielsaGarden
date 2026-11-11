@@ -6,6 +6,8 @@ Pestañas:
   - Pantalla: resolución y pantalla completa.
   - Sonido: volumen general, música, efectos, personajes y enemigos (slider + casilla de
     silencio cada uno) y "Silenciar en segundo plano" (ui/audio.py).
+  - Juego: daño, vida, costo y recarga de cada personaje, en porcentaje de su valor original,
+    para hacer el juego más fácil o más difícil (ajustes.py).
 
 Para agregar una pestaña nueva:
   1. Sumá el nombre a TABS.
@@ -20,14 +22,17 @@ la que se vuelve (si no se pasa, el menú principal).
 """
 import pygame
 import display
+import ajustes
 from settings import SCREEN_W, SCREEN_H, COLORS
 from scenes.base import Scene
 from ui import intro_art as A, audio
 from ui.button import CartelButton, tablon
 from ui.pixel_font import draw_pixel_text
 from ui.widgets import Tabs, Selector, Checkbox, Slider
+from data.catalogo import PERSONAJES
+from entities.plants import draw_plant_icon
 
-TABS = ["Pantalla", "Sonido"]
+TABS = ["Pantalla", "Sonido", "Juego"]
 OSCURO = (30, 18, 6)
 
 
@@ -40,6 +45,8 @@ class OptionsScene(Scene):
             "pantalla_completa": display.config["pantalla_completa"],
         }
         self.audio_guardado = audio.copia()      # lo último aplicado (Volver vuelve a esto)
+        self.juego_pending = ajustes.copia()     # porcentajes de Opciones > Juego sin aplicar
+        self.juego_pj = 0                        # personaje elegido en la pestaña Juego
         self.panel_img = tablon("", 233, 110, 3)
         self.panel = self.panel_img.get_rect(topleft=(150, 140))
         self.tabs = Tabs(TABS, (self.panel.x + 30, self.panel.y - 36), self.change_tab)
@@ -47,6 +54,7 @@ class OptionsScene(Scene):
         self.builders = {
             "Pantalla": self._build_pantalla,
             "Sonido": self._build_sonido,
+            "Juego": self._build_juego,
         }
         self.current_tab = TABS[0]
         self.widgets = self.builders[self.current_tab]()
@@ -108,6 +116,69 @@ class OptionsScene(Scene):
         audio.aplicar()
         self._refresh()
 
+    def _build_juego(self):
+        x, y = self.panel.x + 40, self.panel.y + 22
+        claves = list(PERSONAJES)
+        clave = claves[self.juego_pj]
+        pj = Selector("Personaje", [(i, PERSONAJES[k]["nombre"]) for i, k in enumerate(claves)], self.juego_pj,
+                      (x, y), self._on_pj, x_valor=200, ancho_valor=60)
+        widgets = [pj]
+        for i, (stat, nombre) in enumerate(ajustes.STATS):
+            pos = (x, y + 56 + i * 44)
+            if ajustes.tiene(clave, stat):
+                opciones = [(p, f"{p}%  ({self._fmt(stat, ajustes.valor(clave, stat, p))})")
+                            for p in ajustes.PORCENTAJES]
+                sel = Selector(nombre, opciones, 0, pos, lambda v, s=stat: self._on_stat(s, v),
+                               x_valor=200, ancho_valor=60)
+                sel.set_value(ajustes.porcentaje(clave, stat, self.juego_pending))
+            else:                                       # Butters, Toallin, Santi, Gero: no hacen daño directo
+                sel = Selector(nombre, [(100, "NO TIENE")], 0, pos, lambda v: None, x_valor=200, ancho_valor=60)
+                sel.enabled = False
+            widgets.append(sel)
+        # Abajo: RESTABLECER (todos al 100 %) y TODOS AL x % (todo, de todos los personajes)
+        cy = self.panel.bottom - 40
+        widgets.append(CartelButton("RESTABLECER", (self.panel.x + 170, cy), self._reset_todos, size=(80, 15)))
+        parejo = self._porcentaje_parejo()
+        opciones = [(p, f"{p}%") for p in ajustes.PORCENTAJES]
+        if parejo is None:
+            opciones.insert(0, (None, "VARIOS"))
+        todos = Selector("Todos al", opciones, 0, (self.panel.x + 315, cy - 21), self._on_todos,
+                         x_valor=160, ancho_valor=40)
+        todos.set_value(parejo)
+        widgets.append(todos)
+        return widgets
+
+    def _porcentaje_parejo(self):
+        """El porcentaje si todos los personajes tienen todo igual (o None si hay de todo)."""
+        valores = {ajustes.porcentaje(k, s, self.juego_pending)
+                   for k in PERSONAJES for s, _ in ajustes.STATS if ajustes.tiene(k, s)}
+        return valores.pop() if len(valores) == 1 else None
+
+    def _on_todos(self, pct):
+        if pct is None:
+            return
+        self.juego_pending = {k: {s: pct for s, _ in ajustes.STATS if ajustes.tiene(k, s)} for k in PERSONAJES}
+        self.change_tab("Juego")
+
+    @staticmethod
+    def _fmt(stat, v):
+        return f"{v:g} S" if stat == "recarga" else str(v)
+
+    def _clave_pj(self):
+        return list(PERSONAJES)[self.juego_pj]
+
+    def _on_pj(self, i):
+        self.juego_pj = i
+        self.change_tab("Juego")                         # se rearma con los valores de ese personaje
+
+    def _on_stat(self, stat, pct):
+        self.juego_pending.setdefault(self._clave_pj(), {})[stat] = pct
+        self._refresh()
+
+    def _reset_todos(self):
+        self.juego_pending = {}
+        self.change_tab("Juego")
+
     # ------------------------------------------------------------------
     # Aplicar / volver
     # ------------------------------------------------------------------
@@ -118,8 +189,11 @@ class OptionsScene(Scene):
     def _cambios_sonido(self):
         return audio.config != self.audio_guardado
 
+    def _cambios_juego(self):
+        return ajustes._limpio(self.juego_pending) != ajustes.config
+
     def has_changes(self):
-        return self._cambios_pantalla() or self._cambios_sonido()
+        return self._cambios_pantalla() or self._cambios_sonido() or self._cambios_juego()
 
     def _refresh(self):
         self.btn_apply.enabled = self.has_changes()      # sin cambios: bloqueado (tablas cruzadas)
@@ -134,6 +208,9 @@ class OptionsScene(Scene):
         if self._cambios_sonido():
             audio.guardar()
             self.audio_guardado = audio.copia()
+        if self._cambios_juego():
+            ajustes.establecer(self.juego_pending)     # el juego ya usa los valores nuevos
+            self.juego_pending = ajustes.copia()
         self.message = ["Cambios aplicados", 2.0]
         self._refresh()
 
@@ -179,6 +256,8 @@ class OptionsScene(Scene):
                             midbottom=(self.silencio_x, self.panel.y + 44))
         for w in self.widgets:
             w.draw(surface)
+        if self.current_tab == "Juego":                  # el personaje elegido, a la derecha
+            draw_plant_icon(surface, self._clave_pj(), (self.panel.right - 92, self.panel.y + 150), 1.0)
 
         aviso_y = self.panel.bottom + 18
         if self.has_changes():
