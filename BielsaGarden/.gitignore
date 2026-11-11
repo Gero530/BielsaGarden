@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+partidas.json
+partidas.json.tmp
+logros.json
+logros.json.tmp
+cuentas.json
+cuentas.json.tmp

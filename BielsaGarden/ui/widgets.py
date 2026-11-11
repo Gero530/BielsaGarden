@@ -1,28 +1,83 @@
 """
-Controles para menús: pestañas, selector con flechas y casilla de verificación.
+Controles para menús, en pixel art (tablones, huecos tallados y la fuente pixel):
+pestañas, selector con flechas y casilla de verificación.
 Todos tienen handle_event(event) -> bool (True si usaron el evento) y draw(surface).
 """
 import pygame
 import display
-from settings import COLORS
-from ui.fonts import draw_text
+from ui.pixel_font import draw_pixel_text
+from ui.button import tablon
 
-PANEL = (40, 52, 36)
-PANEL_BORDE = (25, 35, 22)
-TAB_INACTIVA = (70, 90, 62)
-TAB_HOVER = (90, 115, 80)
+ESC = 3                         # tamaño de un píxel de dibujo en pantalla (como los tablones)
+CREMA = (255, 240, 200)
+OSCURO = (30, 18, 6)
+GRIS = (150, 146, 140)
+_cache = {}
+
+
+def _hueco(w, h):
+    """Hueco tallado en la madera (w x h en píxeles de pantalla, múltiplos de ESC)."""
+    key = ("hueco", w, h)
+    if key not in _cache:
+        a, b = w // ESC, h // ESC
+        s = pygame.Surface((a, b))
+        s.fill((58, 34, 14))
+        s.fill((76, 48, 22), (1, 1, a - 2, b - 2))
+        s.fill((52, 32, 14), (1, 1, a - 2, 1)); s.fill((52, 32, 14), (1, 1, 1, b - 2))      # sombra adentro
+        s.fill((164, 116, 60), (1, b - 2, a - 2, 1)); s.fill((164, 116, 60), (a - 2, 1, 1, b - 2))  # luz del borde
+        _cache[key] = pygame.transform.scale(s, (a * ESC, b * ESC))
+    return _cache[key]
+
+
+def _flecha(direccion, estado):
+    """Tablón chico con un triángulo dibujado píxel por píxel."""
+    key = ("flecha", direccion, estado)
+    if key not in _cache:
+        from ui.intro_art import build_cartel
+        s = build_cartel("", 12, 14, 1, estado=estado).copy()
+        top = {"normal": 1, "hover": 0, "apretado": 2, "bloqueado": 1}[estado]
+        color = (110, 106, 100) if estado == "bloqueado" else (40, 22, 6)
+        cy = top + 6
+        for i in range(4):
+            x = 4 + i if direccion > 0 else 7 - i
+            s.fill(color, (x, cy - (3 - i), 1, 2 * (3 - i) + 1))
+        _cache[key] = pygame.transform.scale(s, (12 * ESC, 14 * ESC))
+    return _cache[key]
+
+
+TILDE = ["......#", ".....##", "#...##.", "##.##..", ".###...", "..#...."]
+
+
+def _casilla(marcada, hover):
+    key = ("casilla", marcada, hover)
+    if key not in _cache:
+        s = pygame.Surface((11, 11))
+        s.fill((232, 186, 112) if hover else (58, 34, 14))
+        s.fill((76, 48, 22), (1, 1, 9, 9))
+        s.fill((52, 32, 14), (1, 1, 9, 1)); s.fill((52, 32, 14), (1, 1, 1, 9))
+        if marcada:
+            for y, fila in enumerate(TILDE):
+                for x, c in enumerate(fila):
+                    if c == "#":
+                        s.set_at((2 + x, 2 + y), (255, 214, 64))
+        _cache[key] = pygame.transform.scale(s, (11 * ESC, 11 * ESC))
+    return _cache[key]
 
 
 class Tabs:
-    """Fila de pestañas. La activa se une visualmente con el panel de abajo."""
+    """Fila de pestañas como tablones chicos; la activa se ve levantada y más clara."""
 
-    def __init__(self, names, topleft, on_change, tab_size=(150, 40)):
+    def __init__(self, names, topleft, on_change, tab_size=(60, 14)):
         self.names = names
         self.active = 0
         self.on_change = on_change
         x, y = topleft
-        w, h = tab_size
-        self.rects = [pygame.Rect(x + i * (w + 6), y, w, h) for i in range(len(names))]
+        self.size = tab_size
+        self.rects = []
+        for name in names:
+            img = tablon(name, *tab_size)
+            self.rects.append(img.get_rect(topleft=(x, y)))
+            x += img.get_width() + 6
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -35,24 +90,14 @@ class Tabs:
         return False
 
     def draw(self, surface):
-        mouse = display.get_mouse_pos()
         for i, (name, r) in enumerate(zip(self.names, self.rects)):
-            if i == self.active:
-                color = PANEL
-            else:
-                color = TAB_HOVER if r.collidepoint(mouse) else TAB_INACTIVA
-            pygame.draw.rect(surface, color, r, border_top_left_radius=8, border_top_right_radius=8)
-            pygame.draw.rect(surface, PANEL_BORDE, r, 3, border_top_left_radius=8, border_top_right_radius=8)
-            if i == self.active:   # tapa el borde inferior (y el del panel) para que la pestaña "entre" al panel
-                pygame.draw.rect(surface, PANEL, (r.x + 3, r.bottom - 3, r.w - 6, 7))
-            draw_text(surface, name, 28, COLORS["texto"] if i == self.active else (210, 220, 200),
-                      center=r.center)
+            surface.blit(tablon(name, *self.size, estado="hover" if i == self.active else "normal"), r)
 
 
 class Selector:
-    """Etiqueta + valor con flechas  <  valor  >  para recorrer opciones."""
+    """Etiqueta + valor en un hueco tallado, con flechas  <  valor  >  para recorrer opciones."""
 
-    def __init__(self, label, options, index, topleft, on_change, width=520):
+    def __init__(self, label, options, index, topleft, on_change, width=600):
         self.label = label
         self.options = options          # lista de (valor, texto)
         self.index = index
@@ -60,11 +105,11 @@ class Selector:
         self.enabled = True
         self.note = None                # texto aclaratorio cuando está deshabilitado
         x, y = topleft
-        self.rect = pygame.Rect(x, y, width, 44)
-        vx = x + 210
-        self.left = pygame.Rect(vx, y + 4, 36, 36)
-        self.value_rect = pygame.Rect(vx + 40, y + 4, 220, 36)
-        self.right = pygame.Rect(self.value_rect.right + 4, y + 4, 36, 36)
+        self.rect = pygame.Rect(x, y, width, 42)
+        vx = x + 250
+        self.left = pygame.Rect(vx, y, 12 * ESC, 14 * ESC)
+        self.value_rect = pygame.Rect(self.left.right + 6, y, 90 * ESC, 14 * ESC)
+        self.right = pygame.Rect(self.value_rect.right + 6, y, 12 * ESC, 14 * ESC)
 
     @property
     def value(self):
@@ -87,40 +132,38 @@ class Selector:
         self.on_change(self.value)
         return True
 
-    def _arrow(self, surface, rect, direction, active, mouse):
-        if not active:
-            color = (70, 80, 66)
-        else:
-            color = COLORS["boton_hover"] if rect.collidepoint(mouse) else COLORS["boton"]
-        pygame.draw.rect(surface, color, rect, border_radius=6)
-        pygame.draw.rect(surface, PANEL_BORDE, rect, 2, border_radius=6)
-        cx, cy = rect.center
-        pts = [(cx + 6, cy - 9), (cx + 6, cy + 9), (cx - 7, cy)] if direction < 0 else \
-              [(cx - 6, cy - 9), (cx - 6, cy + 9), (cx + 7, cy)]
-        pygame.draw.polygon(surface, COLORS["texto"] if active else (140, 140, 140), pts)
+    def _estado(self, rect, activa, mouse):
+        if not activa:
+            return "bloqueado"
+        return "hover" if rect.collidepoint(mouse) else "normal"
 
     def draw(self, surface):
         mouse = display.get_mouse_pos()
-        txt_color = COLORS["texto"] if self.enabled else (150, 150, 150)
-        draw_text(surface, self.label, 30, txt_color, topleft=(self.rect.x, self.rect.y + 10))
-        self._arrow(surface, self.left, -1, self.enabled and self.index > 0, mouse)
-        self._arrow(surface, self.right, 1, self.enabled and self.index < len(self.options) - 1, mouse)
-        pygame.draw.rect(surface, (25, 32, 22), self.value_rect, border_radius=6)
-        draw_text(surface, self.options[self.index][1], 28, txt_color, center=self.value_rect.center)
+        color = CREMA if self.enabled else GRIS
+        draw_pixel_text(surface, self.label, color, 3, outline=OSCURO, midleft=(self.rect.x, self.rect.centery))
+        surface.blit(_flecha(-1, self._estado(self.left, self.enabled and self.index > 0, mouse)), self.left)
+        surface.blit(_flecha(1, self._estado(self.right, self.enabled and self.index < len(self.options) - 1, mouse)),
+                     self.right)
+        surface.blit(_hueco(self.value_rect.w, self.value_rect.h), self.value_rect)
+        draw_pixel_text(surface, self.options[self.index][1], color, 2, center=self.value_rect.center)
         if not self.enabled and self.note:
-            draw_text(surface, self.note, 20, (200, 200, 170), topleft=(self.left.x, self.rect.bottom + 2))
+            draw_pixel_text(surface, self.note, (255, 230, 140), 2, outline=OSCURO,
+                            topleft=(self.rect.x, self.rect.bottom + 8))
 
 
 class Checkbox:
-    """Casilla de verificación con etiqueta. Se puede hacer clic en la casilla o en el texto."""
+    """Casilla tallada con una tilde amarilla. Se puede hacer clic en la casilla o en el texto."""
 
-    def __init__(self, label, value, topleft, on_change):
+    def __init__(self, label, value, topleft, on_change, escala=3):
         self.label = label
         self.value = value
         self.on_change = on_change
+        self.escala = escala
         x, y = topleft
-        self.box = pygame.Rect(x + 210, y + 6, 32, 32)
-        self.rect = pygame.Rect(x, y, 210 + 32 + 10, 44)   # zona clickeable (texto + casilla)
+        from ui.pixel_font import text_width
+        ancho_texto = text_width(label, escala) + 24                      # la casilla va después del texto
+        self.box = pygame.Rect(x + ancho_texto, y + 4, 11 * ESC, 11 * ESC)
+        self.rect = pygame.Rect(x, y, ancho_texto + self.box.w + 10, 42)   # zona clickeable (texto + casilla)
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
@@ -131,10 +174,146 @@ class Checkbox:
 
     def draw(self, surface):
         hover = self.rect.collidepoint(display.get_mouse_pos())
-        draw_text(surface, self.label, 30, COLORS["texto"], topleft=(self.rect.x, self.rect.y + 10))
-        pygame.draw.rect(surface, (25, 32, 22), self.box, border_radius=6)
-        pygame.draw.rect(surface, COLORS["boton_hover"] if hover else COLORS["boton"], self.box, 3, border_radius=6)
-        if self.value:
-            b = self.box
-            pygame.draw.lines(surface, COLORS["verde"], False,
-                              [(b.x + 7, b.centery), (b.x + 13, b.bottom - 8), (b.right - 6, b.y + 7)], 5)
+        draw_pixel_text(surface, self.label, CREMA, self.escala, outline=OSCURO,
+                        midleft=(self.rect.x, self.box.centery))
+        surface.blit(_casilla(self.value, hover), self.box)
+
+
+def _perilla(estado):
+    """Tablón chico vertical que se arrastra por el hueco del slider."""
+    key = ("perilla", estado)
+    if key not in _cache:
+        from ui.intro_art import build_cartel
+        s = build_cartel("", 8, 13, 1, estado=estado)
+        _cache[key] = pygame.transform.scale(s, (8 * ESC, 13 * ESC))
+    return _cache[key]
+
+
+class Slider:
+    """Etiqueta + hueco tallado con la barra de volumen y una perilla que se arrastra, el valor en %
+    y al lado una casilla de silencio. Rueda del mouse encima: de a 5.
+    on_change(valor, silenciado) se llama con cada cambio."""
+
+    ANCHO_BARRA = 300
+
+    def __init__(self, label, valor, silenciado, topleft, on_change, x_barra=170):
+        self.label = label
+        self.valor = int(valor)
+        self.silenciado = silenciado
+        self.on_change = on_change
+        self.arrastrando = False
+        x, y = topleft
+        self.rect = pygame.Rect(x, y, 0, 36)
+        self.barra = pygame.Rect(x + x_barra, y + 9, self.ANCHO_BARRA, 6 * ESC)
+        self.zona = self.barra.inflate(24, 20)           # zona clickeable (incluye la perilla en las puntas)
+        self.valor_pos = (self.barra.right + 48, self.rect.centery)
+        self.box = pygame.Rect(self.barra.right + 100, y + 2, 11 * ESC, 11 * ESC)
+        self.rect.w = self.box.right - x
+
+    def _desde_x(self, x):
+        u = (x - self.barra.x) / self.barra.w
+        nuevo = int(round(max(0.0, min(1.0, u)) * 100))
+        if nuevo != self.valor:
+            self.valor = nuevo
+            self.on_change(self.valor, self.silenciado)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.box.inflate(8, 8).collidepoint(event.pos):
+                self.silenciado = not self.silenciado
+                self.on_change(self.valor, self.silenciado)
+                return True
+            if self.zona.collidepoint(event.pos):
+                self.arrastrando = True
+                self._desde_x(event.pos[0])
+                return True
+        elif event.type == pygame.MOUSEMOTION and self.arrastrando:
+            self._desde_x(event.pos[0])
+            return True
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.arrastrando:
+            self.arrastrando = False
+            return True
+        elif event.type == pygame.MOUSEWHEEL:
+            if self.zona.collidepoint(display.get_mouse_pos()):
+                nuevo = max(0, min(100, self.valor + 5 * event.y))
+                if nuevo != self.valor:
+                    self.valor = nuevo
+                    self.on_change(self.valor, self.silenciado)
+                return True
+        return False
+
+    def draw(self, surface):
+        mouse = display.get_mouse_pos()
+        apagado = self.silenciado
+        color = GRIS if apagado else CREMA
+        draw_pixel_text(surface, self.label, color, 2, outline=OSCURO, midleft=(self.rect.x, self.rect.centery))
+        surface.blit(_hueco(self.barra.w, self.barra.h), self.barra)
+        # Relleno: franja de "volumen" dentro del hueco (en píxeles de dibujo de ESC)
+        lleno = (self.barra.w - 2 * ESC) * self.valor // 100 // ESC * ESC
+        if lleno > 0:
+            r = pygame.Rect(self.barra.x + ESC, self.barra.y + ESC, lleno, self.barra.h - 2 * ESC)
+            surface.fill((120, 116, 110) if apagado else (226, 170, 40), r)
+            surface.fill((160, 156, 150) if apagado else (255, 222, 96), (r.x, r.y, r.w, ESC))   # brillo arriba
+        perilla_estado = ("hover" if self.arrastrando or self.zona.collidepoint(mouse) else "normal")
+        if apagado:
+            perilla_estado = "bloqueado"
+        img = _perilla(perilla_estado)
+        px = self.barra.x + (self.barra.w - 2 * ESC) * self.valor // 100 // ESC * ESC + ESC
+        surface.blit(img, img.get_rect(center=(px, self.barra.centery + ESC)))
+        draw_pixel_text(surface, f"{self.valor}%", color, 2, outline=OSCURO, center=self.valor_pos)
+        surface.blit(_casilla(self.silenciado, self.box.inflate(8, 8).collidepoint(mouse)), self.box)
+
+
+class CampoTexto:
+    """Hueco tallado donde se escribe (nombre de la cuenta). Solo acepta letras que la fuente pixel
+    sabe dibujar; Retroceso borra; Enter llama a on_enter. El texto se ve en mayúsculas."""
+
+    def __init__(self, texto, center, max_letras, on_enter, escala=3):
+        self.texto = texto
+        self.max = max_letras
+        self.on_enter = on_enter
+        self.escala = escala
+        from ui.pixel_font import AVANCE
+        w = (max_letras + 1) * AVANCE * escala + 36
+        self.rect = pygame.Rect(0, 0, w // ESC * ESC, 20 * ESC)
+        self.rect.center = center
+        self.t = 0.0
+        try:
+            pygame.key.start_text_input()
+        except pygame.error:
+            pass
+
+    @staticmethod
+    def _valida(c):
+        from ui.pixel_font import _G
+        return c.upper() in _G and c not in "\r\n\t"
+
+    def handle_event(self, event):
+        if event.type == pygame.TEXTINPUT:
+            for c in event.text:
+                if self._valida(c) and len(self.texto) < self.max:
+                    self.texto += c
+            self.t = 0.0
+            return True
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.texto = self.texto[:-1]
+                self.t = 0.0
+                return True
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.on_enter()
+                return True
+        return False
+
+    def update(self, dt):
+        self.t += dt
+
+    def draw(self, surface):
+        surface.blit(_hueco(self.rect.w, self.rect.h), self.rect)
+        x = self.rect.x + 18
+        r = draw_pixel_text(surface, self.texto.upper(), CREMA, self.escala, outline=OSCURO,
+                            midleft=(x, self.rect.centery)) if self.texto else pygame.Rect(x, 0, 0, 0)
+        if int(self.t * 2) % 2 == 0:                 # cursor que titila (se queda fijo mientras escribís)
+            alto = 7 * self.escala
+            surface.fill((255, 214, 64), (r.right + (4 if self.texto else 0), self.rect.centery - alto // 2,
+                                          self.escala * 2, alto))

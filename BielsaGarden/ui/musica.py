@@ -5,11 +5,28 @@ sigue andando en silencio: todas las funciones capturan los errores.
 import os
 import pygame
 from settings import MUSICA_MENU, MUSICA_VOLUMEN, MUSICA_PARTIDA
+from ui import audio
 
 ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 RUTA = os.path.join(ASSETS, MUSICA_MENU)
 _ok = None
 _desde = 0.0           # desde qué segundo de la canción se arrancó la reproducción
+_base = MUSICA_VOLUMEN   # volumen propio del tema cargado (antes de Opciones > Sonido)
+
+
+def _volumen(base):
+    """Pone el volumen del tema: el suyo x el de Opciones > Sonido (general y música)."""
+    global _base
+    _base = base
+    pygame.mixer.music.set_volume(base * audio.factor("musica"))
+
+
+def aplicar_volumen():
+    try:
+        if pygame.mixer.get_init():
+            _volumen(_base)
+    except pygame.error:
+        pass
 
 
 def disponible():
@@ -20,7 +37,7 @@ def disponible():
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
             pygame.mixer.music.load(RUTA)
-            pygame.mixer.music.set_volume(MUSICA_VOLUMEN)
+            _volumen(MUSICA_VOLUMEN)
             _ok = True
         except (pygame.error, FileNotFoundError, OSError) as e:
             print(f"[musica] Sin música: {e}")
@@ -42,7 +59,7 @@ def reproducir(desde=0.0):
     global _desde
     try:
         pygame.mixer.music.load(RUTA)       # puede haber quedado cargado un tema de la partida
-        pygame.mixer.music.set_volume(MUSICA_VOLUMEN)
+        _volumen(MUSICA_VOLUMEN)
         try:
             pygame.mixer.music.play(loops=-1, start=desde)
             _desde = desde
@@ -105,7 +122,7 @@ def _tocar_pista():
         if not pygame.mixer.get_init():
             pygame.mixer.init()
         pygame.mixer.music.load(os.path.join(ASSETS, archivo))
-        pygame.mixer.music.set_volume(volumen)
+        _volumen(volumen)
         pygame.mixer.music.play()
     except (pygame.error, FileNotFoundError, OSError) as e:
         print(f"[musica] No se pudo reproducir '{archivo}': {e}")

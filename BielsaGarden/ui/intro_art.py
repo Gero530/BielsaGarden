@@ -15,8 +15,9 @@ más lento o más rápido. Los momentos clave caen sobre los pulsos de la canci�
 """
 import math
 import os
+import random
 import pygame
-from ui.pixel_font import pixel_text
+from ui.pixel_font import pixel_text, text_width
 
 W, H = 334, 200
 ESCALA = 3
@@ -217,25 +218,194 @@ def build_nube(ancho):
 # ----------------------------------------------------------------------
 # Cartel de madera (botones y título)
 # ----------------------------------------------------------------------
-def build_cartel(texto, ancho, alto, escala_texto, hover=False):
-    """Tablón de madera con letras negras, como el cartel de SOUTH PARK de la intro."""
-    key = ("cartel", texto, ancho, alto, escala_texto, hover)
+# Paletas del tablón por estado: contorno, luz, medio, sombra, veta, letra, luz del tallado
+TABLON_PAL = {
+    "normal":    ((58, 34, 14), (200, 150, 86), (164, 116, 60), (116, 78, 38), (132, 92, 46), (40, 22, 6), (222, 180, 116)),
+    "hover":     ((58, 34, 14), (232, 186, 112), (194, 144, 80), (138, 96, 48), (160, 114, 60), (30, 14, 2), (250, 214, 150)),
+    "apretado":  ((50, 30, 12), (150, 104, 54), (128, 88, 44), (92, 60, 28), (108, 72, 36), (36, 20, 6), (170, 126, 72)),
+    "bloqueado": ((62, 60, 58), (172, 168, 160), (140, 136, 130), (102, 100, 96), (120, 116, 110), (44, 42, 40), (190, 186, 180)),
+}
+TABLON_SOMBRA = (0, 0, 0, 90)
+
+
+def _lugar_texto(img, ancho, top, ph, esc):
+    """Dónde va el texto en el tablón. Se centra en la cara de la madera (sin el borde) lo que
+    se ve: las letras (7 filas) más la luz tallada de abajo (1 fila más). La fila de la tilde
+    (Á, É...) no cuenta: sube al margen de arriba en vez de empujar las letras contra el borde
+    de abajo. Si sobra una fila impar, va abajo."""
+    cara_y, cara_h = top + 1, ph - 2                 # filas entre el borde de arriba y el de abajo
+    bloque = 8 * esc                                 # 7 de letra + 1 de luz
+    tilde = img.get_height() - 7 * esc               # fila de más arriba si hay tildes
+    r = img.get_rect()
+    r.centerx = ancho // 2
+    r.top = cara_y + max(0, cara_h - bloque) // 2 - tilde
+    return r
+
+
+def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, color_texto=None):
+    """Tablón de madera de 3 tonos con letras talladas (en píxeles de dibujo; se agranda afuera).
+    estado: "normal" (apoyado, con sombra abajo), "hover" (más claro y levantado 1 píxel),
+    "apretado" (más oscuro y hundido 1 píxel, sin sombra) o "bloqueado" (gris con dos tablas
+    cruzadas clavadas). Las 2 filas de abajo quedan para la sombra / el movimiento."""
+    estado = estado or ("hover" if hover else "normal")
+    key = ("cartel", texto, ancho, alto, escala_texto, estado, color_texto)
     if key in _cache:
         return _cache[key]
+    out, luz, mid, osc, veta, letra, brillo = TABLON_PAL[estado]
     s = pygame.Surface((ancho, alto), pygame.SRCALPHA)
-    MAD = (168, 122, 66) if hover else (140, 100, 54)
-    MAD_C = (196, 150, 86) if hover else (166, 122, 68)
-    MAD_O = (74, 48, 22)
-    s.fill(MAD_O, (0, 1, ancho, alto - 2)); s.fill(MAD_O, (1, 0, ancho - 2, alto))
-    s.fill(MAD, (2, 2, ancho - 4, alto - 4))
-    s.fill(MAD_C, (2, 2, ancho - 4, 2))                    # luz arriba
-    for yy in range(7, alto - 3, 6):                       # vetas
-        s.fill((120, 84, 44), (4 + (yy * 7) % 17, yy, ancho // 3, 1))
-    for x, y in ((5, 5), (ancho - 7, 5), (5, alto - 7), (ancho - 7, alto - 7)):   # clavos
-        s.fill((40, 28, 14), (x, y, 2, 2))
-    img = pixel_text(texto, (16, 10, 4), escala_texto)
-    s.blit(img, img.get_rect(center=(ancho // 2, alto // 2 + 1)))
+    top = {"normal": 1, "hover": 0, "apretado": 2, "bloqueado": 1}[estado]
+    ph = alto - 2
+    if estado != "apretado":                                    # sombra apoyada
+        s.fill(TABLON_SOMBRA, (2, top + ph, ancho - 3, alto - top - ph))
+    body = pygame.Rect(0, top, ancho, ph)
+    s.fill(out, body)
+    inner = body.inflate(-2, -2)
+    s.fill(mid, inner)
+    s.fill(luz, (inner.x, inner.y, inner.w, 1)); s.fill(luz, (inner.x, inner.y, 1, inner.h))         # luz arriba
+    s.fill(osc, (inner.x, inner.bottom - 1, inner.w, 1)); s.fill(osc, (inner.right - 1, inner.y, 1, inner.h))
+    # Franja del texto: las vetas no pasan por ahí (no tachan las letras)
+    img = pixel_text(texto, color_texto or letra, escala_texto) if texto else None
+    tr = _lugar_texto(img, ancho, top, ph, escala_texto) if img else pygame.Rect(0, 0, 0, 0)
+    franja = range(tr.top - 1, tr.bottom + escala_texto + 1) if img else range(0)
+    rnd = random.Random(ancho * 31 + alto * 7)
+    for y in range(inner.y + 3, inner.bottom - 2, 3):           # vetas cortas
+        if y in franja:
+            continue
+        x0 = inner.x + 2 + rnd.randint(0, max(1, ancho // 3))
+        largo = min(rnd.randint(max(2, ancho // 5), max(3, ancho // 2)), inner.right - 3 - x0)
+        if largo > 0:
+            s.fill(veta, (x0, y, largo, 1))
+    if ancho > 34 and ph > 12:                                  # un nudo, lejos del texto
+        kx = inner.x + rnd.randint(4, max(5, inner.w - 8))
+        for ky in (inner.y + 2, inner.bottom - 5):
+            if all(yy not in franja for yy in range(ky, ky + 3)):
+                s.fill(veta, (kx, ky, 3, 1)); s.fill(veta, (kx, ky + 2, 3, 1))
+                s.fill(veta, (kx - 1, ky + 1, 1, 1)); s.fill(veta, (kx + 3, ky + 1, 1, 1))
+                s.fill(osc, (kx + 1, ky + 1, 1, 1))
+                break
+    # Esquinas gastadas y una astilla
+    for x, y in ((0, top), (ancho - 1, top), (0, top + ph - 1), (ancho - 1, top + ph - 1)):
+        s.set_at((x, y), (0, 0, 0, 0))
+    if ancho > 20:
+        s.fill((0, 0, 0, 0), (3, top + ph - 1, 3, 1)); s.fill(out, (3, top + ph - 2, 3, 1))
+        s.fill((0, 0, 0, 0), (ancho - 9, top, 2, 1)); s.fill(out, (ancho - 9, top + 1, 2, 1))
+    if ph >= 12 and ancho >= 24:                                # tornillos con un píxel de brillo
+        for x, y in ((inner.x + 2, inner.y + 2), (inner.right - 4, inner.y + 2),
+                     (inner.x + 2, inner.bottom - 4), (inner.right - 4, inner.bottom - 4)):
+            s.fill((46, 34, 24), (x, y, 2, 2)); s.set_at((x, y), (200, 190, 170))
+    if estado == "bloqueado":                                   # dos tablas cruzadas clavadas
+        # Se cortan en la franja del texto (pasan por detrás de las letras), así se sigue leyendo
+        zonas = [pygame.Rect(0, 0, tr.left - 2, alto), pygame.Rect(tr.right + 2, 0, ancho, alto)] if img             else [s.get_rect()]
+        for zona in zonas:
+            s.set_clip(zona)
+            for a, b in (((2, top + 2), (ancho - 3, top + ph - 3)), ((2, top + ph - 3), (ancho - 3, top + 2))):
+                pygame.draw.line(s, (70, 52, 34), a, b, 3)
+                pygame.draw.line(s, (150, 112, 70), a, b, 1)
+        s.set_clip(None)
+    if img:                                                     # letras talladas: luz de 1 píxel debajo
+        s.blit(pixel_text(texto, brillo, escala_texto), tr.move(0, escala_texto))   # luz del grosor del trazo
+        s.blit(img, tr)
     _cache[key] = s
+    return s
+
+
+BALANCEO = (0, 1, 0, -1)         # corrimiento (píxeles de dibujo) de la punta de abajo en cada cuadro
+
+
+def cuadro_balanceo(t, fps=3):
+    return BALANCEO[int(t * fps) % len(BALANCEO)]
+
+
+def build_colgante(texto, ancho, alto, escala_texto, cuadro=0, cuerda=8, color_texto=None):
+    """Tablón colgando de dos sogas. cuadro (-1, 0, 1): balanceo dibujado en pixel art: cada fila
+    se corre un número entero de píxeles (la de arriba nada, la de abajo `cuadro`), sin rotar."""
+    ancho = max(ancho, text_width(texto, escala_texto) + 20)
+    key = ("colgante", texto, ancho, alto, escala_texto, cuadro, cuerda, color_texto)
+    if key in _cache:
+        return _cache[key]
+    s = pygame.Surface((ancho + 2, alto + cuerda), pygame.SRCALPHA)
+    for x in (ancho // 4, ancho * 3 // 4):
+        for y in range(cuerda + 2):
+            s.set_at((x + 1, y), (196, 160, 104) if y % 2 else (124, 92, 54))      # soga trenzada
+    s.blit(build_cartel(texto, ancho, alto, escala_texto, color_texto=color_texto), (1, cuerda))
+    if cuadro:
+        out = pygame.Surface(s.get_size(), pygame.SRCALPHA)
+        h = s.get_height()
+        for y in range(h):
+            out.blit(s, (round(cuadro * y / (h - 1)), y), (0, y, s.get_width(), 1))
+        s = out
+    _cache[key] = s
+    return s
+
+
+def colgante_escalado(texto, ancho, alto, escala_texto, t, esc=ESCALA, cuerda=8, color_texto=None, cuadro=None):
+    """build_colgante agrandado x`esc`, en el cuadro de balanceo que toca en el instante t."""
+    c = cuadro_balanceo(t) if cuadro is None else cuadro
+    key = ("colgante_esc", texto, ancho, alto, escala_texto, c, cuerda, esc, color_texto)
+    if key not in _cache:
+        s = build_colgante(texto, ancho, alto, escala_texto, c, cuerda, color_texto)
+        _cache[key] = pygame.transform.scale(s, (s.get_width() * esc, s.get_height() * esc))
+    return _cache[key]
+
+
+_vivo = {}
+
+
+def fondo_vivo(t):
+    """El paisaje del menú (montañas, nieve y la calle) con nubes que pasan y el bus que cruza
+    cada ~16 s (sin la parada: asomaba detrás de los paneles). Devuelve la imagen agrandada x ESCALA."""
+    if not _vivo:
+        _vivo["mundo"] = pygame.Surface((W, H))
+        _vivo["pantalla"] = pygame.Surface((W * ESCALA, H * ESCALA))
+    m = _vivo["mundo"]
+    m.blit(build_background(), (0, 0))
+    draw_road(m, 1.0)
+    for ancho, y, v, x0 in ((66, 12, 5.0, 40), (46, 34, 8.0, 210), (38, 20, 11.0, 330)):
+        x = (x0 + v * t) % (W + 2 * ancho) - ancho
+        m.blit(build_nube(ancho), (int(x), y))
+    tb = t - 2.0
+    if tb >= 0:
+        x = W + 6 - (tb % 16.0) * 62
+        if x > -190:
+            m.blit(build_bus(), (int(x), FEET + 14 - 46))
+    pygame.transform.scale(m, _vivo["pantalla"].get_size(), _vivo["pantalla"])
+    return _vivo["pantalla"]
+
+
+CORTINA_ESC = 3
+
+
+def build_cortina():
+    """Hoja de cartulina con los bordes rotos (para la transición entre pantallas), agrandada x3."""
+    if "cortina" in _cache:
+        return _cache["cortina"]
+    a, b = 120, 200
+    s = pygame.Surface((a, b), pygame.SRCALPHA)
+    rnd = random.Random(7)
+    papel, borde, fibra = (214, 158, 92), (150, 100, 50), (232, 184, 120)
+    for y in range(b):
+        izq, der = rnd.randint(0, 3), a - rnd.randint(1, 4)       # bordes rotos
+        s.fill(borde, (izq, y, der - izq, 1))
+        s.fill(papel, (izq + 1, y, der - izq - 2, 1))
+    for _ in range(140):                                          # fibras de la cartulina
+        s.set_at((rnd.randint(6, a - 8), rnd.randint(0, b - 1)), fibra)
+    _cache["cortina"] = pygame.transform.scale(s, (a * CORTINA_ESC, b * CORTINA_ESC))
+    return _cache["cortina"]
+
+
+def con_destello(img, fase):
+    """Copia del tablón con un brillo diagonal de 2 píxeles que lo cruza (fase 0..1).
+    Solo aclara los píxeles de madera que ya están (no pinta afuera del tablón)."""
+    s = img.copy()
+    w, h = s.get_size()
+    x0 = int(-h + fase * (w + h))
+    for y in range(h):
+        for k in range(2):
+            x = x0 + (h - y) + k
+            if 0 <= x < w:
+                c = s.get_at((x, y))
+                if c.a == 255 and sum(c[:3]) > 200:             # madera (no el contorno ni las letras)
+                    s.set_at((x, y), (min(255, c.r + 50), min(255, c.g + 46), min(255, c.b + 36)))
     return s
 
 
@@ -284,8 +454,9 @@ def pieza_pos(k, t, parte):
     return (sx + 36 * (1 - u), -50 + (sy + 50) * u * u - rebote(t, t_land, 5))
 
 
-def draw_world(world, t, kids, extras=None, beat=None):
-    """Dibuja el mundo (500x300) en el instante t. `extras(world)` dibuja cosas entre el fondo y los chicos."""
+def draw_world(world, t, kids, extras=None, beat=None, delante=None):
+    """Dibuja el mundo (500x300) en el instante t. `extras(world)` dibuja cosas entre el fondo y los
+    chicos; `delante(world)`, cosas que pasan por delante de los chicos (el bus)."""
     world.fill((0, 0, 0))
     # el fondo se revela como un rectángulo que crece desde el centro (como en la intro)
     r = smooth((t - 0.8) / 0.6)
@@ -311,6 +482,8 @@ def draw_world(world, t, kids, extras=None, beat=None):
             if beat is not None and t >= T_CARTMAN:
                 dy = beat                                      # el cabeceo al ritmo, solo después del armado
             world.blit(k["head"], (round(p[0]), round(p[1]) + dy))
+    if delante:
+        delante(world)
 
 
 def render_view(canvas, world, t, kids):

@@ -39,8 +39,13 @@ class LoadingScene(Scene):
             self._precargar()
         if self.cargado and self.t >= T_TOTAL and not self.listo:
             self.listo = True
-            from scenes.menu import MenuScene
-            self.game.change_scene(MenuScene(self.game))
+            import cuentas
+            if cuentas.hay_cuentas():
+                from scenes.menu import MenuScene
+                self.game.change_scene(MenuScene(self.game))
+            else:                                    # primera vez: Bielsa pide el nombre
+                from scenes.nombre import NombreScene
+                self.game.change_scene(NombreScene(self.game, "primera"))
 
     def draw(self, surface):
         surface.fill((0, 0, 0))

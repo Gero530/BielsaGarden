@@ -11,6 +11,7 @@ import os
 import time
 import pygame
 from settings import SFX_VOLUMEN, SFX_VOLUMENES, SFX_ESPERA
+from ui import audio
 
 CARPETA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "sonidos")
 
@@ -32,7 +33,27 @@ ARCHIVOS = {
     "seleccionar": "seleccionar_personaje.mp3",   # clic en una carta de personaje
     "oleada": "oleada.mp3",                # cartel de oleada final
     "sirena": "sirena.mp3",                # llegan los zombies / después de oleada
+    "delfin": "delfin.mp3",                # Gerald pierde el bastón y se enoja
+    "crab_people": "crab_people.mp3",      # el cangrejo bailarín invoca cangrejos
+    "gero_hmm": "hmm.mp3",                 # Gero ve a un zombie enfrente y se enoja
+    "gero_impacto": "impacto_fuerte.mp3",  # Gero cae y aplasta
+    "murcielago_impacto": "impacto_fuerte.mp3",   # el Murciélago cae de panza al piso
+    "srnelson": "srnelson.mp3",            # el Sr. Mackey revolea al Sr. Nelson
+    "randy_cae": "yeehaw.mp3",             # Randy cae del cielo
+    "minando": "minando.mp3",              # Pip cavando bajo tierra (en bucle)
+    "pip_sale": "saliendo_de_la_tierra.mp3",   # Pip sale de la tierra
     "hablar": "sans.mp3",                  # sonidito de cada letra cuando habla Bielsa (estilo Sans)
+}
+
+# Categoría de cada efecto para los volúmenes de Opciones > Sonido (ui/audio.py).
+# Los que no están en la lista son "efectos".
+CATEGORIA = {
+    "disparo": "personajes", "kenny": "personajes", "hipnosis": "personajes", "iman": "personajes",
+    "timmy": "personajes", "canto": "personajes", "hablar": "personajes",
+    "gero_hmm": "personajes", "gero_impacto": "personajes",
+    "crab_people": "enemigos", "murcielago_impacto": "enemigos", "srnelson": "enemigos",
+    "randy_cae": "enemigos", "minando": "enemigos", "pip_sale": "enemigos",
+    "delfin": "enemigos", "zombie_comiendo": "enemigos", "brains": "enemigos", "ruido_zombie": "enemigos",
 }
 
 _cache = {}          # nombre -> pygame.mixer.Sound (o None si no se pudo cargar)
@@ -61,11 +82,25 @@ def _cargar(nombre):
         if archivo and _mixer():
             try:
                 sonido = pygame.mixer.Sound(os.path.join(CARPETA, archivo))
-                sonido.set_volume(SFX_VOLUMEN * SFX_VOLUMENES.get(nombre, 1.0))
+                sonido.set_volume(_volumen(nombre))
             except (pygame.error, FileNotFoundError, OSError) as e:
                 print(f"[sonidos] No se pudo cargar '{archivo}': {e}")
         _cache[nombre] = sonido
     return _cache[nombre]
+
+
+def _volumen(nombre):
+    return SFX_VOLUMEN * SFX_VOLUMENES.get(nombre, 1.0) * audio.factor(CATEGORIA.get(nombre, "efectos"))
+
+
+def aplicar_volumen():
+    """Recalcula el volumen de los efectos cargados (también cambia los que ya están sonando)."""
+    for nombre, sonido in _cache.items():
+        if sonido is not None:
+            try:
+                sonido.set_volume(_volumen(nombre))
+            except pygame.error:
+                pass
 
 
 def precargar():
@@ -142,9 +177,29 @@ def masticar(activo):
         _canal_mastica = None
 
 
+_canal_minando = None
+
+
+def minando(activo):
+    """True enciende el ruido de Pip cavando en bucle (si no está sonando); False lo apaga."""
+    global _canal_minando
+    try:
+        if activo:
+            if _canal_minando is None or not _canal_minando.get_busy():
+                s = _cargar("minando")
+                if s is not None:
+                    _canal_minando = s.play(loops=-1)
+        elif _canal_minando is not None:
+            if _canal_minando.get_busy():
+                _canal_minando.fadeout(150)
+            _canal_minando = None
+    except pygame.error:
+        _canal_minando = None
+
+
 def pausar(pausado):
     try:
-        for canal in (_canal_canto, _canal_mastica):
+        for canal in (_canal_canto, _canal_mastica, _canal_minando):
             if canal is not None:
                 canal.pause() if pausado else canal.unpause()
     except pygame.error:
