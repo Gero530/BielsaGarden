@@ -10,6 +10,7 @@ se encarga de escalarla a la resolución/pantalla completa elegida.
 import pygame
 import display
 import cuentas
+import ajustes
 import logros
 from ui import button, audio, aviso_logro
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
@@ -24,6 +25,7 @@ class Game:
         pygame.display.set_caption(TITLE)
         display.load_config()
         audio.cargar()
+        ajustes.cargar()                      # dificultad de Opciones > Juego (reescribe PLANT_DATA)
         display.apply()
         self.screen = pygame.Surface((SCREEN_W, SCREEN_H)).convert()
         self.clock = pygame.time.Clock()
