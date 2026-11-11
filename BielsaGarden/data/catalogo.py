@@ -1,14 +1,3 @@
-"""
-TEXTOS DEL CATÁLOGO (almanaque). Cambiá acá los nombres y descripciones.
-
-- La clave (ej. "girasol") es la del juego: no la cambies.
-- "bielsa": la frase de Bielsa que sale abajo de la ficha en el catálogo.
-- El "nombre" de cada personaje es el único: lo usan el catálogo, el HUD y la pantalla de equipo.
-- El orden en que aparecen acá es el orden de la grilla.
-- Los números (costo, vida, daño, velocidad...) NO van acá: se leen solos de settings.py.
-- La fuente pixel tiene mayúsculas, números, tildes, Ñ y los signos . , ! ? ¡ ¿ : - ' ( ) + = %
-"""
-
 PERSONAJES = {
     "girasol": {
         "nombre": "Chef Cartman",
@@ -58,17 +47,14 @@ PERSONAJES = {
 }
 
 
-
 def nombre(key):
-    """Nombre que se ve en el juego (HUD, catálogo, equipo, diálogos). Usalo en vez de escribirlo."""
     return PERSONAJES[key]["nombre"]
 
 
-# Frases en pixel art que aparecen un momento sobre el personaje
 FRASES_AL_PLANTAR = {
     "girasol": "¡Respeten mi autoridad!",
 }
-FRASES_SOLO_LA_PRIMERA_VEZ = {"girasol"}      # estas salen solo la primera vez que lo plantás en el nivel
+FRASES_SOLO_LA_PRIMERA_VEZ = {"girasol"}
 FRASE_KENNY_EXPLOTA = "¡Mataron a Kenny!"
 
 ZOMBIES = {
@@ -78,9 +64,9 @@ ZOMBIES = {
         "bielsa": "Terrance es el más peligroso, porque uno lo subestima.",
     },
     "cono": {
-        "nombre": "Philip",
+        "nombre": "Phillip",
         "descripcion": "Salta como Terrance pero con un cono de tránsito en la cabeza. Le funciona bastante bien.",
-        "bielsa": "Philip y su cono. Parece poco, pero aguanta el doble. No se confíe.",
+        "bielsa": "Phillip y su cono. Parece poco, pero aguanta el doble. No se confíe.",
     },
     "cubeta": {
         "nombre": "Chef",
@@ -103,7 +89,7 @@ ZOMBIES = {
         "bielsa": "Salta la primera línea. La segunda tiene que estar preparada.",
     },
     "escalera": {
-        "nombre": "Trent Boyette",
+        "nombre": "Trent Boyett",
         "descripcion": "Camina con una escalera al hombro. Al llegar a la primera planta la apoya y la pasa por arriba. La escalera queda para los demás.",
         "bielsa": "Apoya la escalera y pasan todos. Hay que cortar la jugada antes.",
     },
@@ -118,13 +104,13 @@ ZOMBIES = {
         "bielsa": "Cae donde menos lo espera. Hay que cubrir todo el campo.",
     },
     "bailarin": {
-        "nombre": "Cangrejo bailarín",
+        "nombre": "Crab king",
         "descripcion": "Cada tanto se pone a bailar y aparecen cangrejos a su alrededor.",
         "bielsa": "Si lo deja bailar, llegan cuatro más. Hay que presionarlo rápido.",
     },
     "cangrejo_invocado": {
-        "nombre": "Cangrejo invocado",
-        "descripcion": "Lo llama el cangrejo bailarín cuando se pone a bailar. Camina y muerde como cualquier zombie.",
+        "nombre": "Crab people",
+        "descripcion": "Lo llama el Crab king cuando se pone a bailar. Camina y muerde como cualquier zombie.",
         "bielsa": "Llegan de a cuatro, por todos los costados. Hay que achicar espacios.",
     },
     "excavador": {
@@ -139,7 +125,7 @@ ZOMBIES = {
     },
     "mini": {
         "nombre": "Sr. Nelson",
-        "descripcion": "Chiquito y rápido. Viaja sobre la cabeza del Sr. Mackey hasta que lo revolea.",
+        "descripcion": "Chiquito y rápido. Viaja sobre la cabeza del Sr. Mackey hasta que lo revolea. Y recuerden, las palabras son como las balas.",
         "bielsa": "Chico, rápido y molesto. Como un buen enganche.",
     },
     "alien": {

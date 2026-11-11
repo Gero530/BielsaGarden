@@ -1,10 +1,3 @@
-"""
-HUD en pixel art: contador de energía, barra de cartas (semillas), pala y barra de
-progreso del nivel (abajo a la derecha, con banderitas en las hordas).
-
-Todo se dibuja a la mitad de resolución y se agranda x2 sin suavizado, igual que los
-sprites. El sombreado de recarga es un tramado de píxeles (sin transparencias suaves).
-"""
 import pygame
 import display
 from settings import PLANT_DATA, SCREEN_W, SCREEN_H
@@ -14,11 +7,10 @@ from ui.pixel_font import draw_pixel_text, text_width
 from ui.button import tablon
 from data.catalogo import PERSONAJES
 
-PX = 2                       # tamaño de un píxel del HUD en pantalla
+PX = 2
 CARD_W, CARD_H = 35 * PX, 40 * PX
 HUD_H = 92
 
-# Paleta del HUD
 BORDE = (60, 40, 24)
 PAPEL = (225, 210, 160)
 PAPEL_OSC = (190, 168, 112)
@@ -31,7 +23,6 @@ _cache = {}
 
 
 def dither(size, densidad):
-    """Superficie con un tramado negro de píxeles de 2x2. densidad: 1 = 25%, 2 = 50%, 3 = 75%."""
     key = ("dither", size, densidad)
     if key not in _cache:
         w, h = size
@@ -47,7 +38,6 @@ def dither(size, densidad):
 
 
 def _card_bg(selected, gris=False):
-    """Fondo de la carta: papel con ventanita verde para el dibujo y franja del costo."""
     key = ("card", selected, gris)
     if key not in _cache:
         s = pygame.Surface((35, 40))
@@ -70,7 +60,7 @@ class SeedCard:
         self.key = key
         self.data = PLANT_DATA[key]
         self.rect = pygame.Rect(x, y, CARD_W, CARD_H)
-        self.cooldown = 0.0          # segundos restantes de recarga
+        self.cooldown = 0.0
 
     @property
     def cost(self):
@@ -87,7 +77,7 @@ class SeedCard:
             self.cooldown = max(0.0, self.cooldown - dt)
 
     def draw(self, surface, sun, selected):
-        r = self.rect.move(0, -2 * PX) if selected else self.rect      # la elegida se levanta 2 píxeles
+        r = self.rect.move(0, -2 * PX) if selected else self.rect
         surface.blit(_card_bg(selected), r)
         win = pygame.Rect(r.x + 3 * PX, r.y + 3 * PX, 29 * PX, 24 * PX)
         old = surface.get_clip()
@@ -95,9 +85,6 @@ class SeedCard:
         draw_plant_icon(surface, self.key, (win.centerx, win.centery + 4), 0.55)
         surface.set_clip(old)
 
-        # Tramado de píxeles al 50% sobre el dibujo (se sigue reconociendo al personaje):
-        #   sin energía suficiente -> solo el tramado
-        #   en recarga -> tramado + una barra amarilla abajo que se va vaciando
         if self.cooldown > 0 or sun < self.cost:
             surface.blit(dither(win.size, 2), win)
         if self.cooldown > 0:
@@ -117,10 +104,7 @@ class HUD:
         self.cards = [SeedCard(k, x0 + i * (CARD_W + 4), 6) for i, k in enumerate(plant_keys)]
         x_pala = x0 + len(self.cards) * (CARD_W + 4) + 10
         self.shovel_rect = pygame.Rect(x_pala, 6, CARD_W, CARD_H)
-        # Botón de velocidad (x1/x2/x3) a la derecha de la pala
         self.speed_rect = pygame.Rect(self.shovel_rect.right + 10, 8, 32 * PX, 18 * PX)
-        # Barra de progreso arriba a la derecha (en la franja del HUD). Si con muchas cartas no
-        # entra al lado del botón de velocidad, baja a la franja de abajo del césped.
         self.bar = pygame.Rect(SCREEN_W - 172, 22, 80 * PX, 8 * PX)
         self.barra_abajo = self.speed_rect.right + 8 > self.bar.left
         if self.barra_abajo:
@@ -143,7 +127,6 @@ class HUD:
         return None
 
     def draw(self, surface, sun, selected, progress, level_name, flags=(), velocidad=1):
-        # Contador de energía: tablón de madera con el dedo y el número
         surface.blit(tablon("", 45, 40, PX), self.sun_rect)
         c = (self.sun_rect.centerx, self.sun_rect.y + 30)
         if not draw_sprite(surface, "dedo", c, 0.55, pygame.time.get_ticks() / 1000):
@@ -156,14 +139,12 @@ class HUD:
         for card in self.cards:
             card.draw(surface, sun, selected == card.key)
 
-        # Pala
         surface.blit(_card_bg(selected == "pala", gris=True), self.shovel_rect)
         draw_shovel(surface, (self.shovel_rect.centerx - 2, self.shovel_rect.y + 26))
         draw_pixel_text(surface, "PALA", TXT, PX, center=(self.shovel_rect.centerx, self.shovel_rect.bottom - 6 * PX))
 
         self.draw_speed(surface, velocidad)
 
-        # Nombre de la planta bajo el mouse
         card = self.card_at(display.get_mouse_pos())
         if card:
             nombre = PERSONAJES.get(card.key, {}).get("nombre", card.key)
@@ -173,7 +154,6 @@ class HUD:
         self.draw_progress(surface, progress, level_name, flags)
 
     def draw_speed(self, surface, velocidad):
-        """Botón de madera con la velocidad actual. Amarillo cuando va acelerado."""
         hover = self.speed_rect.collidepoint(display.get_mouse_pos())
         surface.blit(tablon("", 32, 18, PX, hover=hover), self.speed_rect)
         color = (255, 240, 200) if velocidad == 1 else SEL
@@ -190,7 +170,6 @@ class HUD:
                             midtop=(self.speed_rect.centerx, 90))
 
     def draw_progress(self, surface, progress, level_name, flags):
-        """Barra abajo a la derecha que se llena de derecha a izquierda (como en PvZ)."""
         bar = self.bar
         if self.barra_abajo:
             draw_pixel_text(surface, level_name, (255, 255, 255), PX, outline=(30, 20, 10),
@@ -205,14 +184,12 @@ class HUD:
         if w:
             surface.fill((90, 200, 70), (inner.right - w, inner.y, w, inner.height))
             surface.fill((140, 230, 110), (inner.right - w, inner.y, w, PX))
-        # Banderitas en las hordas (se "levantan" cuando ya pasaron)
         for f in flags:
             x = inner.right - int(inner.width * f) // PX * PX
             up = progress >= f
-            top = bar.y - ((8 if up else 4) if not self.barra_abajo else 1) * PX   # abajo no tapa el césped
+            top = bar.y - ((8 if up else 4) if not self.barra_abajo else 1) * PX
             surface.fill((40, 30, 20), (x, top, PX, bar.bottom - top))
             surface.fill((220, 40, 40) if up else (150, 60, 60), (x + PX, top, 4 * PX, 3 * PX))
-        # Cabecita de zombie que avanza
         hx = inner.right - w
         head = pygame.Rect(0, 0, 7 * PX, 7 * PX)
         head.center = (hx, bar.centery)
@@ -223,7 +200,6 @@ class HUD:
         surface.fill((150, 20, 20), (head.x + 2 * PX, head.y + 4 * PX, 3 * PX, PX))
 
 
-# Pala en pixel art: H = mango de madera, M = metal
 PALA = [
     "..........HH",
     ".........HHH",
@@ -261,7 +237,6 @@ def _pala_img(p):
     return _cache[key]
 
 
-# Ícono de "avance rápido": dos triángulos (O = contorno)
 AVANCE_RAPIDO = [
     "OO..OO..",
     "O#O.O#O.",
@@ -283,7 +258,6 @@ def _avance_img(color):
     return _cache[key]
 
 
-# V4: etiqueta "Cheesy Poofs" colgando del contador (letras de 3x5 solo para esta etiqueta)
 MICRO = {
     "C": ["###", "#..", "#..", "#..", "###"], "H": ["#.#", "#.#", "###", "#.#", "#.#"],
     "E": ["###", "#..", "##.", "#..", "###"], "S": ["###", "#..", "###", "..#", "###"],
@@ -298,7 +272,7 @@ def _etiqueta_cheesy():
         texto = "CHEESY POOFS"
         w, h = len(texto) * 4 + 3, 9
         s = pygame.Surface((w, h + 2), pygame.SRCALPHA)
-        s.fill((40, 24, 10), (w // 4, 0, 1, 2)); s.fill((40, 24, 10), (w * 3 // 4, 0, 1, 2))   # hilitos
+        s.fill((40, 24, 10), (w // 4, 0, 1, 2)); s.fill((40, 24, 10), (w * 3 // 4, 0, 1, 2))
         s.fill((40, 24, 10), (0, 2, w, h))
         s.fill((246, 146, 34), (1, 3, w - 2, h - 2))
         s.fill((255, 204, 64), (1, 3, w - 2, 1))

@@ -1,9 +1,3 @@
-"""
-Mapa de niveles: Tutorial -> Nivel 1 -> Nivel 2 -> Nivel 3.
-
-Los niveles se desbloquean de a uno (game.progreso, de la cuenta activa). Los ganados se
-pueden volver a jugar. Qué mapa se usa, su fondo y dónde va cada botón: data/mapa.py.
-"""
 import os
 import pygame
 import display
@@ -17,8 +11,8 @@ from ui import button
 from ui.pixel_font import pixel_text, text_width, draw_pixel_text
 from ui import intro_art as A, musica
 
-SALIDA = 0.5            # fundido a negro al entrar a un nivel (s)
-RADIO = 10              # radio del botón de nivel en píxeles de dibujo
+SALIDA = 0.5
+RADIO = 10
 
 CANDADO = [
     "..###..",
@@ -30,7 +24,6 @@ CANDADO = [
     "#######",
 ]
 
-# Flechita sobre el próximo nivel: # = borde, Y = amarillo (píxeles de dibujo, x ESCALA)
 FLECHA = [
     "#########",
     ".#YYYYY#.",
@@ -41,7 +34,6 @@ FLECHA = [
 
 _cache = {}
 
-# Botón de volver: tablón chico con una flecha tallada hacia la izquierda (píxeles de dibujo, x3)
 VOLVER_W, VOLVER_H, VOLVER_ESC = 18, 14, 3
 FLECHA_VOLVER = [
     "...#.......",
@@ -61,7 +53,7 @@ def volver_img(estado):
         top = {"normal": 1, "hover": 0, "apretado": 2}[estado]
         x0 = (VOLVER_W - len(FLECHA_VOLVER[0])) // 2
         y0 = top + (VOLVER_H - 2 - len(FLECHA_VOLVER)) // 2
-        for capa, color, dy in ((1, (236, 200, 140), 1), (0, (40, 22, 6), 0)):   # luz tallada abajo y la flecha
+        for capa, color, dy in ((1, (236, 200, 140), 1), (0, (40, 22, 6), 0)):
             for y, fila in enumerate(FLECHA_VOLVER):
                 for x, ch in enumerate(fila):
                     if ch == "#":
@@ -82,8 +74,6 @@ def flecha_img():
 
 
 def mapa_elegido():
-    """(config, imagen) del mapa de data/mapa.py. Si falta su PNG se usa el "original", y si
-    tampoco está, el mapa simple dibujado por código (con los botones del original)."""
     for nombre in (M.MAPA, "original"):
         cfg = M.MAPAS[nombre]
         path = os.path.join(ASSETS_DIR, cfg["fondo"])
@@ -93,17 +83,14 @@ def mapa_elegido():
 
 
 def _armar_fondo():
-    """El dibujo agrandado/achicado para que entre ENTERO en 1000x600 sin deformarse, centrado,
-    con franjas del color de relleno si sobra lugar. Guarda la escala y el corrimiento para
-    pasar las posiciones de los botones (píxeles del dibujo) a la pantalla."""
     cfg, img = mapa_elegido()
     w, h = img.get_size()
     k = min(SCREEN_W / w, SCREEN_H / h)
     tam = (round(w * k), round(h * k))
     if k == int(k):
-        img = pygame.transform.scale(img, tam)          # pixel art agrandado x entero: nítido
+        img = pygame.transform.scale(img, tam)
     else:
-        img = pygame.transform.smoothscale(img, tam)    # ilustración achicada: suave, sin perder líneas
+        img = pygame.transform.smoothscale(img, tam)
     pantalla = pygame.Surface((SCREEN_W, SCREEN_H))
     pantalla.fill(cfg["relleno"])
     off = ((SCREEN_W - tam[0]) // 2, (SCREEN_H - tam[1]) // 2)
@@ -119,25 +106,21 @@ def fondo():
 
 
 def niveles_en_pantalla():
-    """[(id, (x, y) en pantalla)] de los botones del mapa elegido."""
     if "mapa" not in _cache:
         _armar_fondo()
     cfg, k, (ox, oy) = _cache["mapa"]
     return [(n["id"], (round(ox + n["pos"][0] * k), round(oy + n["pos"][1] * k))) for n in cfg["niveles"]]
 
 
-# Lugares de South Park, uno por nivel (en píxeles del dibujo de 250x150). Ninguno toca el camino
-# ni los botones de los niveles. Si dibujás tu propio mapa, ponelos en tu dibujo.
 LUGARES = {
-    "parada":   pygame.Rect(4, 117, 22, 29),     # Tutorial: la parada del bus
-    "lago":     pygame.Rect(50, 40, 63, 26),     # Nivel 1 (El jardín): el lago Stark
-    "escuela":  pygame.Rect(133, 117, 46, 30),   # Nivel 2 (La calle): la escuela
-    "city_wok": pygame.Rect(193, 81, 56, 31),    # Nivel 3 (El centro): el City Wok
+    "parada":   pygame.Rect(4, 117, 22, 29),
+    "lago":     pygame.Rect(50, 40, 63, 26),
+    "escuela":  pygame.Rect(133, 117, 46, 30),
+    "city_wok": pygame.Rect(193, 81, 56, 31),
 }
 
 
 def _cartelito(s, rect, texto, color_texto, fondo=(236, 232, 220)):
-    """Cartel con borde oscuro y el texto centrado (para los lugares del mapa)."""
     s.fill((30, 20, 10), rect)
     s.fill(fondo, rect.inflate(-2, -2))
     txt = pixel_text(texto, color_texto, 1)
@@ -145,16 +128,13 @@ def _cartelito(s, rect, texto, color_texto, fondo=(236, 232, 220)):
 
 
 def fondo_simple():
-    """Mapa placeholder en 250x150: montañas, pasto, el camino, casitas y un lugar de South Park
-    al lado de cada nivel (parada del bus, lago Stark, escuela y City Wok)."""
     s = pygame.Surface((M.ANCHO, M.ALTO))
     s.fill(A.SKY)
     for cx, alto in ((20, 24), (70, 30), (125, 26), (180, 32), (235, 25)):
         A._montana(s, cx, 40, alto, A.VERDE_OSC, nieve=A.GRIS_MONTE)
     s.fill(A.VERDE, (0, 38, M.ANCHO, M.ALTO - 38))
-    for i in range(0, M.ANCHO, 9):                            # manchones de nieve
+    for i in range(0, M.ANCHO, 9):
         s.fill(A.NIEVE, (i * 7 % M.ANCHO, 44 + i * 13 % 100, 6, 2))
-    # Camino de tierra uniendo los niveles
     pts = [n["pos"] for n in M.MAPAS["original"]["niveles"]]
     for a, b in zip(pts, pts[1:]):
         pygame.draw.line(s, (90, 60, 30), a, b, 9)
@@ -164,43 +144,37 @@ def fondo_simple():
         pygame.draw.line(s, (196, 150, 90), a, b, 6)
     for p in pts:
         pygame.draw.circle(s, (196, 150, 90), p, 3)
-    # Pinos
     for x, y in ((14, 70), (24, 84), (14, 100), (120, 60), (118, 142), (200, 138), (240, 126), (172, 52), (40, 52)):
         pygame.draw.polygon(s, (20, 40, 20), [(x, y - 11), (x - 6, y + 1), (x + 6, y + 1)])
         pygame.draw.polygon(s, (30, 110, 50), [(x, y - 9), (x - 4, y), (x + 4, y)])
         s.fill((90, 60, 30), (x - 1, y + 1, 2, 3))
-    # Casitas (fuera del camino)
     for x, y, color in ((98, 116, (200, 80, 70)), (60, 128, (90, 120, 200))):
         s.fill((30, 20, 10), (x - 1, y - 1, 16, 12))
         s.fill(color, (x, y, 14, 10))
         pygame.draw.polygon(s, (30, 20, 10), [(x - 2, y), (x + 7, y - 7), (x + 16, y)])
         pygame.draw.polygon(s, (120, 60, 40), [(x, y - 1), (x + 7, y - 6), (x + 14, y - 1)])
         s.fill((80, 50, 30), (x + 5, y + 4, 4, 6))
-    # Nivel 1: el lago Stark congelado, con su cartel
     lx, ly = LUGARES["lago"].topleft
     _cartelito(s, pygame.Rect(lx, ly, 63, 9), "LAGO STARK", (30, 50, 110))
-    pygame.draw.ellipse(s, (255, 255, 255), (lx + 10, ly + 10, 42, 16))      # orilla nevada
-    pygame.draw.ellipse(s, (170, 214, 240), (lx + 12, ly + 12, 38, 12))      # hielo
+    pygame.draw.ellipse(s, (255, 255, 255), (lx + 10, ly + 10, 42, 16))
+    pygame.draw.ellipse(s, (170, 214, 240), (lx + 12, ly + 12, 38, 12))
     for x, y in ((lx + 18, ly + 15), (lx + 19, ly + 16), (lx + 34, ly + 19), (lx + 35, ly + 18), (lx + 26, ly + 21)):
-        s.set_at((x, y), (130, 180, 220))                                     # rajaduras del hielo
-    # Nivel 2: la escuela (ladrillos, ventanas y puerta doble) con su cartel
+        s.set_at((x, y), (130, 180, 220))
     ex, ey = LUGARES["escuela"].topleft
     _cartelito(s, pygame.Rect(ex, ey, 46, 9), "ESCUELA", (40, 40, 40))
     s.fill((30, 20, 10), (ex + 1, ey + 9, 44, 21))
     s.fill((174, 74, 56), (ex + 2, ey + 10, 42, 19))
-    for y in range(ey + 12, ey + 29, 3):                                       # filas de ladrillos
+    for y in range(ey + 12, ey + 29, 3):
         s.fill((150, 60, 44), (ex + 2, y, 42, 1))
-    for x in (ex + 5, ex + 13, ex + 29, ex + 37):                              # ventanas
+    for x in (ex + 5, ex + 13, ex + 29, ex + 37):
         s.fill((30, 20, 10), (x - 1, ey + 13, 6, 6)); s.fill((140, 210, 230), (x, ey + 14, 4, 4))
     s.fill((30, 20, 10), (ex + 19, ey + 20, 8, 10)); s.fill((110, 60, 30), (ex + 20, ey + 21, 6, 9))
-    s.fill((30, 20, 10), (ex + 23, ey + 21, 1, 9))                             # puerta doble
-    # Nivel 3: el City Wok, local rojo con su cartel amarillo
+    s.fill((30, 20, 10), (ex + 23, ey + 21, 1, 9))
     cx_, cy_ = LUGARES["city_wok"].topleft
     _cartelito(s, pygame.Rect(cx_, cy_, 56, 11), "CITY WOK", (170, 30, 20), (246, 206, 60))
     s.fill((30, 20, 10), (cx_ + 5, cy_ + 11, 46, 20)); s.fill((196, 52, 40), (cx_ + 6, cy_ + 12, 44, 18))
     s.fill((30, 20, 10), (cx_ + 11, cy_ + 16, 8, 6)); s.fill((140, 210, 230), (cx_ + 12, cy_ + 17, 6, 4))
     s.fill((30, 20, 10), (cx_ + 37, cy_ + 17, 6, 14)); s.fill((90, 40, 20), (cx_ + 38, cy_ + 18, 4, 13))
-    # Tutorial: la parada del bus
     s.fill((60, 60, 66), (14, 126, 2, 20))
     s.fill((10, 40, 90), (4, 117, 22, 11)); s.fill((30, 90, 190), (5, 118, 20, 9))
     txt = pixel_text("BUS", (255, 255, 255), 1)
@@ -209,8 +183,6 @@ def fondo_simple():
 
 
 def boton_img(etiqueta, estado, hover):
-    """Botón redondo de nivel (22x22 de dibujo, agrandado x ESCALA).
-    estado: "bloqueado", "disponible" o "ganado"."""
     key = (etiqueta, estado, hover)
     if key not in _cache:
         d = RADIO * 2 + 2
@@ -238,8 +210,8 @@ class MapaScene(Scene):
         super().__init__(game)
         self.t = 0.0
         self.hover = None
-        self.salida = None            # (indice_nivel, tiempo) mientras se hace el fundido
-        self.botones = []             # (indice_nivel, rect en pantalla, etiqueta)
+        self.salida = None
+        self.botones = []
         ids = [lv["id"] for lv in LEVELS]
         for nid, centro in niveles_en_pantalla():
             if nid not in ids:
@@ -255,7 +227,6 @@ class MapaScene(Scene):
             from scenes.menu import EMPIEZA_SIN_INTRO
             musica.reproducir(EMPIEZA_SIN_INTRO)
 
-    # ------------------------------------------------------------------
     def desbloqueado(self, idx):
         return idx == 0 or LEVELS[idx - 1]["id"] in self.game.progreso
 
@@ -271,9 +242,9 @@ class MapaScene(Scene):
     def jugar(self, idx):
         if self.salida is None:
             self.salida = (idx, 0.0)
-            musica.desvanecer(int(SALIDA * 1000))
+            if LEVELS[idx].get("tutorial"):
+                musica.desvanecer(int(SALIDA * 1000))
 
-    # ------------------------------------------------------------------
     def handle_event(self, event):
         if self.salida is not None:
             return
@@ -315,18 +286,15 @@ class MapaScene(Scene):
             est = self.estado(idx)
             hover = idx == self.hover
             surface.blit(boton_img(etiqueta, est, hover), r.move(0, -M.ESCALA if hover else 0))
-            # Flechita que salta sobre el próximo nivel para jugar
             if est == "disponible" and int(self.t * 3) % 2 == 0:
                 img = flecha_img()
                 x = (r.centerx - img.get_width() // 2) // M.ESCALA * M.ESCALA
                 surface.blit(img, (x, r.top - 7 * M.ESCALA))
 
-        # Nombre del nivel bajo el mouse
         if self.hover is not None:
             idx = self.hover
             r = next(r for i, r, _ in self.botones if i == idx)
             nombre = LEVELS[idx]["nombre"] + ("" if self.desbloqueado(idx) else " (BLOQUEADO)")
-            # Cartelito chico al costado del nivel (a la derecha, o a la izquierda si no entra)
             cartel = tablon(nombre, 0, 14, 2)
             pos = cartel.get_rect(midleft=(r.right + 6, r.centery))
             if pos.right > SCREEN_W - 8:

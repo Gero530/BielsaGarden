@@ -1,15 +1,3 @@
-"""
-Diálogo con Bielsa (estilo Crazy Dave): retrato grande abajo a la izquierda, burbuja en pixel art
-con la colita apuntando a su boca, el tablón con su nombre y la flechita de "seguir".
-
-Uso:
-    dialogo = Dialogo(["Hola", "Chau"], retrato="victoria")
-    dialogo.manejar_evento(evento)   # clic o cualquier tecla avanza (completa el texto si se está
-                                     # escribiendo); ESC saltea todo
-    dialogo.actualizar(dt)
-    dialogo.dibujar(pantalla)
-    if dialogo.terminado: ...
-"""
 import os
 import pygame
 from settings import SCREEN_W, SCREEN_H
@@ -17,9 +5,6 @@ from ui.sprites import ASSETS_DIR
 from ui.pixel_font import wrap, draw_pixel_text, ALTO
 from ui import sonidos
 
-# === RETRATOS (assets/dialogo/). "boca": dónde está la boca, en píxeles del retrato ya escalado ===
-# Los PNG están dibujados con bloques de 6x6: se muestran a la mitad exacta (3 px por bloque),
-# sin suavizado, para que ocupen buena parte del alto de la pantalla.
 RETRATOS = {
     "tutorial": {"img": "dialogo/bielsa1.png", "boca": (270, 250)},
     "antes":    {"img": "dialogo/bielsa2.png", "boca": (156, 214)},
@@ -28,13 +13,12 @@ RETRATOS = {
 }
 BLOQUE_PNG, BLOQUE_PANTALLA = 6, 3
 
-# === BURBUJA (se dibuja en una grilla de PIXEL px de pantalla, como los tablones del menú) ===
 PIXEL = 3
-BURBUJA_W, BURBUJA_H = 192, 80           # en píxeles de la grilla (x3 = 576x240 en pantalla)
-BURBUJA_X_MAX = 400                       # la burbuja empieza acá, o más a la izquierda si la boca lo pide
-COLITA_W = 30                             # largo de la colita (grilla)
-ESCALA_TEXTO = 3                          # fuente pixel x3
-MARGEN = (12, 10)                         # margen interno (grilla)
+BURBUJA_W, BURBUJA_H = 192, 80
+BURBUJA_X_MAX = 400
+COLITA_W = 30
+ESCALA_TEXTO = 3
+MARGEN = (12, 10)
 COLOR_TEXTO = (44, 30, 16)
 BORDE = (44, 30, 16)
 FONDO = (250, 243, 224)
@@ -43,13 +27,12 @@ SOMBRA_INT = (222, 208, 176)
 SOMBRA = (70, 48, 26)
 NOMBRE_PERSONAJE = "BIELSA"
 
-# === COMPORTAMIENTO ===
-VELOCIDAD_TEXTO = 45        # letras por segundo
-VELOCIDAD_ENTRADA = 1600    # px/s con que entra desde la izquierda (0 = sin animación)
-OSCURIDAD_FONDO = 120       # 0 = sin overlay, 255 = negro total
-SONIDO_CADA = 2             # suena un sonidito cada N letras
+VELOCIDAD_TEXTO = 45
+VELOCIDAD_ENTRADA = 1600
+OSCURIDAD_FONDO = 120
+SONIDO_CADA = 2
 
-FLECHA = [                  # flechita de "seguir" (grilla x3), rebota de a 1 píxel de grilla
+FLECHA = [
     "#######",
     "#YYYYY#",
     ".#YYY#.",
@@ -62,7 +45,6 @@ _cache = {}
 
 
 def retrato_img(clave):
-    """El retrato a 3 px por bloque (vecino más cercano: los bloques de 6 quedan de 3 exactos)."""
     if clave not in _cache:
         path = os.path.join(ASSETS_DIR, RETRATOS[clave]["img"])
         if os.path.exists(path):
@@ -77,8 +59,7 @@ def retrato_img(clave):
 
 
 def _rect_redondeado(w, h):
-    """Máscara (lista de filas) de un rectángulo con esquinas escalonadas, dibujada a mano."""
-    esquina = ["...", ".", ""]          # cuántos píxeles faltan en las 3 primeras filas: 3, 1, 0
+    esquina = ["...", ".", ""]
     filas = []
     for y in range(h):
         k = len(esquina[y]) if y < 3 else (len(esquina[h - 1 - y]) if y >= h - 3 else 0)
@@ -87,8 +68,6 @@ def _rect_redondeado(w, h):
 
 
 def burbuja_img(w, h, colita_y):
-    """La burbuja en la grilla chica: borde de 2, bisel claro arriba-izquierda y oscuro abajo-derecha,
-    colita a la izquierda (punta en (0, colita_y + 10)) y sombra apoyada abajo a la derecha."""
     key = ("burbuja", w, h, colita_y)
     if key in _cache:
         return _cache[key]
@@ -96,9 +75,9 @@ def burbuja_img(w, h, colita_y):
     s = pygame.Surface((W, H), pygame.SRCALPHA)
     x0 = COLITA_W
     filas = _rect_redondeado(w, h)
-    for y, (a, b) in enumerate(filas):                 # borde (todo el rectángulo)
+    for y, (a, b) in enumerate(filas):
         s.fill(BORDE, (x0 + a, y, b - a, 1))
-    for y in range(2, h - 2):                          # relleno, 2 px adentro
+    for y in range(2, h - 2):
         a, b = filas[y]
         a2 = max(a, 2) + (1 if y in (2, h - 3) else 0)
         b2 = min(b, w - 2) - (1 if y in (2, h - 3) else 0)
@@ -107,9 +86,8 @@ def burbuja_img(w, h, colita_y):
             s.fill(LUZ, (x0 + a2, y, b2 - a2, 1))
         if y == h - 3:
             s.fill(SOMBRA_INT, (x0 + a2, y, b2 - a2, 1))
-        s.set_at((x0 + a2, y), LUZ)                     # bisel izquierdo
-        s.set_at((x0 + b2 - 1, y), SOMBRA_INT)          # bisel derecho
-    # Colita: de la punta (abajo a la izquierda) al costado de la burbuja, en escalones
+        s.set_at((x0 + a2, y), LUZ)
+        s.set_at((x0 + b2 - 1, y), SOMBRA_INT)
     tip_y = colita_y + 10
     for x in range(COLITA_W + 3):
         t = x / (COLITA_W + 2)
@@ -118,7 +96,6 @@ def burbuja_img(w, h, colita_y):
         for y in range(arriba - 2, abajo + 3):
             borde = y < arriba or y > abajo or x < 2
             s.set_at((x, y), BORDE if borde else FONDO)
-    # Sombra apoyada: la misma silueta corrida 3 abajo y 3 a la derecha, detrás
     sombra = pygame.mask.from_surface(s).to_surface(setcolor=SOMBRA, unsetcolor=(0, 0, 0, 0))
     out = pygame.Surface((W, H), pygame.SRCALPHA)
     out.blit(sombra, (3, 3))
@@ -148,14 +125,12 @@ class Dialogo:
         self.contador_letras = 0
         self.terminado = not self.mensajes
         self.img = retrato_img(self.retrato)
-        # Dónde va cada cosa: el retrato abajo a la izquierda; la burbuja a su derecha, con la
-        # punta de la colita junto a la boca
         self.retrato_pos = (0, SCREEN_H - self.img.get_height())
         bx, by = RETRATOS[self.retrato]["boca"]
         boca = (self.retrato_pos[0] + bx, self.retrato_pos[1] + by)
         punta = (boca[0] + 40, boca[1])
-        self.burbuja_x = min(BURBUJA_X_MAX, punta[0] + COLITA_W * PIXEL)          # borde izquierdo del cuerpo
-        colita_y = BURBUJA_H - 22                                                 # dónde sale la colita (grilla)
+        self.burbuja_x = min(BURBUJA_X_MAX, punta[0] + COLITA_W * PIXEL)
+        colita_y = BURBUJA_H - 22
         self.burbuja_y = punta[1] - (colita_y + 10) * PIXEL
         self.burbuja_y = max(96, min(self.burbuja_y, SCREEN_H - BURBUJA_H * PIXEL - 12))
         tip_y = (punta[1] - self.burbuja_y) // PIXEL - 10
@@ -170,7 +145,7 @@ class Dialogo:
 
     def _preparar_mensaje(self):
         texto = self.mensajes[self.indice] if self.mensajes else ""
-        self.lineas = wrap(texto, ESCALA_TEXTO, self.ancho_texto)      # parte por palabras, nunca a la mitad
+        self.lineas = wrap(texto, ESCALA_TEXTO, self.ancho_texto)
         self.total_letras = sum(len(l) for l in self.lineas)
         self.plano = "".join(self.lineas)
         self.letras = 0.0
@@ -181,14 +156,13 @@ class Dialogo:
 
     def avanzar(self):
         if not self.escrito:
-            self.letras = self.total_letras       # completa el texto de golpe
+            self.letras = self.total_letras
         elif self.indice + 1 < len(self.mensajes):
             self.indice += 1
             self._preparar_mensaje()
         else:
             self.terminado = True
 
-    # ------------------------------------------------------------------
     def manejar_evento(self, evento):
         if self.terminado:
             return
@@ -204,7 +178,7 @@ class Dialogo:
         if self.terminado:
             return
         self.tiempo += dt
-        if self.offset_x < 0:                     # todavía entrando: el texto espera
+        if self.offset_x < 0:
             self.offset_x = min(0, self.offset_x + VELOCIDAD_ENTRADA * dt)
             return
         antes = int(self.letras)
@@ -234,7 +208,6 @@ class Dialogo:
             placa = tablon(NOMBRE_PERSONAJE, 0, 14, PIXEL)
             pantalla.blit(placa, placa.get_rect(bottomleft=(bx + 8 * PIXEL, by + 4 * PIXEL)))
 
-        # Texto letra por letra
         x, y = bx + MARGEN[0] * PIXEL, by + MARGEN[1] * PIXEL
         restantes = int(self.letras)
         for linea in self.lineas:
@@ -244,7 +217,6 @@ class Dialogo:
             y += (ALTO + 4) * ESCALA_TEXTO
             restantes -= len(linea)
 
-        # Flechita de "seguir" con rebote, abajo a la derecha de la burbuja
         if self.escrito and self.offset_x >= 0:
             f = flecha_img()
             rebote = REBOTE[int(self.tiempo * 6) % len(REBOTE)] * PIXEL
@@ -252,7 +224,6 @@ class Dialogo:
 
 
 def entra_en_burbuja(texto):
-    """True si el texto entra en la burbuja (para revisar las frases)."""
     lineas = wrap(texto, ESCALA_TEXTO, (BURBUJA_W - 2 * MARGEN[0]) * PIXEL)
     alto = len(lineas) * (ALTO + 4) * ESCALA_TEXTO
     return alto <= (BURBUJA_H - MARGEN[1] - 14) * PIXEL and all(

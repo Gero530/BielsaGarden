@@ -1,23 +1,3 @@
-"""
-Genera los sprites de Trent Boyette (reemplaza al zombie con escalera).
-
-Fuentes (assets/zombies/trent_fuente/):
-    trent_caminando.png   2 frames de 50x50: de frente y de perfil mirando a la izquierda
-    trent_idle.png        2 frames de 50x50: de frente, sube y baja (catálogo / pantalla de equipo)
-
-Salidas (assets/zombies/propios/ y assets/zombies/):
-    zombie_escalera_caminar.png        8 frames: camina con la escalera al hombro
-    zombie_escalera_atacar.png         6 frames: (respaldo) golpea sosteniendo la escalera
-    zombie_escalera_colocar.png        6 frames: levanta la escalera, la apoya contra la planta y la suelta
-    zombie_escalera_sin_caminar.png    8 frames: camina con los brazos sueltos (ya apoyó la escalera)
-    zombie_escalera_sin_atacar.png     6 frames: se tira adelante y golpea a la planta
-    ../trent_idle.png                  2 frames recortados de 24x28 (catálogo)
-
-Todos los frames son de 56x44 px (se ven x3) con los pies en la última fila y el cuerpo
-centrado en la columna 28, así que usan el mismo anclaje que el resto de los zombies.
-
-Uso:  python tools/generar_trent.py
-"""
 import math
 import os
 from PIL import Image
@@ -28,19 +8,18 @@ PROPIOS = os.path.join(RAIZ, "assets", "zombies", "propios")
 ZOMBIES = os.path.join(RAIZ, "assets", "zombies")
 
 W, H = 56, 44
-CX = 28                  # columna del centro del cuerpo
-G = H - 1                # fila del suelo
+CX = 28
+G = H - 1
 
 NEGRO = (0, 0, 0, 255)
 PIEL = (255, 222, 184, 255)
 MANGA = (198, 50, 50, 255)
 MANGA_OSC = (150, 24, 28, 255)
 PANT = (80, 64, 75, 255)
-MAD_CLARA = (184, 160, 112, 255)     # mismos colores que escalera_puesta.png
+MAD_CLARA = (184, 160, 112, 255)
 MAD_OSC = (146, 124, 86, 255)
 
 
-# ------------------------------------------------------------------ utilidades
 def capa():
     return Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
@@ -61,7 +40,6 @@ def linea(img, x0, y0, x1, y1, c, grosor=1):
 
 
 def contorno(img, c=NEGRO):
-    """Devuelve una copia con un borde de 1 px alrededor de lo dibujado."""
     out = img.copy()
     px = img.load()
     for y in range(H):
@@ -80,15 +58,13 @@ def pegar(base, otra):
     base.alpha_composite(otra)
 
 
-# ------------------------------------------------------------------ Trent
 _perfil = Image.open(os.path.join(FUENTE, "trent_caminando.png")).convert("RGBA").crop((50, 0, 100, 50))
-CABEZA = _perfil.crop((4, 24, 23, 41))        # filas 24-40: pelo y cara
-TORSO = _perfil.crop((4, 41, 23, 48))         # filas 41-47: campera roja y dobladillo
+CABEZA = _perfil.crop((4, 24, 23, 41))
+TORSO = _perfil.crop((4, 41, 23, 48))
 ARRIBA_X = CX - 9
 
 
 def pierna(img, x, y, alzada=0):
-    """Pierna de 5x4 (pantalón gris, borde negro, zapato). x = borde izquierdo, y = fila de arriba."""
     y -= alzada
     for j in range(3):
         poner(img, x, y + j, NEGRO)
@@ -97,14 +73,12 @@ def pierna(img, x, y, alzada=0):
             poner(img, x + i, y + j, PANT)
     for i in range(5):
         poner(img, x + i, y + 3, NEGRO)
-    poner(img, x - 1, y + 3, NEGRO)             # punta del zapato
+    poner(img, x - 1, y + 3, NEGRO)
 
 
 def cuerpo(bob=0, dx=0, piernas=(0, 0), alzadas=(0, 0), lado="izq"):
-    """Capas (piernas, torso) y (cabeza) de Trent de perfil. Devuelve (abajo, cabeza)."""
     abajo = capa()
     y_hem = G - 4 - bob
-    # pierna de atrás primero, la de adelante encima
     pierna(abajo, CX - 4 + dx + piernas[1] - 0, G - 3, alzadas[1])
     pierna(abajo, CX - 4 + dx + piernas[0], G - 3, alzadas[0])
     abajo.alpha_composite(TORSO, (ARRIBA_X + dx, y_hem - 6))
@@ -118,7 +92,6 @@ def hombro(bob=0, dx=0):
 
 
 def brazo(img, hombro_xy, mano_xy, c=MANGA):
-    """Manga de 2 px de ancho del hombro a la mano; la mano es un cuadrado de piel con borde negro."""
     sx, sy = hombro_xy
     mx, my = mano_xy
     linea(img, sx, sy, mx, my, c, grosor=2)
@@ -135,15 +108,13 @@ def mano_con_borde(img, mx, my):
     pegar(img, contorno(mano))
 
 
-# ------------------------------------------------------------------ escalera
 def escalera(p0, p1, ancho=6, paso=4.0):
-    """Escalera de eje p0 -> p1 con 2 largueros y peldaños; dibujada con los colores de la escalera puesta."""
     c = capa()
     x0, y0 = p0
     x1, y1 = p1
     largo = math.hypot(x1 - x0, y1 - y0)
     ux, uy = (x1 - x0) / largo, (y1 - y0) / largo
-    nx, ny = -uy, ux                                   # perpendicular
+    nx, ny = -uy, ux
     hw = (ancho - 1) / 2
     pasos = int(largo * 3)
     for k in range(pasos + 1):
@@ -159,7 +130,6 @@ def escalera(p0, p1, ancho=6, paso=4.0):
             s = -hw + 2 * hw * q / n
             poner(c, round(bx + nx * s), round(by + ny * s), MAD_OSC)
         k += paso
-    # largueros un poco más oscuros del lado de abajo para dar volumen
     px = c.load()
     for y in range(H - 1):
         for x in range(W):
@@ -168,20 +138,18 @@ def escalera(p0, p1, ancho=6, paso=4.0):
     return contorno(c)
 
 
-# ------------------------------------------------------------------ poses
-CICLO = [round(3 * math.cos(2 * math.pi * i / 8)) for i in range(8)]     # 3,2,0,-2,-3,-2,0,2
+CICLO = [round(3 * math.cos(2 * math.pi * i / 8)) for i in range(8)]
 
 
 def paso(i):
     a = CICLO[i]
     bob = 1 if i in (2, 6) else 0
-    alz0 = 1 if i in (1, 2, 3) else 0       # la pierna cercana pasa hacia adelante
+    alz0 = 1 if i in (1, 2, 3) else 0
     alz1 = 1 if i in (5, 6, 7) else 0
     return a, bob, (alz0, alz1)
 
 
 def escalera_horizontal(x0, y, largo=28, ancho=5):
-    """Escalera acostada (limpia, sin diagonales): dos largueros y peldaños cada 4 px."""
     c = capa()
     for x in range(x0, x0 + largo):
         poner(c, x, y, MAD_CLARA)
@@ -198,13 +166,11 @@ def frame_caminar_con_escalera(i):
     abajo, cab = cuerpo(bob, 0, (a, -a), alz)
     pegar(f, abajo)
     sx, sy = hombro(bob)
-    # escalera apoyada en el hombro, inclinada: la punta de adelante baja
     rebote = (0, 1, 1, 0, 0, 1, 1, 0)[i]
     mano = (CX - 9, sy + 1 - bob)
     esc = escalera_horizontal(CX - 16, sy - 2 - bob + rebote // 1)
     pegar(f, esc)
-    pegar(f, cab)                                  # la cabeza queda delante del extremo de atrás
-    # antebrazo agarrando un peldaño
+    pegar(f, cab)
     brazo(f, (sx, sy + 1 - bob), mano)
     mano_con_borde(f, *mano)
     return f
@@ -214,7 +180,6 @@ def frame_caminar_sin(i):
     a, bob, alz = paso(i)
     f = capa()
     sx, sy = hombro(bob)
-    # brazo de atrás (oscuro) se mueve al revés que el de adelante
     atras = capa()
     brazo(atras, (sx + 1, sy + 1 - bob), (sx + 1 + round(-a * 0.7), sy + 6 - bob + (abs(a) == 3)), MANGA_OSC)
     abajo, cab = cuerpo(bob, 0, (a, -a), alz)
@@ -228,8 +193,7 @@ def frame_caminar_sin(i):
 
 
 def frame_atacar(i, con_escalera=False):
-    """6 frames: se tira adelante, golpea, vuelve. (con_escalera: la sostiene de lado, sólo de respaldo)."""
-    adelanta = (0, -1, -2, -3, -2, -1)[i]          # el cuerpo se corre hacia la izquierda
+    adelanta = (0, -1, -2, -3, -2, -1)[i]
     bob = (0, 0, 1, 0, 0, 1)[i]
     f = capa()
     abajo, cab = cuerpo(bob, adelanta, (-1, 2), (0, 0))
@@ -257,7 +221,6 @@ def frame_atacar(i, con_escalera=False):
 
 
 def frame_colocar(i):
-    """6 frames: baja la escalera del hombro, la para adelante, la empuja contra la planta y la suelta."""
     f = capa()
     bob = (0, 1, 0, 0, 1, 0)[i]
     avance = (0, -1, -2, -3, -3, -3)[i]
@@ -266,14 +229,13 @@ def frame_colocar(i):
     abajo, cab = cuerpo(bob, avance, piernas, alz)
     sx, sy = hombro(bob, avance)
     sy = sy - bob
-    # la escalera: (punta de arriba-adelante, pie de la escalera)
     ejes = [
-        None,                                                        # 0 al hombro (horizontal)
-        ((CX - 17, G - 25), (CX + 1, G - 7)),                        # 1 la levanta de adelante (45 grados)
-        ((CX - 14, G - 31), (CX - 12, G - 3)),                       # 2 casi parada
-        ((CX - 18, G - 32), (CX - 14, G - 1)),                       # 3 la apoya hacia adelante
-        ((CX - 21, G - 32), (CX - 15, G)),                           # 4 la empuja contra la planta
-        ((CX - 21, G - 32), (CX - 15, G)),                           # 5 la suelta (queda apoyada)
+        None,
+        ((CX - 17, G - 25), (CX + 1, G - 7)),
+        ((CX - 14, G - 31), (CX - 12, G - 3)),
+        ((CX - 18, G - 32), (CX - 14, G - 1)),
+        ((CX - 21, G - 32), (CX - 15, G)),
+        ((CX - 21, G - 32), (CX - 15, G)),
     ]
     if ejes[i] is None:
         esc = escalera_horizontal(CX - 16, sy - 2)
@@ -289,7 +251,7 @@ def frame_colocar(i):
         pegar(f, esc)
         pegar(f, cab)
     else:
-        pegar(f, esc)                      # la escalera queda delante de él, el cuerpo la tapa un poco
+        pegar(f, esc)
         pegar(f, abajo)
         pegar(f, cab)
     if i <= 4:
@@ -299,11 +261,10 @@ def frame_colocar(i):
         else:
             mano_con_borde(f, *manos)
     else:
-        brazo(f, (sx, sy + 1), manos)       # suelta la escalera y baja el brazo
+        brazo(f, (sx, sy + 1), manos)
     return f
 
 
-# ------------------------------------------------------------------ salida
 def tira(frames):
     out = Image.new("RGBA", (W * len(frames), H), (0, 0, 0, 0))
     for k, fr in enumerate(frames):
@@ -321,7 +282,6 @@ def idle():
 
 
 def escalera_puesta():
-    """La escalera ya apoyada en la planta (objeto del juego): la misma del último frame de 'colocar'."""
     img = escalera((CX - 21, G - 32), (CX - 15, G), ancho=7)
     return img.crop(img.getbbox())
 

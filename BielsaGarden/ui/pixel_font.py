@@ -1,8 +1,3 @@
-"""
-Fuente de píxeles 5x7 (mayúsculas, números y algunos signos) para la intro y el menú.
-Cada letra es una grilla de 5x7; pixel_text() la dibuja con el tamaño de píxel que se
-pida, con contorno opcional. No depende de ninguna fuente instalada en la compu.
-"""
 import pygame
 
 _G = {
@@ -46,6 +41,7 @@ _G = {
     ",": [".....", ".....", ".....", ".....", ".##..", "..#..", ".#..."],
     "!": ["..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#.."],
     "?": [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."],
+    "*": [".....", "#.#.#", ".###.", "#####", ".###.", "#.#.#", "....."],
     "-": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
     ":": [".....", ".##..", ".##..", ".....", ".##..", ".##..", "....."],
     ";": [".....", ".##..", ".##..", ".....", ".##..", ".##..", ".#..."],
@@ -54,8 +50,6 @@ _G = {
     "<": ["....#", "...#.", "..#..", ".#...", "..#..", "...#.", "....#"],
     "'": ["..#..", "..#..", ".#...", ".....", ".....", ".....", "....."],
     " ": [".....", ".....", ".....", ".....", ".....", ".....", "....."],
-    # Español: la tilde ocupa la fila de arriba y la letra se aprieta en las 6 de abajo
-    # Con tilde: 8 filas, la tilde va ARRIBA de la letra entera (la letra no se aplasta)
     "Á": ["...#.", ".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
     "É": ["...#.", "#####", "#....", "#....", "####.", "#....", "#....", "#####"],
     "Í": ["...#.", ".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."],
@@ -70,10 +64,10 @@ _G = {
     "+": [".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."],
     "=": [".....", ".....", "#####", ".....", "#####", ".....", "....."],
     "%": ["##..#", "##..#", "...#.", "..#..", ".#...", "#..##", "#..##"],
-    "^": ["..#..", ".###.", "#####", "..#..", "..#..", "..#..", "..#.."],   # flecha hacia arriba
+    "^": ["..#..", ".###.", "#####", "..#..", "..#..", "..#..", "..#.."],
     '"': [".#.#.", ".#.#.", ".....", ".....", ".....", ".....", "....."],
 }
-ANCHO, ALTO, AVANCE = 5, 7, 6          # ancho de letra, alto y cuánto avanza (con 1 px de espacio)
+ANCHO, ALTO, AVANCE = 5, 7, 6
 _cache = {}
 
 
@@ -82,13 +76,12 @@ def text_width(text, scale=1):
 
 
 def pixel_text(text, color=(255, 255, 255), scale=1, outline=None):
-    """Devuelve una Surface con el texto. outline=(r,g,b) agrega un contorno de 1 píxel de fuente."""
     key = (text, color, scale, outline)
     if key in _cache:
         return _cache[key]
     text = text.upper()
     pad = 1 if outline else 0
-    extra = 1 if any(len(_G.get(ch, ())) > ALTO for ch in text) else 0   # fila de arriba para tildes
+    extra = 1 if any(len(_G.get(ch, ())) > ALTO for ch in text) else 0
     w = (len(text) * AVANCE - 1 + 2 * pad) * scale
     h = (ALTO + extra + 2 * pad) * scale
     surf = pygame.Surface((max(1, w), h), pygame.SRCALPHA)
@@ -114,7 +107,6 @@ def pixel_text(text, color=(255, 255, 255), scale=1, outline=None):
 
 
 def wrap(text, scale, width):
-    """Parte el texto en líneas que entren en `width` píxeles de pantalla."""
     lines, cur = [], ""
     for word in text.split():
         test = f"{cur} {word}".strip()
@@ -129,7 +121,6 @@ def wrap(text, scale, width):
 
 
 def draw_pixel_lines(surface, text, color, scale, topleft, width, outline=None, gap=None):
-    """Texto en varias líneas (con ajuste de línea). Devuelve la y donde terminó."""
     x, y = topleft
     for line in wrap(text, scale, width):
         draw_pixel_text(surface, line, color, scale, topleft=(x, y), outline=outline)
@@ -138,11 +129,8 @@ def draw_pixel_lines(surface, text, color, scale, topleft, width, outline=None, 
 
 
 def draw_pixel_text(surface, text, color, scale=1, outline=None, **anchor):
-    """anchor: cualquier punto de un Rect, ej. center=(x, y), topleft=..., midright=..."""
     img = pixel_text(text, color, scale, outline)
     r = img.get_rect(**anchor)
-    # Si el texto tiene tildes, la imagen tiene una fila más arriba: se corre para que las
-    # letras queden a la misma altura que en un texto sin tildes
     extra = img.get_height() - (ALTO + (2 if outline else 0)) * scale
     if extra:
         k = next(iter(anchor), "")

@@ -6,3 +6,5 @@ logros.json
 logros.json.tmp
 cuentas.json
 cuentas.json.tmp
+build/
+dist/

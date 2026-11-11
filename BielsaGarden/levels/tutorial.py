@@ -1,23 +1,9 @@
-"""
-Tutorial guiado. Mismo formato que los niveles, más la lista "tutorial": pasos que se
-muestran en orden. Cada paso:
-    "texto":   mensajes del diálogo (uno por cuadro)
-    "espera":  qué tiene que hacer el jugador para pasar al siguiente paso:
-               ("planta", clave)  -> tener esa planta en el césped
-               ("juntar", n)      -> haber juntado n unidades de energía con clic
-               ("muertes", n)     -> haber eliminado n zombies
-               None (o sin poner) -> sigue apenas se cierra el diálogo
-    "pista":   texto chico que queda abajo mientras se espera
-    "oleadas": True -> desde este paso empiezan a venir los zombies (el reloj de las
-               oleadas arranca en ese momento)
-"""
-
 from levels.dialogos import TUTORIAL as T
 
 LEVEL = {
     "id": "tutorial",
     "nombre": "Tutorial",
-    "fondo": "fondos/tutorial.png",          # lo genera tools/fondos.py a partir de fondos/jardin.png
+    "fondo": "fondos/tutorial.png",
     "sol_inicial": 50,
     "intervalo_sol_cielo": 5.0,
     "plantas": ["girasol", "lanzaguisantes"],
@@ -29,8 +15,6 @@ LEVEL = {
         {"t": 75, "final": True, "zombies": ["normal", "normal"]},
     ],
 
-    # Una frase de Bielsa por paso (levels/dialogos.py, TUTORIAL). El paso no termina hasta que
-    # el jugador hace lo que dice "espera".
     "tutorial": [
         {"texto": [T[0]]},
         {"texto": [T[1]]},

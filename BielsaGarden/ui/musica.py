@@ -1,21 +1,17 @@
-"""
-Música del menú. Si el audio no está disponible (sin placa de sonido, etc.) el juego
-sigue andando en silencio: todas las funciones capturan los errores.
-"""
 import os
 import pygame
-from settings import MUSICA_MENU, MUSICA_VOLUMEN, MUSICA_PARTIDA
+from settings import MUSICA_MENU, MUSICA_VOLUMEN, MUSICA_PARTIDA, MUSICA_VICTORIA, MUSICA_DERROTA, MUSICA_FINAL
 from ui import audio
 
 ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 RUTA = os.path.join(ASSETS, MUSICA_MENU)
 _ok = None
-_desde = 0.0           # desde qué segundo de la canción se arrancó la reproducción
-_base = MUSICA_VOLUMEN   # volumen propio del tema cargado (antes de Opciones > Sonido)
+_desde = 0.0
+_base = MUSICA_VOLUMEN
+_actual = None
 
 
 def _volumen(base):
-    """Pone el volumen del tema: el suyo x el de Opciones > Sonido (general y música)."""
     global _base
     _base = base
     pygame.mixer.music.set_volume(base * audio.factor("musica"))
@@ -30,7 +26,6 @@ def aplicar_volumen():
 
 
 def disponible():
-    """True si hay mixer y se pudo cargar la canción."""
     global _ok
     if _ok is None:
         try:
@@ -47,24 +42,24 @@ def disponible():
 
 def sonando():
     try:
-        return disponible() and pygame.mixer.music.get_busy()
+        return disponible() and _actual == "menu" and pygame.mixer.music.get_busy()
     except pygame.error:
         return False
 
 
 def reproducir(desde=0.0):
-    """Arranca la canción (en bucle) desde `desde` segundos. Devuelve True si suena."""
     if not disponible():
         return False
-    global _desde
+    global _desde, _actual
     try:
-        pygame.mixer.music.load(RUTA)       # puede haber quedado cargado un tema de la partida
+        pygame.mixer.music.load(RUTA)
+        _actual = "menu"
         _volumen(MUSICA_VOLUMEN)
         try:
             pygame.mixer.music.play(loops=-1, start=desde)
             _desde = desde
         except pygame.error:
-            pygame.mixer.music.play(loops=-1)       # algunos formatos no aceptan 'start'
+            pygame.mixer.music.play(loops=-1)
             _desde = 0.0
         return True
     except pygame.error as e:
@@ -73,7 +68,6 @@ def reproducir(desde=0.0):
 
 
 def posicion():
-    """Segundos que lleva sonando, o None si no se puede saber."""
     try:
         if disponible() and pygame.mixer.music.get_busy():
             ms = pygame.mixer.music.get_pos()
@@ -85,7 +79,6 @@ def posicion():
 
 
 def tiempo():
-    """Segundo actual DENTRO de la canción (medido con el reloj del audio), o None si no suena."""
     pos = posicion()
     return None if pos is None else _desde + pos
 
@@ -106,18 +99,15 @@ def parar():
         pass
 
 
-# ----------------------------------------------------------------------
-# Música de la partida: lista de temas que suenan uno detrás de otro (settings.MUSICA_PARTIDA)
-# ----------------------------------------------------------------------
-_partida = False       # True mientras la lista está sonando
-_pista = 0             # índice del tema actual
+_partida = False
+_pista = 0
 _pausada = False
 
 
 def _tocar_pista():
-    """Carga y reproduce (una sola vez) el tema `_pista` de la lista."""
-    global _partida
+    global _partida, _actual
     archivo, volumen = MUSICA_PARTIDA[_pista % len(MUSICA_PARTIDA)]
+    _actual = "partida"
     try:
         if not pygame.mixer.get_init():
             pygame.mixer.init()
@@ -126,11 +116,10 @@ def _tocar_pista():
         pygame.mixer.music.play()
     except (pygame.error, FileNotFoundError, OSError) as e:
         print(f"[musica] No se pudo reproducir '{archivo}': {e}")
-        _partida = False               # sin música (y no reintenta en cada cuadro)
+        _partida = False
 
 
 def partida_iniciar():
-    """Arranca la lista desde el primer tema."""
     global _partida, _pista, _pausada
     if not MUSICA_PARTIDA:
         return
@@ -139,7 +128,6 @@ def partida_iniciar():
 
 
 def partida_actualizar():
-    """Llamar en cada cuadro: cuando un tema termina, arranca el siguiente (y vuelve al primero al final)."""
     global _pista
     if not _partida or _pausada:
         return
@@ -152,7 +140,6 @@ def partida_actualizar():
 
 
 def partida_pausar(pausado):
-    """Pausa o reanuda el tema que está sonando."""
     global _pausada
     if not _partida or pausado == _pausada:
         return
@@ -164,7 +151,6 @@ def partida_pausar(pausado):
 
 
 def partida_parar(ms=800):
-    """Termina la música de la partida con un fundido."""
     global _partida, _pausada
     if not _partida:
         return
@@ -173,3 +159,30 @@ def partida_parar(ms=800):
         pygame.mixer.music.fadeout(ms)
     except pygame.error:
         pass
+
+
+def _jingle(tema, bucle):
+    global _partida, _pausada, _actual
+    archivo, volumen = tema
+    _partida, _pausada = False, False
+    try:
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+        pygame.mixer.music.load(os.path.join(ASSETS, archivo))
+        _volumen(volumen)
+        pygame.mixer.music.play(loops=-1 if bucle else 0)
+        _actual = "jingle"
+    except (pygame.error, FileNotFoundError, OSError) as e:
+        print(f"[musica] No se pudo reproducir '{archivo}': {e}")
+
+
+def victoria():
+    _jingle(MUSICA_VICTORIA, True)
+
+
+def final():
+    _jingle(MUSICA_FINAL, True)
+
+
+def derrota():
+    _jingle(MUSICA_DERROTA, False)

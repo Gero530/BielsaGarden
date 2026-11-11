@@ -1,24 +1,17 @@
-"""
-Íconos de los logros (con los sprites de los personajes) y el cartel "¡LOGRO DESBLOQUEADO!"
-que entra por la derecha cuando se completa uno, en cualquier pantalla.
-
-Game.run llama a dibujar(surface, dt) en cada cuadro, encima de todo.
-"""
 import pygame
 import logros
 from settings import SCREEN_W
 from ui.button import tablon
 from ui.pixel_font import draw_pixel_text, text_width
 
-DURACION = 3.6         # segundos que se ve cada cartel
-ENTRADA = 0.3          # segundos que tarda en entrar / salir
+DURACION = 3.6
+ENTRADA = 0.3
 _cache = {}
-_cola = []             # logros esperando su cartel
-_actual = None         # [logro, segundos que lleva en pantalla]
+_cola = []
+_actual = None
 
 
 def icono(logro, tam, gris=False):
-    """Ícono cuadrado de `tam` px: el sprite del personaje recortado y agrandado sin suavizar."""
     key = (logro["id"], tam, gris)
     if key in _cache:
         return _cache[key]
@@ -37,13 +30,13 @@ def icono(logro, tam, gris=False):
         draw_pixel_text(out, "?", (255, 230, 140), 6, center=(tam // 2, tam // 2))
     else:
         caja = img.get_bounding_rect()
-        if fuente == "retrato":                 # del retrato, solo la cabeza (cuadrado de arriba)
+        if fuente == "retrato":
             caja.h = min(caja.h, caja.w)
         img = img.subsurface(caja)
         w, h = img.get_size()
         f = min(tam / w, tam / h)
         if f >= 2:
-            f = int(f)                          # agrandado entero: el pixel art queda parejo
+            f = int(f)
         img = pygame.transform.scale(img, (max(1, int(w * f)), max(1, int(h * f))))
         out.blit(img, img.get_rect(center=(tam // 2, tam // 2)))
     if gris:
@@ -54,7 +47,6 @@ def icono(logro, tam, gris=False):
 
 
 def recortar(texto, escala, ancho):
-    """El texto entero si entra en `ancho`; si no, cortado con "..."."""
     if text_width(texto, escala) <= ancho:
         return texto
     while texto and text_width(texto + "...", escala) > ancho:

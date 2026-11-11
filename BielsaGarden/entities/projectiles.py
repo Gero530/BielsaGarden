@@ -1,15 +1,13 @@
-"""Proyectiles: el guisante (recto), la bola de nieve de Stan (recta, ralentiza) e Ike (en arco, lo patea Kyle)."""
 import pygame
 from ui.sprites import draw_sprite
 from ui import sonidos
 from settings import GUISANTE_VEL, IKE_VEL, SCREEN_W, NIEVE_DURACION
 
-IKE_PX = 3          # Ike se ve x3: la sombra usa el mismo tamaño de píxel
+IKE_PX = 3
 _sombras = {}
 
 
 def _sombra(w):
-    """Sombra ovalada de 2w x 4 píxeles de dibujo, agrandada xIKE_PX sin suavizado."""
     if w not in _sombras:
         s = pygame.Surface((w * 2, 4), pygame.SRCALPHA)
         pygame.draw.ellipse(s, (0, 0, 0, 70), s.get_rect())
@@ -24,14 +22,13 @@ class Pea:
         self.row = row
         self.damage = damage
         self.alive = True
-        self.fuente = "lanzaguisantes"     # quién la tiró (logros: muertes de Stan)
+        self.fuente = "lanzaguisantes"
 
     def update(self, dt, world):
         self.x += GUISANTE_VEL * dt
         if self.x > SCREEN_W + 20:
             self.alive = False
             return
-        # Golpea al primer zombie vivo de su fila que toque
         for z in world.zombies:
             if z.targetable and z.row == self.row and z.rect.left <= self.x <= z.rect.right:
                 sonidos.reproducir("impacto")
@@ -51,10 +48,9 @@ class Pea:
 
 
 class Snowball(Pea):
-    """Bola de nieve de Stan: va recta como el guisante y además ralentiza al zombie."""
 
     def hit(self, zombie):
-        en_la_puerta = zombie.shield > 0 and not zombie.escudo_total   # rebota en la puerta: no lo frena
+        en_la_puerta = zombie.shield > 0 and not zombie.escudo_total
         zombie.take_damage(self.damage, fuente=self.fuente)
         if not en_la_puerta:
             zombie.slow_down(NIEVE_DURACION)
@@ -67,13 +63,6 @@ class Snowball(Pea):
 
 
 class Ike:
-    """
-    Proyectil en arco (como las catapultas del original). Sale del pie de Kyle,
-    vuela por encima de lo que haya en el camino y cae sobre el zombie al que
-    apuntó, apuntando a donde va a estar cuando aterrice.
-    Elige el frame según la fase del vuelo: salida, inclinado, girando, cayendo.
-    """
-    # Frames de ike_volando.png
     F_SALIDA, F_INCLINADO, F_GIRO, F_CAIDA = 1, 2, (3, 4, 5), 6
 
     def __init__(self, x, y, target, damage, grid):
@@ -83,13 +72,12 @@ class Ike:
         self.t = 0.0
         self.x0, self.y0 = x, y
         dist = abs(target.x - x)
-        self.T = min(1.6, max(0.5, dist / IKE_VEL + 0.15))      # duración del vuelo
-        # Los zombies caminan: apunta a donde van a estar al aterrizar
+        self.T = min(1.6, max(0.5, dist / IKE_VEL + 0.15))
         avance = 0.0 if (target.eating or target.hypno) else target.cur_speed * self.T
         self.x1 = max(x + 30, target.x - avance)
-        self.y1 = grid.row_center_y(self.row) - 6                # altura del torso
-        self.ground = grid.row_center_y(self.row) + 40           # donde se dibuja la sombra
-        self.peak = 70 + min(60, dist / 6)                       # altura máxima del arco
+        self.y1 = grid.row_center_y(self.row) - 6
+        self.ground = grid.row_center_y(self.row) + 40
+        self.peak = 70 + min(60, dist / 6)
         self.pos = (x, y)
         self.arc = 0.0
 
@@ -105,7 +93,6 @@ class Ike:
         self.pos = (x, y)
 
     def land(self, world):
-        """Daña al zombie (vivo y no hipnotizado) más cercano al punto de caída."""
         best = None
         for z in world.zombies:
             if z.targetable and z.row == self.row and abs(z.x - self.x1) <= 45:
@@ -113,7 +100,7 @@ class Ike:
                     best = z
         if best is not None:
             sonidos.reproducir("impacto")
-            best.take_damage(self.damage, frontal=False, fuente="kyle")   # cae de arriba: la puerta no lo frena
+            best.take_damage(self.damage, frontal=False, fuente="kyle")
         self.alive = False
 
     def frame(self):
@@ -128,8 +115,7 @@ class Ike:
 
     def draw(self, surface):
         x, y = self.pos
-        # Sombra en el piso: más chica y clara cuanto más alto está
-        w = max(3, int(34 - self.arc / 5) // IKE_PX)        # medio ancho en píxeles de dibujo
+        w = max(3, int(34 - self.arc / 5) // IKE_PX)
         sh = _sombra(w)
         surface.blit(sh, ((int(x) - w * IKE_PX) // IKE_PX * IKE_PX,
                           (int(self.ground) - 2 * IKE_PX) // IKE_PX * IKE_PX))

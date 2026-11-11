@@ -1,12 +1,3 @@
-"""
-Frases de Bielsa. Editá acá sin tocar la lógica.
-
-- TUTORIAL: una por paso del tutorial, en orden (los pasos y qué espera cada uno están en
-  levels/tutorial.py).
-- ANTES_DEL_NIVEL, AL_GANAR, AL_PERDER: el juego elige una al azar.
-  Al ganar sale con el retrato de victoria y al perder con el de derrota (ui/dialogo.py).
-"""
-
 TUTORIAL = [
     "Buenas tardes. Antes de empezar, una aclaración: acá no se improvisa. Vamos a trabajar.",
     "Todo empieza por la energía. Sin chili no hay plantas, y sin plantas no hay defensa. Coloque a Cartman en el césped.",

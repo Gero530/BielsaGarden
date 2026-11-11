@@ -1,15 +1,3 @@
-"""
-Catálogo (almanaque): pestañas Personajes y Zombies. A la izquierda, una grilla de retratos
-animados con su nombre; a la derecha, la ficha del elegido: personaje grande sobre el césped,
-datos, descripción y una frase de Bielsa.
-
-Se elige con clic o con las flechas y queda elegido. TAB cambia de pestaña.
-Los zombies que todavía no aparecieron en ninguna partida se ven como silueta con "???"
-(se guardan en logros.json, conjunto "zombies_vistos"; los anota gameplay.py).
-
-Los textos (nombre, descripción, frase de Bielsa) están en data/catalogo.py; los números
-salen solos de settings.py.
-"""
 import pygame
 import display
 import logros
@@ -25,7 +13,7 @@ from ui.sprites import draw_sprite, has_sprite
 from ui.widgets import Tabs, _hueco
 from ui import intro_art as A, sonidos
 
-TIP_W = 340               # ancho del pergamino de la pantalla de equipo (draw_tooltip)
+TIP_W = 340
 _cache = {}
 
 
@@ -48,22 +36,21 @@ def stats_zombie(key):
     return [f"Vida: {vida}", f"Daño: {mordida}", f"Velocidad: {velocidad_txt(d['velocidad'])}"]
 
 
-PANEL = pygame.Rect(24, 120, 456, 432)        # tablón con la grilla de retratos
-PAGINA = pygame.Rect(500, 120, 476, 432)      # pergamino con la ficha
+PANEL = pygame.Rect(24, 120, 456, 432)
+PAGINA = pygame.Rect(500, 120, 476, 432)
 GAP_CELDA = 9
 DORADO, CREMA, OSCURO = (255, 214, 64), (255, 240, 200), (30, 18, 6)
 FONDO_CELDA, PISO_CELDA = (58, 96, 44), (84, 152, 60)
 CIELO, CESPED = (122, 190, 240), ((96, 168, 70), (84, 152, 60))
-MARRON = (120, 76, 36)          # etiquetas de los datos en la ficha
-CITA = (112, 40, 18)            # la frase de Bielsa
-QUIETOS = {"kenny": 0, "picante": 0}   # sus animaciones son la explosión: en el catálogo van quietos
+MARRON = (120, 76, 36)
+CITA = (112, 40, 18)
+QUIETOS = {"kenny": 0, "picante": 0}
 BIELSA = {"id": "_bielsa_catalogo", "icono": ("retrato", "tutorial")}
 OCULTO_DESC = "Todavía no se cruzó con este zombie. Cuando aparezca en una partida, acá va a estar su ficha."
 OCULTO_CITA = "No hablo de rivales que no estudié. Cuando lo vea, le cuento."
 
 
 def etiqueta(key, zombie):
-    """Nombre corto bajo el retrato: "CARTMAN", "CONO", "PÉRTIGA"..."""
     nombre = (ZOMBIES if zombie else PERSONAJES)[key]["nombre"]
     if zombie:
         for prefijo in ("Zombie con ", "Zombie del ", "Zombie ", "Cangrejo "):
@@ -76,7 +63,6 @@ def etiqueta(key, zombie):
 
 
 def datos_ficha(key, zombie):
-    """[(etiqueta, valor)] para el costado del escenario de la ficha (hasta 4)."""
     if not zombie:
         d = PLANT_DATA[key]
         filas = [("COSTO", d["costo"])]
@@ -95,7 +81,6 @@ def datos_ficha(key, zombie):
 
 
 def silueta(img):
-    """La misma imagen en negro (respeta la transparencia)."""
     s = img.copy()
     s.fill((26, 20, 30, 255), special_flags=pygame.BLEND_RGBA_MULT)
     return s
@@ -110,13 +95,12 @@ class CatalogoScene(Scene):
         self.grid = Grid()
         self.zombies = {k: ZOMBIE_CLASSES[k](0, self.grid) for k in ZOMBIES}
         self.vistos = logros.conjunto("zombies_vistos")
-        self.sel = {"PERSONAJES": 0, "ZOMBIES": 0}      # cada pestaña recuerda su elegido
+        self.sel = {"PERSONAJES": 0, "ZOMBIES": 0}
         self.hover = None
         self.t = 0.0
         self._zcanvas = pygame.Surface((160, 150), pygame.SRCALPHA)
         self.armar()
 
-    # ------------------------------------------------------------------
     @property
     def es_zombie(self):
         return self.tab == "ZOMBIES"
@@ -130,7 +114,6 @@ class CatalogoScene(Scene):
         self.armar()
 
     def armar(self):
-        """Grilla centrada en el tablón: 3 columnas para los personajes, 4 para los zombies."""
         self.keys = list(ZOMBIES if self.es_zombie else PERSONAJES)
         n = len(self.keys)
         self.cols = 3 if n <= 9 else 4
@@ -154,7 +137,6 @@ class CatalogoScene(Scene):
         from scenes.menu import MenuScene
         self.game.change_scene(MenuScene(self.game))
 
-    # ------------------------------------------------------------------
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             i, n = self.sel[self.tab], len(self.keys)
@@ -184,11 +166,7 @@ class CatalogoScene(Scene):
         mouse = display.get_mouse_pos()
         self.hover = next((i for i, r in enumerate(self.celdas) if r.collidepoint(mouse)), None)
 
-    # ------------------------------------------------------------------
-    # Dibujo de los personajes
-    # ------------------------------------------------------------------
     def _img_zombie(self, key, t):
-        """El zombie a tamaño de juego (x2, con cono o balde) en una superficie suelta."""
         lienzo = self._zcanvas
         lienzo.fill((0, 0, 0, 0))
         self.zombies[key].draw_icon(lienzo, (lienzo.get_width() // 2, lienzo.get_height() - 4), None, t)
@@ -196,8 +174,6 @@ class CatalogoScene(Scene):
         return lienzo.subsurface(caja).copy() if caja.w and caja.h else None
 
     def dibujar_personaje(self, surface, key, pie, escala, t, oculto=False):
-        """Dibuja el personaje o zombie con los pies en `pie` (midbottom). escala: 1 = tamaño de
-        juego; para los zombies 0.5 = la mitad exacta (píxeles enteros)."""
         if self.es_zombie:
             img = self._img_zombie(key, t)
             if img is None:
@@ -219,9 +195,8 @@ class CatalogoScene(Scene):
             img = silueta(img)
         surface.blit(img, img.get_rect(midbottom=pie))
 
-    # ------------------------------------------------------------------
     def draw(self, surface):
-        surface.blit(A.fondo_vivo(self.t), (0, 0))      # el paisaje del menú con nubes y el bus
+        surface.blit(A.fondo_vivo(self.t), (0, 0))
         titulo = A.colgante_escalado("CATÁLOGO", 96, 16, 1, self.t, cuerda=6)
         surface.blit(titulo, titulo.get_rect(midtop=(SCREEN_W // 2, 0)))
         self.volver_btn.draw(surface)
@@ -234,12 +209,10 @@ class CatalogoScene(Scene):
             self.dibujar_contador(surface)
 
         self.dibujar_ficha(surface, self.keys[self.sel[self.tab]])
-        draw_pixel_text(surface, "CLIC O FLECHAS: ELEGIR    TAB: PESTAÑA    ESC: VOLVER", (255, 255, 255), 2,
-                        outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 20))
 
     def dibujar_celda(self, surface, i, key, r):
         elegida = i == self.sel[self.tab]
-        if elegida or i == self.hover:                      # marco: dorado el elegido, claro al pasar
+        if elegida or i == self.hover:
             surface.fill(DORADO if elegida else (232, 186, 112), r.inflate(6, 6))
         surface.blit(_hueco(r.w, r.h), r)
         adentro = r.inflate(-6, -6)
@@ -251,7 +224,7 @@ class CatalogoScene(Scene):
         oculto = not self.descubierto(key)
         old = surface.get_clip()
         surface.set_clip(adentro)
-        t = None if oculto else self.t + i * 0.37          # cada uno con su desfase
+        t = None if oculto else self.t + i * 0.37
         escala = 0.5 if self.es_zombie else 0.67
         self.dibujar_personaje(surface, key, (r.centerx, piso.y + 6), escala, t, oculto)
         surface.set_clip(old)
@@ -260,18 +233,16 @@ class CatalogoScene(Scene):
                         center=(r.centerx, adentro.bottom - alto_txt // 2))
 
     def dibujar_contador(self, surface):
-        """Cuántos zombies se descubrieron, en el hueco que deja la última fila de la grilla
-        (o abajo del tablón si la grilla está completa)."""
         vistos = sum(1 for k in self.keys if k in self.vistos)
+        texto = f"{vistos}/{len(self.keys)}"
         ultima = self.celdas[-1]
         libres = self.cols - 1 - (len(self.keys) - 1) % self.cols
         if libres:
             zona = pygame.Rect(ultima.right + GAP_CELDA, ultima.y, PANEL.right - 18 - ultima.right - GAP_CELDA, ultima.h)
+            esc = 3 if text_width(texto, 3) + 8 <= zona.w else 2
+            draw_pixel_text(surface, texto, DORADO, esc, outline=OSCURO, center=zona.center)
         else:
-            zona = pygame.Rect(PANEL.x, PANEL.bottom - 4, PANEL.w, 20)
-        draw_pixel_text(surface, "DESCUBIERTOS", CREMA, 2, outline=OSCURO, center=(zona.centerx, zona.centery - 16))
-        draw_pixel_text(surface, f"{vistos}/{len(self.keys)}", DORADO, 3, outline=OSCURO,
-                        center=(zona.centerx, zona.centery + 12))
+            draw_pixel_text(surface, texto, DORADO, 2, outline=OSCURO, center=(PANEL.centerx, PANEL.bottom + 24))
 
     def dibujar_ficha(self, surface, key):
         surface.blit(pergamino(PAGINA.w, PAGINA.h), PAGINA)
@@ -283,7 +254,6 @@ class CatalogoScene(Scene):
         esc = 3 if text_width(nombre, 3) <= ancho else 2
         draw_pixel_text(surface, nombre, TINTA_ROJA, esc, topleft=(x, PAGINA.y + 20))
 
-        # Escenario: cielo y césped en un hueco tallado, con el personaje grande y animado
         esc_r = pygame.Rect(x, PAGINA.y + 56, 216, 153)
         surface.blit(_hueco(esc_r.w, esc_r.h), esc_r)
         dentro = esc_r.inflate(-6, -6)
@@ -294,11 +264,10 @@ class CatalogoScene(Scene):
         surface.fill((70, 130, 50), (dentro.x, suelo, dentro.w, 3))
         old = surface.get_clip()
         surface.set_clip(dentro)
-        escala = 1 if self.es_zombie else 1.4             # personajes un poco más grandes que en el juego
+        escala = 1 if self.es_zombie else 1.4
         self.dibujar_personaje(surface, key, (dentro.centerx, suelo + 18), escala, None if oculto else self.t, oculto)
         surface.set_clip(old)
 
-        # Datos al costado del escenario: etiqueta a la izquierda, valor a la derecha, centrados en alto
         filas = datos_ficha(key, self.es_zombie)
         dx, derecha = esc_r.right + 16, PAGINA.right - 26
         y = esc_r.centery - (len(filas) * 34 - 14) // 2
@@ -308,11 +277,9 @@ class CatalogoScene(Scene):
             surface.fill(PAPEL_OSC, (dx, y + 19, derecha - dx, 2))
             y += 34
 
-        # Descripción
         draw_pixel_lines(surface, OCULTO_DESC if oculto else info["descripcion"], TINTA, 2,
                          (x, esc_r.bottom + 14), ancho, gap=20)
 
-        # Frase de Bielsa, abajo de todo, con su cara
         cita = OCULTO_CITA if oculto else info.get("bielsa", "")
         if cita:
             from ui.aviso_logro import icono
@@ -332,7 +299,6 @@ MARGEN_TIP = 22
 
 
 def pergamino(w, h):
-    """Pergamino opaco (x2): borde oscuro, papel claro, sombra abajo, esquinas gastadas y fibras."""
     key = ("pergamino", w, h)
     if key not in _cache:
         a, b = w // 2, h // 2
@@ -350,9 +316,6 @@ def pergamino(w, h):
 
 
 def draw_tooltip(surface, info, stats, ancla):
-    """Pergamino con nombre (rojo), descripción y datos, AL COSTADO de `ancla` (el cuadro o la
-    carta que estás mirando): a la derecha, o a la izquierda si no entra. Nunca lo tapa y nunca
-    queda cortado en los bordes de la pantalla."""
     ancho_txt = TIP_W - 2 * MARGEN_TIP
     lineas = wrap(info["descripcion"], 2, ancho_txt)
     esc_nombre = 3 if text_width(info["nombre"], 3) <= ancho_txt else 2
@@ -363,14 +326,14 @@ def draw_tooltip(surface, info, stats, ancla):
         r.left = ancla.right + 10
     elif ancla.left - 10 - TIP_W >= 8:
         r.right = ancla.left - 10
-    else:                                                    # ni a la derecha ni a la izquierda: abajo
+    else:
         r.centerx, r.top = ancla.centerx, ancla.bottom + 10
     r.clamp_ip(pygame.Rect(8, 8, SCREEN_W - 16, SCREEN_H - 16))
     surface.blit(pergamino(r.w, r.h), r)
     x, y = r.x + MARGEN_TIP, r.y + MARGEN_TIP
     draw_pixel_text(surface, info["nombre"], TINTA_ROJA, esc_nombre, topleft=(x, y))
     y = draw_pixel_lines(surface, info["descripcion"], TINTA, 2, (x, y + 8 * esc_nombre + 12), ancho_txt, gap=20) + 4
-    surface.fill(PAPEL_OSC, (x, y, ancho_txt, 2))           # raya que separa los datos
+    surface.fill(PAPEL_OSC, (x, y, ancho_txt, 2))
     y += 10
     for linea in stats:
         draw_pixel_text(surface, linea, TINTA, 2, topleft=(x, y))

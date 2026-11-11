@@ -1,10 +1,3 @@
-"""
-Pruebas simuladas del juego (sin ventana): cada caso arma una situación en una partida real
-(GameplayScene), avanza el tiempo a 60 cuadros por segundo y compara con lo esperado.
-Es la base del plan de pruebas de docs/06_plan_de_pruebas.md.
-
-    python tools/pruebas_simuladas.py            # imprime una tabla con los resultados
-"""
 import os
 import sys
 
@@ -18,8 +11,6 @@ import tempfile
 import pygame
 import game as gm
 import cuentas
-# Las pruebas no tocan las cuentas del jugador: usan un archivo temporal, vacío al empezar
-# (sin cuenta activa, los logros se cuentan en memoria y no se guardan)
 cuentas.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_cuentas.json")
 if os.path.exists(cuentas.RUTA):
     os.remove(cuentas.RUTA)
@@ -35,6 +26,9 @@ from entities.zombies import create_zombie
 
 DT = 1 / 60
 G = gm.Game()
+import ajustes
+ajustes.config.clear()
+ajustes.aplicar()
 RESULTADOS = []
 
 
@@ -43,7 +37,7 @@ def escena(nivel=1, sol=1000):
     sc.dialogo = None
     sc.waves_on = False
     sc.tuto, sc.tuto_paso = [], None
-    sc.sky_timer = 1e9          # sin soles del cielo (salvo que la prueba los pida)
+    sc.sky_timer = 1e9
     sc.sun = sol
     return sc
 
@@ -65,7 +59,7 @@ def planta(sc, k, r, c):
 def zombie(sc, k, r, col=None, x=None):
     z = create_zombie(k, r, sc.grid)
     z.x = x if x is not None else sc.grid.cell_rect(r, col).centerx
-    z.speed = ZOMBIE_DATA[k]["velocidad"]       # sin el ±8% al azar, para que la prueba sea repetible
+    z.speed = ZOMBIE_DATA[k]["velocidad"]
     sc.zombies.append(z)
     return z
 
@@ -74,20 +68,19 @@ def caso(id_, que):
     def deco(fn):
         try:
             obtenido, pasa = fn()
-        except Exception as e:                 # una prueba que explota cuenta como falla
+        except Exception as e:
             obtenido, pasa = "Error: %r" % e, False
         RESULTADOS.append((id_, que, obtenido, pasa))
         return fn
     return deco
 
 
-# ------------------------------------------------------------------ plantas
 @caso("PL-01", "Chef Cartman: primer dedo a los 6 s y después cada 18 s")
 def _():
     sc = escena()
     planta(sc, "girasol", 2, 0)
     vistos, t, momentos = set(), 0.0, []
-    while t < 24.2:                       # cuenta los dedos que van saliendo (cada uno dura 9 s en el piso)
+    while t < 24.2:
         sc.update(DT); t += DT
         for s in sc.suns:
             if id(s) not in vistos:
@@ -256,7 +249,6 @@ def _():
     return "zombie muerto: %s; columna: %d" % (not z.alive, g.col), not z.alive and g.col == 8
 
 
-# ------------------------------------------------------------------ zombies
 @caso("ZO-01", "Zombie normal: camina 18 px/s y come 100 de vida por segundo")
 def _():
     sc = escena()
@@ -354,7 +346,7 @@ def _():
     z = zombie(sc, "escalera", 2, 6)
     correr(sc, 12)
     puesta = (2, 3) in sc.grid.ladders
-    z.alive = False                       # el de la escalera ya cumplió (que no llegue a la casa)
+    z.alive = False
     n = zombie(sc, "normal", 2, 5)
     hp0 = b.hp
     paso = correr(sc, 20, lambda: n.x < b.rect.left)
@@ -417,7 +409,6 @@ def _():
     z.hp = z.max_hp * 0.4
     correr(sc, 2.0)
     minis = [m for m in sc.zombies if m.key == "mini"]
-    # El gigante lo tira al azar entre GRID_X + 30 y GRID_X + 2 casillas (zombies.py): ese es el rango
     lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + CELL_W * 2 + 10)
     return ("Butters (4000) aplastado a los %.1f s; mini lanzado: %s; cae cerca de la casa: %s"
             % (t, bool(minis), bool(lugar))), t <= 1.6 and bool(minis) and bool(lugar) and not z.tiene_mini
@@ -445,7 +436,6 @@ def _():
     return "comiendo: %s; Butters perdió %d" % (a.eating, 4000 - b.hp), a.eating and b.hp < 4000
 
 
-# ------------------------------------------------------------------ mecánicas y casos raros
 @caso("ME-01", "Podadora: un zombie en el borde la activa, limpia la fila y no vuelve a salir")
 def _():
     sc = escena()
@@ -474,7 +464,7 @@ def _():
     sc.update(DT)
     paso = sc.time - t0
     otra = GameplayScene(G, 2).velocidad
-    sc.cambiar_velocidad(); sc.cambiar_velocidad()       # x3 -> x1 (deja todo como estaba)
+    sc.cambiar_velocidad(); sc.cambiar_velocidad()
     return "avance por cuadro a x2: %.4f s (x1 = %.4f); el nivel siguiente arranca en x%d" % (paso, DT, otra), \
         abs(paso - 2 * DT) < 1e-9 and otra == 2
 
@@ -545,7 +535,6 @@ def _():
         sc.result is True and sc.dialogo is not None and "nivel1" in G.progreso
 
 
-# ------------------------------------------------------------------ mapa, equipo y fin de nivel
 @caso("MA-01", "Mapa: al empezar solo el tutorial está disponible; ganar uno desbloquea el siguiente")
 def _():
     G.progreso = set()
@@ -595,7 +584,7 @@ def _():
     textos = lambda r: [b.text for b in r.botones] if hasattr(r, "botones") else [b.text for b in r.buttons]
     try:
         a = textos(ResultScene(G, True, 1))
-        ultimo = len(LEVELS) - 1                     # el último nivel del juego (hoy, el 6)
+        ultimo = len(LEVELS) - 1
         b = textos(ResultScene(G, True, ultimo))
         c = textos(ResultScene(G, False, 1))
     except AttributeError:

@@ -1,13 +1,3 @@
-"""
-Zombies propios: personajes, animaciones y exportación. Todos usan el cuerpo base de
-tools/zombies_pixel.py (el vecino de musculosa) y cambian ropa, pelo y accesorios.
-
-    python tools/zombies_disenos.py            # crea las tiras que faltan en assets/zombies/propios/
-    python tools/zombies_disenos.py --forzar   # las vuelve a crear todas (¡pisa tus retoques!)
-    python tools/zombies_disenos.py --preview  # además, GIFs x4 en assets/sprites/propuestas/
-
-Cada tira es horizontal, un frame al lado del otro, mirando a la izquierda, pies en la última fila.
-"""
 import os
 import sys
 
@@ -18,12 +8,10 @@ from zombies_pixel import (pygame, RAIZ, FRAME_W, FRAME_H, CABEZA, TORSO, BRAZO_
 
 DEST = os.path.join(RAIZ, "assets", "zombies", "propios")
 PREVIEW = os.path.join(RAIZ, "assets", "sprites", "propuestas")
-OX = 2      # el cuerpo va corrido 2 px a la derecha: al morder, la cabeza y las manos no se salen
+OX = 2
 
 
-# ------------------------------------------------------------------ herramientas de grilla
 def dup_filas(g, filas):
-    """Repite filas (alarga una parte sin deformar el contorno)."""
     out = []
     for y, f in enumerate(g):
         out.append(f)
@@ -37,7 +25,6 @@ def dup_cols(g, cols):
 
 
 def engordar(g, n=1):
-    """Ensancha cada fila n px repitiendo su primer píxel de relleno (sirve en partes en diagonal)."""
     out = []
     for f in g:
         i = next((j for j, ch in enumerate(f) if ch not in ".#"), None)
@@ -51,14 +38,12 @@ def engordar(g, n=1):
 
 
 def estampar(g, azulejo, ranuras="12"):
-    """Pinta una textura (azulejo repetido) sobre las ranuras de una prenda: cuadros, batik..."""
     h, w = len(azulejo), len(azulejo[0])
     return ["".join(azulejo[y % h][x % w] if ch in ranuras and azulejo[y % h][x % w] != "." else ch
                     for x, ch in enumerate(f)) for y, f in enumerate(g)]
 
 
 def palo(dx, dy, color="y"):
-    """Palo recto de 1 px con contorno (como la herramienta línea de LibreSprite), de (0,0) a (dx,dy)."""
     n = max(abs(dx), abs(dy))
     pts = {(round(dx * i / n), round(dy * i / n)) for i in range(n + 1)}
     x0, y0 = min(p[0] for p in pts) - 1, min(p[1] for p in pts) - 1
@@ -71,10 +56,9 @@ def palo(dx, dy, color="y"):
                     g[y - y0 + ay][x - x0 + ax] = "#"
     for x, y in pts:
         g[y - y0][x - x0] = color
-    return ["".join(f) for f in g], -x0, -y0           # grilla y dónde cae el punto (0,0) dentro de ella
+    return ["".join(f) for f in g], -x0, -y0
 
 
-# ------------------------------------------------------------------ cuerpo y armado de frames
 BASE = {"pos": POS, "piernas": PIERNAS, "bob": BOB, "torso": TORSO, "brazo_adelante": BRAZO_ADELANTE,
         "brazo_atras": BRAZO_ATRAS, "cabeza": lambda boca: cabeza_con(boca, CABEZA)}
 
@@ -82,13 +66,11 @@ BASE = {"pos": POS, "piernas": PIERNAS, "bob": BOB, "torso": TORSO, "brazo_adela
 def pose(bob=0, cabeza=(0, 0), torso_dx=0, brazo=(0, 0), brazo_atras=(0, 0), piernas=(2, 6), boca="normal", **k):
     p = dict(bob=bob, cabeza=cabeza, torso_dx=torso_dx, brazo=brazo, brazo_atras=brazo_atras,
              piernas=piernas, boca=boca)
-    p.update(k)    # ba_grilla / ba_pos / bt_grilla / bt_pos: otra pose de brazo en ese frame; i: n° de frame
+    p.update(k)
     return p
 
 
 def capas(pj, p, extra=None):
-    """Capas de un frame. extra(p) -> dict con capas en "atras", "medio" (detrás de la cabeza),
-    "sobre_cabeza" y "adelante"."""
     cu = pj.get("cuerpo", BASE)
     pos, b = cu["pos"], p["bob"]
     ex = extra(p) if extra else {}
@@ -123,7 +105,6 @@ def capas(pj, p, extra=None):
 
 
 def caminar_poses(bob=BOB):
-    """8 frames: contacto, baja, pasa, sube (pierna de adelante) y lo mismo con la de atrás."""
     return [pose(bob=bob[i], cabeza=(0, CAM_CABEZA_DY[i]), brazo=(CAM_BRAZO_DX[i], 0),
                  brazo_atras=(-CAM_BRAZO_DX[i], 0), piernas=(i, (i + 4) % 8), i=i) for i in range(8)]
 
@@ -145,8 +126,6 @@ def con_extra(fn, **fijos):
     return lambda p: fn(p, **fijos)
 
 
-# ------------------------------------------------------------------ brazos extra (dibujados a mano)
-# Brazo de atrás levantado (señala para arriba por detrás de la cabeza): bailarín, gigante, garrocha
 BRAZO_ARRIBA = mangas([
     "..#...",
     ".#k#..",
@@ -173,7 +152,6 @@ BRAZO_ARRIBA = mangas([
 BRAZO_ARRIBA = ["".join({"k": "7", "K": "8"}.get(c, c) if y >= 10 else ({"k": "9", "K": "0"}.get(c, c) if y >= 5 else c)
                         for c in f) for y, f in enumerate(BRAZO_ARRIBA)]
 POS_ARRIBA = (15, 1)
-# Brazo de adelante señalando abajo y adelante (paso de disco)
 BRAZO_ABAJO = mangas([
     "...........####.",
     "..........#kkkK#",
@@ -191,14 +169,12 @@ BRAZO_ABAJO = mangas([
 ], 9, 6)
 
 
-# ------------------------------------------------------------------ 1. Normal: el vecino de musculosa
 NORMAL = {"mapa": {}}
 
 
-# ------------------------------------------------------------------ 2. Puerta: vecino con la puerta de su casa
 PUERTA_MAPA = {"1": "v", "2": "V", "+": "v", "=": "V", "7": "v", "8": "V", "~": "v", "^": "V", "%": "t",
                "3": "a", "4": "A", "S": "a", "Z": "A", "5": "n", "6": "N", "H": "n"}
-PEINADO = [   # raya al costado, un mechón cae sobre la frente
+PEINADO = [
     "....#######....",
     "..##nnnnnnn##..",
     ".#nnnnnnnnnnN#.",
@@ -252,11 +228,10 @@ def puerta_extra(p):
 PUERTA = {"mapa": PUERTA_MAPA, "sombrero": [(PEINADO, 0, 0)]}
 
 
-# ------------------------------------------------------------------ 3. Diario: jubilado
 DIARIO_MAPA = {"1": "o", "2": "O", "+": "o", "=": "O", "7": "o", "8": "O", "9": "o", "0": "O",
                "~": "o", "^": "O", "@": "O", "%": "C", "3": "n", "4": "N", "S": "n", "Z": "N",
                "5": "r", "6": "R", "H": "a"}
-CEJAS = [          # cejas canosas y bigote (relativo a la cabeza)
+CEJAS = [
     "...............",
     "...............",
     "...............",
@@ -280,7 +255,7 @@ CEJAS_ENOJADO = [
     "...............",
     ".aaaaa.........",
 ]
-BOTONES = [        # cuello de la camisa y botones del saco (relativo al torso)
+BOTONES = [
     "...............",
     "....ww.........",
     "...#ws#........",
@@ -324,7 +299,6 @@ DIARIO = {"mapa": DIARIO_MAPA, "sombrero": [(CEJAS, 0, 0)], "torso_extra": [(BOT
 DIARIO_ENOJADO = {"mapa": DIARIO_MAPA, "sombrero": [(CEJAS_ENOJADO, 0, 0)], "torso_extra": [(BOTONES, 0, 0)]}
 
 
-# ------------------------------------------------------------------ 4. Escalera: pintor
 ESCALERA_MAPA = {"1": "w", "2": "s", "+": "b", "=": "B", "7": "b", "8": "B", "~": "w", "^": "s",
                  "@": "s", "%": "y", "3": "w", "4": "s", "S": "w", "Z": "s", "5": "n", "6": "N", "H": "c"}
 GORRA_PINTOR = [
@@ -334,7 +308,7 @@ GORRA_PINTOR = [
     "..#wbwwwwwwwwsss#",
     "################.",
 ]
-TIRANTES = [       # tirantes del overol y gotas de pintura (relativo al torso)
+TIRANTES = [
     "...............",
     "...w....w......",
     "...w....w......",
@@ -386,7 +360,6 @@ ESCALERA = {"mapa": ESCALERA_MAPA, "sombrero": [(GORRA_PINTOR, -2, -2)], "torso_
 
 
 def escalera_colocar():
-    """6 frames: la baja del hombro, la para adelante, la empuja contra la planta y la suelta."""
     ps = []
     for i in range(6):
         ps.append(pose(bob=(1, 2, 1, 1, 2, 1)[i], cabeza=(0, (0, 1, 1, 0, 1, 0)[i]), piernas=(1, 4) if i < 4 else (0, 4),
@@ -403,11 +376,10 @@ def escalera_colocar():
     return ps, ex
 
 
-# ------------------------------------------------------------------ 5. Pértiga: profe de gimnasia
 PERTIGA_MAPA = {"1": "r", "2": "R", "+": "r", "=": "R", "7": "r", "8": "R", "9": "r", "0": "R",
                 "~": "r", "^": "R", "@": "R", "%": "R", "3": "r", "4": "R", "S": "r", "Z": "R",
                 "5": "w", "6": "s", "H": "N"}
-PELO_PROFE = [     # pelo corto parado, vincha y bigote (relativo a la cabeza)
+PELO_PROFE = [
     "...#.#.#.#.....",
     "..#N#N#N#N##...",
     "..#NNNNNNNNN#..",
@@ -420,7 +392,7 @@ PELO_PROFE = [     # pelo corto parado, vincha y bigote (relativo a la cabeza)
     "..............",
     ".NNNN..........",
 ]
-SILBATO = [        # cierre del jogging y silbato (relativo al torso)
+SILBATO = [
     "...............",
     "....w..........",
     "...w.w.........",
@@ -433,44 +405,37 @@ SILBATO = [        # cierre del jogging y silbato (relativo al torso)
     "...w...........",
 ]
 PERTIGA = {"mapa": PERTIGA_MAPA, "sombrero": [(PELO_PROFE, 0, -1)], "torso_extra": [(SILBATO, 0, 0)]}
-PERTIGA_W, PERTIGA_OX = 48, 19       # frame más ancho: la garrocha asoma adelante
-GARROCHA, GX, GY = palo(44, 16)      # de la punta (adelante y arriba) hasta atrás, pasando por las manos
+PERTIGA_W, PERTIGA_OX = 48, 19
+GARROCHA, GX, GY = palo(44, 16)
 
 
 def pertiga_extra(p):
     dx, dy = p["brazo"][0], p["bob"] + p["brazo"][1]
-    # la garrocha va de adelante-arriba (x negativos: fuera del cuerpo) a atrás-abajo
     return {"medio": [(GARROCHA, -18 - GX + dx, 15 - GY + dy)]}
 
 
 def pertiga_salto():
-    """6 frames 48x48: clava la garrocha, despega, pasa horizontal, arriba de cabeza, cae, aterriza."""
     pj = PERTIGA
 
     def cuerpo(p, extra=None):
         return anim(pj, [p], extra, 31, 48, OX)[0]
 
-    clavada, cgx, cgy = palo(20, -33)     # punta clavada en el piso adelante, arriba en las manos
+    clavada, cgx, cgy = palo(20, -33)
     vertical, vgx, vgy = palo(6, -41)
     frames = []
     w = PERTIGA_W
     ancho = dict(w=w, ox=PERTIGA_OX)
-    # 0: agachado, la garrocha clavada adelante
     frames += anim(pj, [pose(bob=2, piernas=(1, 5), cabeza=(0, 1), brazo=(-1, 0))],
                    lambda p: {"medio": [(clavada, -16 - cgx, 47 - cgy)]}, **ancho)
-    # 1: despega con los brazos arriba
     frames += anim(pj, [pose(bob=0, piernas=(5, 3), bt_grilla=BRAZO_ARRIBA, bt_pos=POS_ARRIBA, boca="abierta")],
                    lambda p: {"medio": [(vertical, -8 - vgx, 47 - vgy)]}, **ancho)
-    # 2 y 3: el cuerpo gira por arriba de la garrocha (giros de 90°, sin perder píxeles)
     quieto = cuerpo(pose(bob=0, piernas=(7, 5), bt_grilla=BRAZO_ARRIBA, bt_pos=POS_ARRIBA))
     for ang in (-90, 180):
         s = pygame.Surface((w, 48), pygame.SRCALPHA)
         r = pygame.transform.rotate(quieto, ang)
         s.blit(r, (PERTIGA_OX - OX + 15 - r.get_width() // 2, (48 - r.get_height()) // 2))
         frames.append(s)
-    # 4: cae con las piernas adelante, ya sin garrocha
     frames += anim(pj, [pose(bob=0, piernas=(7, 7), bt_grilla=BRAZO_ARRIBA, bt_pos=POS_ARRIBA, boca="abierta")], **ancho)
-    # 5: aterriza agachado
     frames += anim(pj, [pose(bob=2, piernas=(1, 5), cabeza=(0, 2))], **ancho)
     return frames
 
@@ -478,7 +443,6 @@ def pertiga_salto():
 PERTIGA_SIN = PERTIGA
 
 
-# ------------------------------------------------------------------ 6. Excavador: minero
 EXCAVADOR_MAPA = {"1": "b", "2": "B", "+": "o", "=": "O", "7": "o", "8": "O", "~": "b", "^": "B",
                   "@": "N", "%": "t", "3": "b", "4": "B", "S": "b", "Z": "B", "5": "n", "6": "N", "H": "N"}
 CASCO = [
@@ -490,7 +454,7 @@ CASCO = [
     "#w##############",
     "##..............",
 ]
-TIZNE = [          # tierra en la ropa y tirantes (relativo al torso)
+TIZNE = [
     "...............",
     "...b....b......",
     "...b....b......",
@@ -530,7 +494,6 @@ EXCAVADOR = {"mapa": EXCAVADOR_MAPA, "sombrero": [(CASCO, -1, -2)], "torso_extra
 
 
 def excavador_tierra():
-    """4 frames: el montículo de tierra que avanza (con terrones que saltan y la lamparita que asoma)."""
     mont = [
         "........######........",
         "......##tttttt##......",
@@ -554,7 +517,6 @@ def excavador_tierra():
     return out
 
 
-# ------------------------------------------------------------------ 7. Bailarín: hippie
 BAILARIN_MAPA = {"1": "f", "2": "F", "+": "f", "=": "F", "7": "f", "8": "F", "%": "y", "~": "k", "^": "K",
                  "@": "n", "3": "p", "4": "P", "S": "p", "Z": "P", "5": "p", "6": "P", "H": "n"}
 PELO_LARGO = [
@@ -576,7 +538,7 @@ PELO_LARGO = [
     "............#N#..",
     ".............#...",
 ]
-BATIK = [          # textura de la remera teñida (se estampa sobre la prenda)
+BATIK = [
     "fyff",
     "bffy",
     "fffb",
@@ -596,7 +558,6 @@ BAILARIN = {"mapa": BAILARIN_MAPA, "sombrero": [(PELO_LARGO, -1, -1)],
 
 
 def bailarin_baile():
-    """8 frames: paso de disco (señala arriba y abajo), mueve la cadera y llama a los compañeros."""
     ps = []
     for i in range(8):
         arriba = i in (1, 2, 5, 6)
@@ -610,7 +571,6 @@ def bailarin_baile():
     return ps
 
 
-# ------------------------------------------------------------------ 8. Bungee
 BUNGEE_MAPA = {"1": "b", "2": "B", "3": "o", "4": "O", "5": "w", "6": "s", "@": "y", "%": "B", "H": "N"}
 CASCO_BUNGEE = [
     "....#######....",
@@ -637,7 +597,6 @@ BUNGEE = {"mapa": BUNGEE_MAPA, "sombrero": [(CASCO_BUNGEE, 0, -1)], "torso_extra
 
 
 def bungee_bajar():
-    """4 frames: colgado cabeza abajo de la soga, pataleando y manoteando (el dibujo dado vuelta)."""
     out = []
     for i in range(4):
         p = pose(bob=0, piernas=((2, 6), (7, 3), (6, 2), (3, 7))[i], brazo=(0, (0, 2, 0, -1)[i]),
@@ -647,7 +606,6 @@ def bungee_bajar():
     return out
 
 
-# ------------------------------------------------------------------ 9. Mini zombie: enano de jardín
 MINI_W, MINI_H = 20, 32
 MINI_MAPA = {"3": "c", "4": "C"}
 MINI_GORRO = [
@@ -706,7 +664,6 @@ MINI_PIERNAS = [
 
 
 def mini_capas(i=0, boca="normal", cdx=0, cdy=0, bdx=0, bob=0, piernas=None, ox=0, oy=0):
-    """Capas del enano (frame 20x32, pies en la fila 31)."""
     a, b = piernas if piernas else (i % 8, (i + 4) % 8)
     m1, m2 = MINI_BOCAS[boca]
     cab = MINI_CABEZA[:6] + [m1, m2] + MINI_CABEZA[8:]
@@ -732,9 +689,8 @@ def mini_atacar():
             for m, dx, dy in seq]
 
 
-# ------------------------------------------------------------------ 10. Gigante: leñador (frame 44x64)
 GIG_W, GIG_H, GIG_OX = 44, 64, 4
-CUADROS = ["1R1", "RNR", "1R1"]          # textura de la camisa escocesa
+CUADROS = ["1R1", "RNR", "1R1"]
 _g_cabeza = lambda boca: dup_filas(dup_cols(cabeza_con(boca, CABEZA), {10}), {3, 8})
 GIG_CUERPO = {
     "pos": {"cabeza": (3, 10), "torso": (9, 25), "brazo_adelante": (0, 27), "brazo_atras": (5, 31),
@@ -757,7 +713,7 @@ GORRO_LANA = [
     "#VvVvVvVvVvVvVVV#",
     "#################",
 ]
-BARBA = [           # relativo a la cabeza del gigante (deja ver la boca)
+BARBA = [
     "................",
     "................",
     "................",
@@ -802,7 +758,6 @@ GIG_ARRIBA = dup_filas(engordar(BRAZO_ARRIBA, 1), {12, 13, 14})
 
 
 def gig_mini(x, y):
-    """El enano a caballito (quieto)."""
     return [(g, gx + x, gy + y) + tuple(r) for g, gx, gy, *r in mini_capas(0, piernas=(2, 6))]
 
 
@@ -819,9 +774,8 @@ def gig_caminar_poses():
 
 
 def gigante_golpe(mini=True):
-    """6 frames: levanta el tronco por encima de la cabeza y aplasta la planta."""
     ps, exs = [], []
-    datos = [  # bob, brazo de adelante, tronco
+    datos = [
         (1, None, ("v", -2, 33)),
         (0, "arriba", ("h", 6, 1)),
         (0, "arriba", ("h", 8, 0)),
@@ -852,7 +806,6 @@ def gigante_golpe(mini=True):
 
 
 def gigante_lanzar():
-    """6 frames: agarra al enano de la espalda, lo levanta por arriba de la cabeza y lo revolea."""
     ps = []
     for i in range(6):
         kw = dict(bt_grilla=GIG_ARRIBA, bt_pos=(15, 3)) if i in (1, 2, 3) else {}
@@ -871,7 +824,6 @@ def gigante_lanzar():
     return ps, ex
 
 
-# ------------------------------------------------------------------ 11. Tractor: granjero (frame 56x48)
 TRAC_W = 56
 TRACTOR_MAPA = {"1": "b", "2": "B", "+": "r", "=": "R", "7": "r", "8": "R", "~": "b", "^": "B", "@": "B",
                 "%": "t", "H": "n"}
@@ -906,7 +858,6 @@ RUEDA_GRANDE = [
     ".....##hhhhhh##.....",
     ".......######.......",
 ]
-# Tacos de la cubierta y tuercas de la llanta: 4 posiciones que van girando
 TACOS = [
     [(9, 1), (10, 1), (1, 9), (1, 10), (18, 9), (18, 10), (9, 18), (10, 18), (9, 5), (14, 9), (10, 14), (5, 10)],
     [(13, 1), (1, 6), (18, 13), (6, 18), (2, 13), (6, 1), (17, 6), (13, 18), (12, 6), (13, 12), (7, 13), (6, 7)],
@@ -998,10 +949,7 @@ def tractor_atacar():
     return [tractor_frame(i * 2, sacude=s, bob=i % 2, boca=m, tierra=True, cabeza=c) for i, (s, m, c) in enumerate(datos)]
 
 
-# ------------------------------------------------------------------ 12. Alien (dibujo de Santi): atacar
 def alien_atacar():
-    """6 frames a partir del primer frame de alien_caminar.png: se inclina, abre la boca, muerde,
-    mastica y vuelve. El cuerpo no cambia; la cabeza baja y se corre hacia la planta."""
     hoja = pygame.image.load(os.path.join(RAIZ, "assets", "zombies", "alien_caminar.png")).convert_alpha()
     base = hoja.subsurface((0, 0, 31, 48)).copy()
     cabeza = base.subsurface((0, 0, 31, 17)).copy()
@@ -1020,7 +968,7 @@ def alien_atacar():
     for boca, dx, dy, brazo in seq:
         f = pygame.Surface((31, 48), pygame.SRCALPHA)
         c = cuerpo.copy()
-        if brazo:   # levanta el brazo izquierdo (columnas 8-11) hacia la planta
+        if brazo:
             br = cuerpo.subsurface((8, 18, 4, 13)).copy()
             c.fill((0, 0, 0, 0), (8, 18, 3, 13))
             c.blit(br, (8 + brazo // 2, 18 + brazo))
@@ -1031,7 +979,7 @@ def alien_atacar():
         if boca != "normal":
             h.set_at((15, 11), bocas[boca][1][2] if boca == "abierta" else h.get_at((15, 11)))
         f.blit(h, (dx, dy))
-        if dy:     # el cuello se estira: rellena el hueco entre la cabeza y el cuerpo
+        if dy:
             for y in range(17, 17 + dy):
                 for x, col in ((13, negro), (14, blanco), (15, blanco), (16, blanco), (17, negro)):
                     if f.get_at((x + dx // 2, y))[3] == 0:
@@ -1040,15 +988,12 @@ def alien_atacar():
     return out
 
 
-# ------------------------------------------------------------------ escalera apoyada (objeto del juego)
 def escalera_puesta():
     larga = ESCALERA_V[:24] + ESCALERA_V[12:]
     return [frame([(larga, 6, 40 - len(larga))], ESCALERA_MAPA, 20, 40)]
 
 
-# ------------------------------------------------------------------ todas las animaciones
 def animaciones():
-    """nombre de archivo -> (frames, fps)."""
     A = {}
     cam, atq = caminar_poses(), atacar_poses()
 
@@ -1093,7 +1038,6 @@ def animaciones():
     return A
 
 
-# ------------------------------------------------------------------ exportación y vistas previas
 def preview_gif(nombre, frames, fps, escala=4):
     w, h = frames[0].get_size()
     W, H = w * escala + 16 * escala, h * escala + 8 * escala
@@ -1107,7 +1051,6 @@ def preview_gif(nombre, frames, fps, escala=4):
 
 
 def hoja_frames(A, salida, escala=3):
-    """Todas las tiras, una abajo de la otra, sobre el pasto (para revisarlas pose por pose)."""
     filas = [(n, fr) for n, (fr, _) in A.items()]
     W = max(sum(f.get_width() + 4 for f in fr) for _, fr in filas) * escala
     H = sum(fr[0].get_height() + 4 for _, fr in filas) * escala
@@ -1123,7 +1066,6 @@ def hoja_frames(A, salida, escala=3):
 
 
 def hoja_quietos(A, salida, escala=4):
-    """Todos quietos (primer frame de caminar) junto al alien."""
     claves = [k for k in A if k.endswith("_caminar") and "_sin" not in k] + ["alien"]
     imgs = []
     for k in claves:

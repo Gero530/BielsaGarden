@@ -1,34 +1,22 @@
-"""
-Zombies "vecinos" en pixel art, estilo recorte de papel de South Park (diseños propios):
-cabeza grande, ojos ovalados, colores planos y contorno negro.
-
-    python tools/generar_vecinos.py           # crea solo los que faltan
-    python tools/generar_vecinos.py --forzar  # los vuelve a crear todos (¡pisa tus retoques!)
-
-Cada PNG es una tira horizontal (mirando a la izquierda, pies abajo). Caminar y atacar: 8 frames.
-Tamaños y frames de cada uno: ver ui/sprites.py (sección "Zombies vecinos").
-"""
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import generar_placeholders as gp      # video "dummy", contorno(), tira(), nuevo() y colores
+import generar_placeholders as gp
 import pygame
 
 DEST = os.path.join(gp.ASSETS, "sprites", "vecinos")
 NEGRO, BLANCO = gp.NEGRO, gp.BLANCO
-PIEL = (166, 190, 146)                  # piel de zombie
+PIEL = (166, 190, 146)
 PIEL_ENOJADA = (204, 150, 126)
 BOCA, DIENTE = (70, 20, 24), (240, 236, 210)
 
-# Proporciones de cada talla (píxeles de dibujo)
 TALLAS = {
     "normal":  dict(r=10, bw=14, bh=12, lh=7, brazo=7),
     "mini":    dict(r=7, bw=9, bh=7, lh=5, brazo=4),
     "gigante": dict(r=10, bw=28, bh=24, lh=11, brazo=10),
 }
 
-# Poses: caminar (balanceo + pasos), correr (pasos largos) y atacar (estira la cabeza y muerde)
 CAMINAR = [dict(bob=b, paso=p, bdy=a) for b, p, a in
            zip((0, 1, 1, 0, 0, 1, 1, 0), (-2, -1, 0, 1, 2, 1, 0, -1), (0, 0, 1, 1, 0, 0, 1, 1))]
 CORRER = [dict(bob=b, paso=p, bdy=a) for b, p, a in
@@ -42,30 +30,26 @@ def oscuro(c, k=38):
 
 
 def persona(s, talla, ropa, pose, cx, pies, piel=PIEL, arriba=False):
-    """Dibuja un vecino zombie y devuelve dónde quedó cada parte (para los accesorios)."""
     t = TALLAS[talla]
     camisa, pantalon = ropa
     bob, paso, adel = pose.get("bob", 0), pose.get("paso", 0), pose.get("adelante", 0)
-    # Piernas y zapatos
     ly = pies - 2 - t["lh"]
     for dx, signo in ((-t["bw"] // 4 - 2, 1), (t["bw"] // 4, -1)):
         x = cx + dx + signo * paso
         s.fill(pantalon, (x, ly, 3, t["lh"]))
         pygame.draw.ellipse(s, NEGRO, (x - 2, pies - 3, 6, 3))
-    # Cuerpo
     by = ly - t["bh"] - bob
     bx = cx - t["bw"] // 2
     brazo_y = by + 2 + pose.get("bdy", 0)
-    if arriba:                                                    # brazos arriba (baile)
+    if arriba:
         s.fill(oscuro(camisa), (bx + t["bw"] - 2, by - 6, 3, 8)); s.fill(oscuro(piel), (bx + t["bw"] - 2, by - 9, 3, 3))
-    else:                                                         # brazo de atrás, estirado
+    else:
         s.fill(oscuro(camisa), (bx - t["brazo"] + 2 - adel, brazo_y - 1, t["brazo"], 3))
         s.fill(oscuro(piel), (bx - t["brazo"] - adel, brazo_y - 1, 3, 3))
     s.fill(camisa, (bx, by + 2, t["bw"], t["bh"] - 1))
     pygame.draw.ellipse(s, camisa, (bx, by, t["bw"], 5))
-    s.fill(oscuro(camisa), (bx + t["bw"] // 2, by + t["bh"] - 3, 2, 2))      # ropa rota
+    s.fill(oscuro(camisa), (bx + t["bw"] // 2, by + t["bh"] - 3, 2, 2))
     s.set_at((bx + 2, by + t["bh"] - 1), oscuro(camisa))
-    # Cabeza grande, ojos ovalados (uno con la pupila más chica) y boca
     r = t["r"]
     hx, hy = cx - 1 - adel, by - r + 4
     pygame.draw.ellipse(s, piel, (hx - r - 1, hy - r, 2 * r + 2, 2 * r))
@@ -75,7 +59,7 @@ def persona(s, talla, ropa, pose, cx, pies, piel=PIEL, arriba=False):
         pygame.draw.ellipse(s, BLANCO, (ex + i * (ew - 1), ey, ew, ew))
     s.fill(NEGRO, (ex + 1, ey + ew // 2, 2, 2))
     s.set_at((ex + ew, ey + ew // 2), NEGRO)
-    s.fill(oscuro(piel), (ex, ey + ew, ew * 2 - 1, 1))                          # ojeras
+    s.fill(oscuro(piel), (ex, ey + ew, ew * 2 - 1, 1))
     mx, my = hx - r + 2, hy + r // 2
     if pose.get("boca"):
         pygame.draw.ellipse(s, BOCA, (mx, my - 1, r, r // 2 + 2))
@@ -83,7 +67,6 @@ def persona(s, talla, ropa, pose, cx, pies, piel=PIEL, arriba=False):
     else:
         for i in range(r - 2):
             s.set_at((mx + i, my + i % 2), BOCA)
-    # Brazo de adelante
     ax = bx - t["brazo"] - adel
     if arriba:
         s.fill(camisa, (bx - 1, by - 6, 3, 8)); s.fill(piel, (bx - 1, by - 9, 3, 3))
@@ -95,7 +78,6 @@ def persona(s, talla, ropa, pose, cx, pies, piel=PIEL, arriba=False):
 
 
 def strip(w, h, poses, dibujar):
-    """Una tira: dibuja cada pose en un frame de w x h y le agrega el contorno negro."""
     out = []
     for i, pose in enumerate(poses):
         s = gp.nuevo(w, h)
@@ -104,9 +86,6 @@ def strip(w, h, poses, dibujar):
     return gp.tira(out)
 
 
-# ----------------------------------------------------------------------
-# Peinados y gorros
-# ----------------------------------------------------------------------
 def pelo_despeinado(s, p):
     hx, hy, r = p["hx"], p["hy"], p["r"]
     for dx, alto in ((-4, 2), (-1, 3), (2, 2), (5, 1)):
@@ -132,12 +111,9 @@ def casco_obra(s, p):
     hx, hy, r = p["hx"], p["hy"], p["r"]
     pygame.draw.ellipse(s, (250, 210, 50), (hx - r, hy - r - 2, 2 * r + 1, 9))
     s.fill((250, 210, 50), (hx - r - 2, hy - r + 4, 2 * r + 5, 2))
-    s.fill(BLANCO, (hx - r, hy - r + 1, 2, 2))                    # linterna
+    s.fill(BLANCO, (hx - r, hy - r + 1, 2, 2))
 
 
-# ----------------------------------------------------------------------
-# Cada vecino
-# ----------------------------------------------------------------------
 PARKA = ((92, 120, 170), (80, 66, 52))
 
 
@@ -149,27 +125,25 @@ def normal(poses):
 
 
 def puerta(poses):
-    """Vecino de chaleco verde que se cubre con la puerta de su casa."""
     def d(s, pose, i):
         p = persona(s, "normal", ((90, 140, 80), (60, 60, 70)), pose, 17, 47)
         pelo_despeinado(s, p)
         top = p["by"] - 1
         s.fill((120, 86, 56), (0, top, 11, 46 - top))
         s.fill((236, 232, 220), (1, top + 1, 9, 44 - top))
-        s.fill((150, 200, 230), (3, top + 3, 5, 6))               # ventanita
-        s.fill((230, 190, 60), (7, top + 15, 2, 2))               # picaporte
+        s.fill((150, 200, 230), (3, top + 3, 5, 6))
+        s.fill((230, 190, 60), (7, top + 15, 2, 2))
     return strip(32, 48, poses, d)
 
 
 def diario(poses, enojado=False):
-    """Jubilado en bata que lee el diario; enojado: cara roja, cejas y vapor (sin diario)."""
     def d(s, pose, i):
         p = persona(s, "normal", ((150, 110, 170), (150, 110, 170)), pose, 17, 47,
                     piel=PIEL_ENOJADA if enojado else PIEL)
         hx, hy, r = p["hx"], p["hy"], p["r"]
-        s.fill((200, 200, 205), (hx + 1, hy - r, 7, 2))           # pelado con dos mechones
+        s.fill((200, 200, 205), (hx + 1, hy - r, 7, 2))
         ex, ey = hx - r + 1, hy - r // 3 - 1
-        pygame.draw.rect(s, NEGRO, (ex - 1, ey - 1, 13, 8), 1)    # anteojos
+        pygame.draw.rect(s, NEGRO, (ex - 1, ey - 1, 13, 8), 1)
         if enojado:
             s.fill(NEGRO, (ex, ey - 3, 4, 1)); s.fill(NEGRO, (ex + 7, ey - 3, 4, 1))
             if i % 2:
@@ -180,7 +154,7 @@ def diario(poses, enojado=False):
             s.fill((232, 228, 214), (0, my - 6 + baja, 13, 11))
             for yy in range(my - 4 + baja, my + 4 + baja, 2):
                 s.fill((150, 150, 156), (2, yy, 9, 1))
-            s.fill(NEGRO, (2, my - 5 + baja, 9, 1))                # titular
+            s.fill(NEGRO, (2, my - 5 + baja, 9, 1))
     return strip(32, 48, poses, d)
 
 
@@ -188,13 +162,12 @@ ATLETA = ((230, 200, 60), (60, 90, 170))
 
 
 def pertiga(poses, con_pertiga=True):
-    """Atleta de camiseta amarilla con el número 7; corre con la pértiga."""
     def d(s, pose, i):
         p = persona(s, "normal", ATLETA, pose, 17, 47)
         hx, hy, r = p["hx"], p["hy"], p["r"]
-        for dx in (-5, -2, 1, 4):                                  # pelo parado
+        for dx in (-5, -2, 1, 4):
             s.fill((120, 70, 40), (hx + dx, hy - r - 1, 2, 2))
-        s.fill(NEGRO, (p["bx"] + 6, p["by"] + 4, 2, 1)); s.fill(NEGRO, (p["bx"] + 7, p["by"] + 5, 1, 4))   # "7"
+        s.fill(NEGRO, (p["bx"] + 6, p["by"] + 4, 2, 1)); s.fill(NEGRO, (p["bx"] + 7, p["by"] + 5, 1, 4))
         if con_pertiga:
             mx, my = p["mano"]
             pygame.draw.line(s, (160, 116, 60), (0, my + 3), (31, my - 2), 1)
@@ -202,7 +175,6 @@ def pertiga(poses, con_pertiga=True):
 
 
 def pertiga_salto():
-    """3 frames: clava la pértiga, pasa por arriba y cae."""
     def d(s, pose, i):
         pies = (47, 36, 47)[i]
         p = persona(s, "normal", ATLETA, CORRER[2 * i], 17 if i < 2 else 12, pies)
@@ -217,7 +189,6 @@ def pertiga_salto():
 
 
 def escalera(poses, con_escalera=True):
-    """Vecino de camisa leñadora y gorra; carga una escalera en la espalda."""
     def d(s, pose, i):
         bob = pose.get("bob", 0)
         if con_escalera:
@@ -226,22 +197,19 @@ def escalera(poses, con_escalera=True):
             for y in range(6 - bob, 42 - bob, 5):
                 s.fill((150, 106, 56), (21, y, 8, 1))
         p = persona(s, "normal", ((186, 52, 48), (60, 80, 130)), pose, 15, 47)
-        for x in range(p["bx"] + 1, p["bx"] + p["bw"], 3):        # cuadros de la camisa
+        for x in range(p["bx"] + 1, p["bx"] + p["bw"], 3):
             s.fill((112, 28, 30), (x, p["by"] + 2, 1, p["bh"] - 1))
         gorra(s, p, (66, 66, 72))
     return strip(32, 48, poses, d)
 
 
 def tractor(poses, atacando=False):
-    """Barredora de nieve naranja manejada por un vecino de gorro: pala adelante, orugas abajo."""
     def d(s, pose, i):
         vib = i % 2
         sube = (0, -2, -3, -2, 0, 1, 0, 0)[i] if atacando else 0
-        # escape con humo
         s.fill((80, 80, 86), (40, 12 - vib, 2, 10))
         if i % 4 < 2:
             pygame.draw.ellipse(s, (220, 220, 220), (38, 6 - vib - i % 4, 5, 4))
-        # cabina y vecino
         s.fill((230, 120, 30), (14, 22 - vib, 30, 16))
         s.fill((150, 200, 230), (26, 12 - vib, 14, 10))
         pygame.draw.ellipse(s, PIEL, (27, 10 - vib, 12, 12))
@@ -250,15 +218,13 @@ def tractor(poses, atacando=False):
             s.fill(BOCA, (29, 18 - vib, 4, 2))
         else:
             s.fill(BOCA, (29, 18 - vib, 4, 1))
-        pygame.draw.ellipse(s, (60, 120, 200), (27, 7 - vib, 12, 6))           # gorro azul
+        pygame.draw.ellipse(s, (60, 120, 200), (27, 7 - vib, 12, 6))
         s.fill((255, 255, 255), (32, 5 - vib, 2, 2))
-        # orugas con ruedas que giran
         pygame.draw.rect(s, (40, 40, 44), (10, 38, 36, 9), border_radius=4)
         for k, x in enumerate((15, 23, 31, 39)):
             pygame.draw.circle(s, (130, 130, 136), (x, 42), 3)
             ang = (i + k) % 4
             s.set_at((x + (1, 0, -1, 0)[ang], 42 + (0, 1, 0, -1)[ang]), NEGRO)
-        # pala con borde amarillo
         pts = [(1, 26 + sube), (11, 30 + sube), (11, 44), (2, 46)]
         pygame.draw.polygon(s, (110, 110, 120), pts)
         pygame.draw.line(s, (250, 210, 50), (2, 46), (1, 26 + sube), 1)
@@ -267,29 +233,27 @@ def tractor(poses, atacando=False):
 
 
 def bungee(poses):
-    """Vecino en mono turquesa con arnés y antiparras en la frente."""
     def d(s, pose, i):
         p = persona(s, "normal", ((60, 170, 170), (60, 170, 170)), pose, 17, 47)
         hx, hy, r, bx, by = p["hx"], p["hy"], p["r"], p["bx"], p["by"]
-        pygame.draw.line(s, NEGRO, (bx, by + 2), (bx + p["bw"] - 1, by + p["bh"] - 2), 1)   # arnés
+        pygame.draw.line(s, NEGRO, (bx, by + 2), (bx + p["bw"] - 1, by + p["bh"] - 2), 1)
         pygame.draw.line(s, NEGRO, (bx + p["bw"] - 1, by + 2), (bx, by + p["bh"] - 2), 1)
-        s.fill((90, 90, 96), (hx - r + 1, hy - r + 2, 2 * r - 1, 3))                   # antiparras
+        s.fill((90, 90, 96), (hx - r + 1, hy - r + 2, 2 * r - 1, 3))
         s.fill((120, 200, 250), (hx - r + 2, hy - r + 2, 3, 2)); s.fill((120, 200, 250), (hx - r + 7, hy - r + 2, 3, 2))
     return strip(32, 48, poses, d)
 
 
 def bailarin(poses, baile=False):
-    """Vecino en jogging violeta con gorra para atrás y un parlante al hombro."""
     def d(s, pose, i):
         p = persona(s, "normal", ((130, 70, 170), (130, 70, 170)), pose, 16, 47, arriba=baile and i % 2 == 0)
         hx, hy, r = p["hx"], p["hy"], p["r"]
-        s.fill(BLANCO, (p["bx"] + 2, p["by"] + 2, 1, p["bh"] - 2))                   # raya del jogging
+        s.fill(BLANCO, (p["bx"] + 2, p["by"] + 2, 1, p["bh"] - 2))
         gorra(s, p, (200, 40, 40), visera=False)
-        s.fill((150, 30, 30), (hx + r - 2, hy - r + 3, 5, 2))                          # visera atrás
-        if baile:                                                                      # parlante en el piso
+        s.fill((150, 30, 30), (hx + r - 2, hy - r + 3, 5, 2))
+        if baile:
             s.fill((70, 70, 76), (0, 39, 11, 7))
             pygame.draw.circle(s, (150, 150, 160), (3, 42), 2); pygame.draw.circle(s, (150, 150, 160), (8, 42), 2)
-        else:                                                                          # parlante al hombro
+        else:
             bx, by = p["bx"] + p["bw"] - 4, p["by"] - 6
             s.fill((70, 70, 76), (bx, by, 11, 7))
             pygame.draw.circle(s, (150, 150, 160), (bx + 3, by + 3), 2)
@@ -300,12 +264,11 @@ def bailarin(poses, baile=False):
 
 
 def excavador(poses, con_pico=True):
-    """Obrero de chaleco naranja y casco amarillo con linterna; lleva un pico (el Imán se lo saca)."""
     def d(s, pose, i):
         p = persona(s, "normal", ((236, 130, 40), (90, 90, 96)), pose, 17, 47)
-        s.fill((250, 230, 90), (p["bx"] + 2, p["by"] + 5, p["bw"] - 4, 1))           # banda reflectiva
+        s.fill((250, 230, 90), (p["bx"] + 2, p["by"] + 5, p["bw"] - 4, 1))
         casco_obra(s, p)
-        if con_pico:                                              # el pico apoyado en el hombro
+        if con_pico:
             bx, by = p["bx"], p["by"]
             pygame.draw.line(s, (150, 106, 56), (bx + 2, by + 6), (bx + 12, by - 8), 1)
             s.fill((170, 170, 180), (bx + 7, by - 11, 10, 2))
@@ -314,10 +277,9 @@ def excavador(poses, con_pico=True):
 
 
 def gigante(poses, con_mini=True, golpe=False):
-    """Grandote de musculosa sucia con un cartel de PARE arrancado de la vereda; lleva al mini en la espalda."""
     def d(s, pose, i):
         cx = 26
-        if con_mini:                                                  # el mini asoma por el hombro
+        if con_mini:
             pygame.draw.ellipse(s, PIEL, (35, 10, 11, 10))
             pygame.draw.ellipse(s, (70, 150, 70), (35, 8, 11, 6)); s.fill(BLANCO, (39, 6, 2, 2))
             s.fill(BLANCO, (36, 13, 3, 3)); s.set_at((36, 14), NEGRO)
@@ -325,9 +287,9 @@ def gigante(poses, con_mini=True, golpe=False):
         p = persona(s, "gigante", ((206, 200, 180), (110, 80, 54)), pose, cx, 63)
         hx, hy, r = p["hx"], p["hy"], p["r"]
         s.fill((84, 80, 88), (hx - 3, hy - r - 1, 6, 2))
-        s.fill(oscuro((206, 200, 180), 60), (p["bx"] + 8, p["by"] + 10, 5, 4))          # mancha
+        s.fill(oscuro((206, 200, 180), 60), (p["bx"] + 8, p["by"] + 10, 5, 4))
         mx, my = p["mano"]
-        if golpe:                                                     # 0-3 lo levanta, 4-5 golpea, 6-7 vuelve
+        if golpe:
             fase = (0, 1, 2, 3, 4, 4, 2, 1)[i]
             if fase <= 3:
                 tip = (mx - 2 + fase, my - 10 - fase * 4)
@@ -335,7 +297,7 @@ def gigante(poses, con_mini=True, golpe=False):
                 tip = (1, 58)
         else:
             tip = (mx + 2, my - 22 + pose.get("bob", 0))
-        tip = (max(6, tip[0]), max(6, min(58, tip[1])))              # que el cartel no se corte en el borde
+        tip = (max(6, tip[0]), max(6, min(58, tip[1])))
         pygame.draw.line(s, (150, 150, 160), (mx + 1, my + 1), tip, 2)
         pygame.draw.circle(s, (200, 30, 30), tip, 5)
         s.fill(BLANCO, (tip[0] - 3, tip[1], 7, 1))
@@ -345,7 +307,6 @@ def gigante(poses, con_mini=True, golpe=False):
 
 
 def mini(poses):
-    """Nene zombie de campera naranja y gorro verde con pompón."""
     def d(s, pose, i):
         p = persona(s, "mini", ((236, 140, 50), (70, 70, 110)), pose, 12, 31)
         gorro_pompon(s, p, (70, 150, 70), BLANCO)

@@ -4,16 +4,14 @@ import display
 from settings import COLORS
 from ui.fonts import draw_text
 
-APRETADO = 0.1          # segundos que se ve hundido el tablón antes de hacer la acción
-DESTELLO = 0.35         # segundos que tarda el brillo en cruzar el tablón al pasar el mouse
-_pendientes = []        # [clave, segundos, acción]: tablones apretados esperando para actuar
-_astillas = []          # [x, y, vx, vy, edad, color, tamaño]
+APRETADO = 0.1
+DESTELLO = 0.35
+_pendientes = []
+_astillas = []
 
 
 def apretar(rect, esc, accion, clave):
-    """Hunde el tablón un momento, hace saltar astillas y recién después ejecuta la acción."""
     _pendientes.append([clave, APRETADO, accion])
-    # Saltan desde las esquinas de abajo hacia afuera, para que se vean contra el fondo
     for i in range(3):
         lado = (-1, 1, random.choice((-1, 1)))[i]
         x = rect.left + esc * 3 if lado < 0 else rect.right - esc * 3
@@ -30,7 +28,6 @@ def ocupado():
 
 
 def actualizar(dt):
-    """Lo llama el bucle principal en cada cuadro (en tiempo real, no se acelera)."""
     for p in list(_pendientes):
         p[1] -= dt
         if p[1] <= 0:
@@ -45,13 +42,11 @@ def actualizar(dt):
 
 
 def dibujar_efectos(surface):
-    """Astillas encima de todo (cuadraditos del tamaño de un píxel del tablón)."""
     for x, y, _, _, _, color, t in _astillas:
-        surface.fill(color, (int(x) // t * t, int(y) // t * t, t * 2, t))     # astilla de 2x1 píxeles
+        surface.fill(color, (int(x) // t * t, int(y) // t * t, t * 2, t))
 
 
 class Button:
-    """Botón rectangular simple con hover, callback y estado deshabilitado."""
 
     def __init__(self, text, center, on_click, size=(220, 56), font_size=34):
         self.text = text
@@ -84,14 +79,11 @@ class Button:
 
 
 def ancho_tablon(texto, w, texto_esc=1):
-    """Ancho mínimo para que los clavos de las esquinas no tapen las letras."""
     from ui.pixel_font import text_width
     return max(w, text_width(texto, texto_esc) + 20) if texto else w
 
 
 def tablon(texto, w, h, esc=3, texto_esc=1, hover=False, estado=None, destello=None):
-    """El tablón de madera (ui/intro_art.build_cartel) agrandado x`esc` sin suavizado.
-    estado: normal / hover / apretado / bloqueado. destello: 0..1 mientras cruza el brillo."""
     from ui.intro_art import build_cartel, con_destello, _cache
     w = ancho_tablon(texto, w, texto_esc)
     estado = estado or ("hover" if hover else "normal")
@@ -106,7 +98,6 @@ def tablon(texto, w, h, esc=3, texto_esc=1, hover=False, estado=None, destello=N
 
 
 class Destello:
-    """Recuerda cuándo empezó el mouse a estar encima, para que el brillo cruce una sola vez."""
 
     def __init__(self):
         self.desde = None
@@ -123,7 +114,6 @@ class Destello:
 
 
 class CartelButton:
-    """Botón con el tablón de madera del menú. size: tamaño en píxeles de dibujo (se agranda x`esc`)."""
 
     def __init__(self, text, center, on_click, size=(100, 16), esc=3, texto_esc=1):
         self.text = text
@@ -133,7 +123,7 @@ class CartelButton:
         self.rect = pygame.Rect(0, 0, self.size[0] * esc, self.size[1] * esc)
         self.rect.center = center
         self.on_click = on_click
-        self.enabled = True          # False: bloqueado (gris con tablas cruzadas, no responde)
+        self.enabled = True
         self.destello = Destello()
 
     def handle_event(self, event):

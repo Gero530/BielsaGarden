@@ -1,27 +1,9 @@
-"""
-Arma los sprites del Murciélago (el de South Park que pelea con Randy en el partido de béisbol)
-a partir de los dos dibujos originales de assets/zombies/murcielago_fuente/:
-  perfil_y_frente.png  -> 2 celdas de 52x50: [0] de perfil mirando a la izquierda, [1] de frente
-  frente_idle.png      -> 2 celdas de 52x50: de frente (respira)
-
-Uso:  python3 tools/generar_murcielago.py            (desde la carpeta del juego)
-      python3 tools/generar_murcielago.py <carpeta_fuente> <carpeta_salida>
-
-Genera en assets/zombies/ (frames de 44x40, se ven x3; los pies quedan abajo del frame):
-  murcielago_correr.png      4 frames  saltitos de carrera (Terrance y Philip, pero más ágil)
-  murcielago_atacar.png      6 frames  se lanza adelante a morder (también sin lucha libre)
-  murcielago_salto.png       5 frames  se agacha, despega, vuela de panza como en la lucha libre, cae en picada
-  murcielago_panzazo.png     5 frames  panzazo contra el piso (polvo), se apoya, se levanta, se para
-  murcielago_caminar.png     4 frames  caminata lenta de perfil (después del salto)
-  murcielago_idle.png        2 frames  de frente, 30x32 (catálogo y pantalla de equipo)
-Cada tira se puede retocar en LibreSprite sin tocar el código (mismo tamaño y cantidad de frames).
-"""
 import os
 import sys
 from PIL import Image
 
-FW, FH = 44, 40            # tamaño de frame
-CX = 22                    # columna del centro del cuerpo
+FW, FH = 44, 40
+CX = 22
 SKIN, BLK, PUR = (255, 222, 184, 255), (0, 0, 0, 255), (113, 35, 144, 255)
 POLVO = (235, 235, 235, 255)
 POLVO2 = (190, 190, 190, 255)
@@ -51,29 +33,26 @@ def tira(frames):
     return out
 
 
-# ---------------------------------------------------------------- piezas del dibujo original
 def cargar_piezas(src):
     pf = Image.open(os.path.join(src, "perfil_y_frente.png")).convert("RGBA")
     perfil = pf.crop((0, 0, 52, 50))
-    perfil = perfil.crop(perfil.getbbox())                       # 19x31
-    cabeza = perfil.crop((0, 0, perfil.width, 15))               # con la oreja y la máscara
-    cuerpo = perfil.crop((0, 15, perfil.width, perfil.height))   # panza, calzón y alas
+    perfil = perfil.crop(perfil.getbbox())
+    cabeza = perfil.crop((0, 0, perfil.width, 15))
+    cuerpo = perfil.crop((0, 15, perfil.width, perfil.height))
     idle = Image.open(os.path.join(src, "frente_idle.png")).convert("RGBA")
     return perfil, cabeza, cuerpo, idle
 
 
 def figura(cabeza, cuerpo, aplastar=0, estirar=0, cab_dx=0, cab_dy=0):
-    """Perfil armado: cuerpo (se le sacan o duplican filas de la panza) + cabeza encima.
-    Devuelve la imagen y la columna del borde izquierdo del cuerpo."""
     filas = [cuerpo.crop((0, y, cuerpo.width, y + 1)) for y in range(cuerpo.height)]
     for _ in range(aplastar):
-        del filas[4]                                  # filas de la raya de la panza: se pueden sacar sin romper nada
+        del filas[4]
     for _ in range(estirar):
         filas.insert(4, filas[4])
     c = vacio(cuerpo.width, len(filas))
     for y, f in enumerate(filas):
         c.paste(f, (0, y))
-    m = 4                                             # margen para correr la cabeza
+    m = 4
     out = vacio(cuerpo.width + 2 * m, cabeza.height + c.height + 4)
     top = 2
     pegar(out, c, m, top + cabeza.height + max(0, cab_dy))
@@ -82,8 +61,6 @@ def figura(cabeza, cuerpo, aplastar=0, estirar=0, cab_dx=0, cab_dy=0):
 
 
 def inclinar_h(img, k):
-    """Inclina de costado: cada fila se corre k*(distancia al piso) píxeles a la izquierda (k<0: a la derecha).
-    Devuelve la imagen y cuánto se corrió la fila de abajo."""
     h = img.height
     tope = max(abs(round(k * (h - 1))), 0)
     out = vacio(img.width + tope, h)
@@ -94,8 +71,6 @@ def inclinar_h(img, k):
 
 
 def inclinar_v(img, k):
-    """Inclina para abajo/arriba: cada columna se baja k*(distancia a la derecha) píxeles
-    (k>0: la izquierda queda más abajo; k<0: más arriba)."""
     w = img.width
     tope = abs(round(k * (w - 1)))
     out = vacio(w, img.height + tope)
@@ -106,13 +81,11 @@ def inclinar_v(img, k):
 
 
 def en_frame(fig, x_centro, y_pie):
-    """Pone la figura con su centro horizontal en x_centro y sus pies (borde de abajo) en y_pie."""
     f = vacio()
     pegar(f, fig, x_centro - fig.width // 2, y_pie - fig.height + 1)
     return f
 
 
-# ---------------------------------------------------------------- poses
 def parado(cabeza, cuerpo, aplastar=0, estirar=0, cab_dx=0, cab_dy=0, inclinacion=0.0, alto=0, dx=0):
     fig, _ = figura(cabeza, cuerpo, aplastar, estirar, cab_dx, cab_dy)
     if inclinacion:
@@ -136,11 +109,10 @@ def brazo(largo):
 
 
 def acostado(perfil, largo_brazo=14, brazos=True):
-    """El perfil girado 90°: de panza, con la cabeza adelante (a la izquierda) y los brazos estirados."""
-    rot = perfil.rotate(90, expand=True)              # 31x19: la cabeza queda a la izquierda, la panza abajo
+    rot = perfil.rotate(90, expand=True)
     out = vacio(rot.width + largo_brazo - 6, rot.height)
     if brazos:
-        pegar(out, brazo(largo_brazo), 0, 11)         # sale de abajo de la cabeza
+        pegar(out, brazo(largo_brazo), 0, 11)
     pegar(out, rot, largo_brazo - 6, 0)
     return out
 
@@ -153,13 +125,12 @@ def polvo(frame, fuerte=True):
     return frame
 
 
-# ---------------------------------------------------------------- tiras
 def correr(cabeza, cuerpo):
     return [
-        parado(cabeza, cuerpo, aplastar=2, cab_dx=-1),                               # toca el piso: se agacha
-        parado(cabeza, cuerpo, estirar=1, cab_dx=-1, inclinacion=0.06, alto=4),      # empuja y sube
-        parado(cabeza, cuerpo, estirar=1, cab_dx=-2, inclinacion=0.08, alto=8),      # arriba de todo
-        parado(cabeza, cuerpo, cab_dx=-1, inclinacion=0.04, alto=4),                 # baja
+        parado(cabeza, cuerpo, aplastar=2, cab_dx=-1),
+        parado(cabeza, cuerpo, estirar=1, cab_dx=-1, inclinacion=0.06, alto=4),
+        parado(cabeza, cuerpo, estirar=1, cab_dx=-2, inclinacion=0.08, alto=8),
+        parado(cabeza, cuerpo, cab_dx=-1, inclinacion=0.04, alto=4),
     ]
 
 
@@ -180,7 +151,6 @@ def atacar(cabeza, cuerpo):
 
 
 def salto(perfil, cabeza, cuerpo):
-    # 0 se agacha | 1 despega estirado | 2 y 3 vuela de panza con los brazos adelante | 4 cae en picada
     f = [parado(cabeza, cuerpo, aplastar=3, cab_dx=-1),
          parado(cabeza, cuerpo, estirar=2, cab_dx=-2, inclinacion=0.14)]
     vuelo = acostado(perfil, 14)
@@ -191,7 +161,6 @@ def salto(perfil, cabeza, cuerpo):
 
 
 def panzazo(perfil):
-    # 0 panzazo (polvo) | 1 queda estirado en el piso | 2 levanta la cabeza | 3 se apoya | 4 se para (agachado)
     plano = acostado(perfil, 14)
     f = [polvo(en_frame(plano, CX + 1, 39)), polvo(en_frame(plano, CX + 1, 39), fuerte=False)]
     f.append(en_frame(inclinar_v(acostado(perfil, 8, brazos=True), -0.22), CX + 1, 39))
@@ -213,7 +182,6 @@ def main(src, dst):
     }
     for nombre, frames in tiras.items():
         tira(frames).save(os.path.join(dst, nombre + ".png"))
-    # idle: de frente, 2 celdas de 52x50 -> 2 frames de 30x32
     fr = [idle.crop((i * 52 + 4, 18, i * 52 + 34, 50)) for i in range(2)]
     tira(fr).save(os.path.join(dst, "murcielago_idle.png"))
 

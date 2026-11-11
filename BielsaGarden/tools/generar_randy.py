@@ -1,16 +1,3 @@
-"""
-Genera los sprites de Randy Marsh (el antiguo zombie bungee) a partir de
-assets/zombies/randy_fuente/randy.png (6 poses: de frente y mirando a la izquierda, en los
-tres atuendos: normal, solo máscara y traje completo de Spider-Man).
-
-Salida en assets/zombies/propios/:
-  randy_frente.png                       3 frames (normal, máscara, Spider-Man): catálogo y equipo
-  randy_{spider,mascara,normal}_caminar.png   4 frames (mirando a la izquierda)
-  randy_{spider,mascara,normal}_atacar.png    6 frames (mirando a la izquierda)
-Todos los frames son de 21x38 px, con los pies pegados abajo.
-
-Uso:  python tools/generar_randy.py
-"""
 import os
 from PIL import Image
 
@@ -19,15 +6,14 @@ FUENTE = os.path.join(RAIZ, "assets", "zombies", "randy_fuente", "randy.png")
 SALIDA = os.path.join(RAIZ, "assets", "zombies", "propios")
 
 FW, FH = 21, 38
-Y0, Y1 = 14, 50   # filas de la fuente que contienen al personaje
-# columnas (x0, x1 inclusivo) de cada pose en la fuente
+Y0, Y1 = 14, 50
 POSES = {
     "frente_normal": (5, 21),   "perfil_normal": (29, 43),
     "frente_mascara": (55, 71), "perfil_mascara": (79, 93),
     "frente_spider": (105, 121), "perfil_spider": (129, 143),
 }
-CAMINAR = [(0, 0), (0, -1), (0, -1), (0, 0)]                      # saltito (dx, dy) en px de dibujo
-ATACAR = [(0, 0), (-1, 0), (-2, 0), (-2, -1), (-1, 0), (0, 0)]    # se tira hacia adelante (izquierda)
+CAMINAR = [(0, 0), (0, -1), (0, -1), (0, 0)]
+ATACAR = [(0, 0), (-1, 0), (-2, 0), (-2, -1), (-1, 0), (0, 0)]
 
 
 def recortar(hoja, nombre):

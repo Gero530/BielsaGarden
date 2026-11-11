@@ -1,20 +1,12 @@
-"""
-Bucle principal y gestor de escenas.
-
-Cada pantalla (menú, partida, resultado, opciones) es una Scene con tres métodos:
-handle_event, update(dt) y draw(surface). Game solo delega en la escena actual.
-
-Las escenas siempre dibujan sobre self.screen (1000x600). display.present()
-se encarga de escalarla a la resolución/pantalla completa elegida.
-"""
 import pygame
 import display
 import cuentas
+import ajustes
 import logros
 from ui import button, audio, aviso_logro
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
 
-CORTINA = 0.3          # segundos que tarda la cortina de cartulina en cruzar la pantalla
+CORTINA = 0.3
 
 
 class Game:
@@ -24,30 +16,28 @@ class Game:
         pygame.display.set_caption(TITLE)
         display.load_config()
         audio.cargar()
+        ajustes.cargar()
         display.apply()
         self.screen = pygame.Surface((SCREEN_W, SCREEN_H)).convert()
         self.clock = pygame.time.Clock()
         self.running = True
         self.scene = None
 
-        self.cortina = None               # transición entre pantallas en curso
-        self.intro_done = False     # la intro del menú se ve una sola vez por ejecución
-        # Ids de niveles ganados de la cuenta activa (cuentas.py los guarda en cuentas.json)
+        self.cortina = None
+        self.intro_done = False
         self.progreso = set()
-        cuentas.cargar_en(self)               # se entra con la última cuenta activa (si hay)
+        cuentas.cargar_en(self)
 
-        # Import aquí para evitar imports circulares (las escenas importan Game)
         from scenes.loading import LoadingScene
         self.change_scene(LoadingScene(self))
 
     def change_scene(self, new_scene):
-        logros.guardar()                    # el progreso de los logros se guarda al cambiar de pantalla
-        if self.scene is not None:          # la primera escena no tiene transición
+        logros.guardar()
+        if self.scene is not None:
             self.cortina = [self.screen.copy(), 0.0]
         self.scene = new_scene
 
     def dibujar_cortina(self, dt):
-        """Cortina de cartulina que cruza la pantalla: adelante se ve la pantalla vieja y atrás la nueva."""
         if not self.cortina:
             return
         from ui.intro_art import build_cortina, CORTINA_ESC
@@ -63,7 +53,6 @@ class Game:
         self.cortina = None if u >= 1.0 else [vieja, t]
 
     def apply_display(self):
-        """Aplica la configuración de pantalla actual (la llama el menú de opciones)."""
         display.apply()
         display.save_config()
 
@@ -72,27 +61,26 @@ class Game:
 
     def run(self):
         while self.running:
-            # dt en segundos, limitado para que un lag no "teletransporte" zombies
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.quit()
                 elif event.type in (pygame.WINDOWFOCUSLOST, pygame.WINDOWMINIMIZED):
-                    audio.set_foco(False)        # silencia si está marcado "en segundo plano"
+                    audio.set_foco(False)
                 elif event.type == pygame.WINDOWFOCUSGAINED:
                     audio.set_foco(True)
                 else:
                     self.scene.handle_event(display.convert_event(event))
 
             self.scene.update(dt)
-            button.actualizar(dt)           # tablones apretados y astillas (tiempo real)
+            button.actualizar(dt)
             self.scene.draw(self.screen)
             self.dibujar_cortina(dt)
             button.dibujar_efectos(self.screen)
             aviso_logro.dibujar(self.screen, dt)
             display.present(self.screen)
 
-        cuentas.guardar_desde(self)           # al cerrar el juego se guarda el progreso de la cuenta
+        cuentas.guardar_desde(self)
         logros.guardar()
         pygame.quit()

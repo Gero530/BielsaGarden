@@ -1,21 +1,3 @@
-"""
-Cuentas de jugador. Cada cuenta tiene su nombre, su progreso (niveles ganados y velocidad) y
-sus logros (incluye los zombies descubiertos del catálogo). Todo va en cuentas.json, al lado
-de main.py. La configuración de pantalla y sonido es de la compu, no de la cuenta (config.json).
-
-    {"activa": "2", "siguiente": 3,
-     "cuentas": {"1": {"nombre": "Juan", "creada": "07/11/2026", "progreso": ["tutorial"],
-                       "velocidad": 1, "logros": {...}}}}
-
-Al abrir el juego se entra con la última cuenta activa. Si no hay ninguna, se pide un nombre
-(scenes/nombre.py). Las cuentas se cambian, crean, renombran y borran en scenes/cuentas.py.
-
-El progreso se guarda solo (guardar_desde): al ganar un nivel, al volver al menú, al cambiar de
-cuenta y al cerrar el juego. Los logros se guardan con logros.guardar().
-
-Migración: la primera cuenta que se crea hereda lo de la versión anterior (logros.json y la
-partida de partidas.json con más niveles ganados), si esos archivos existen.
-"""
 import json
 import os
 import time
@@ -54,14 +36,12 @@ def _cargar():
 
 
 def recargar():
-    """Olvida lo que está en memoria y vuelve a leer cuentas.json (lo usan las pruebas)."""
     global _estado
     _estado = None
     _cargar()
 
 
 def guardar():
-    """Escribe cuentas.json (archivo temporal + reemplazo: si se corta a la mitad no se rompe)."""
     estado = _cargar()
     tmp = RUTA + ".tmp"
     try:
@@ -74,11 +54,7 @@ def guardar():
         return False
 
 
-# ----------------------------------------------------------------------
-# Consultas
-# ----------------------------------------------------------------------
 def lista():
-    """[(id, datos)] en el orden en que se crearon."""
     cuentas = _cargar()["cuentas"]
     return sorted(cuentas.items(), key=lambda kv: int(kv[0]) if kv[0].isdigit() else 0)
 
@@ -92,7 +68,6 @@ def id_activa():
 
 
 def activa():
-    """Datos de la cuenta activa, o None si no hay ninguna."""
     estado = _cargar()
     return estado["cuentas"].get(estado["activa"])
 
@@ -103,7 +78,6 @@ def nombre_activa():
 
 
 def logros_activa():
-    """El dict de logros de la cuenta activa (se crea si falta), o None si no hay cuenta."""
     datos = activa()
     if datos is None:
         return None
@@ -111,7 +85,6 @@ def logros_activa():
 
 
 def validar_nombre(nombre, excepto=None):
-    """Mensaje de error, o None si el nombre sirve (no vacío, no muy largo, no repetido)."""
     nombre = nombre.strip()
     if not nombre:
         return "Escribí un nombre"
@@ -123,11 +96,7 @@ def validar_nombre(nombre, excepto=None):
     return None
 
 
-# ----------------------------------------------------------------------
-# Cambios
-# ----------------------------------------------------------------------
 def crear(nombre):
-    """Crea la cuenta, la deja activa y la guarda. Devuelve su id."""
     estado = _cargar()
     primera_vez = not os.path.exists(RUTA) and not estado["cuentas"]
     cid = str(estado["siguiente"])
@@ -156,7 +125,6 @@ def activar(cid):
 
 
 def borrar(cid):
-    """Borra la cuenta. Si era la activa, pasa a la primera que quede (o a ninguna)."""
     estado = _cargar()
     estado["cuentas"].pop(cid, None)
     if estado["activa"] == cid or estado["activa"] not in estado["cuentas"]:
@@ -165,11 +133,7 @@ def borrar(cid):
     guardar()
 
 
-# ----------------------------------------------------------------------
-# Progreso <-> Game
-# ----------------------------------------------------------------------
 def cargar_en(game):
-    """Pone en el juego el progreso de la cuenta activa (o vacío si no hay cuenta)."""
     datos = activa() or {}
     game.progreso = set(datos.get("progreso", []))
     if datos.get("velocidad") in (1, 2, 3):
@@ -177,7 +141,6 @@ def cargar_en(game):
 
 
 def guardar_desde(game):
-    """Guarda en la cuenta activa el progreso del juego. No hace nada si no hay cuenta."""
     datos = activa()
     if datos is None:
         return False
@@ -187,7 +150,6 @@ def guardar_desde(game):
 
 
 def _migrar(cuenta):
-    """La primera cuenta hereda los logros y la mejor partida de la versión anterior."""
     try:
         with open(os.path.join(CARPETA, "logros.json"), encoding="utf-8") as f:
             viejos = json.load(f)

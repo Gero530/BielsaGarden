@@ -1,39 +1,13 @@
-"""
-Oleadas: lee las del nivel, arma el cronograma de la partida (distinto cada vez) y va
-soltando zombies según el tiempo.
-
-Formato de cada oleada (ver levels/level_*.py):
-    {"t": 120, "zombies": {"normal": 3, "cono": (1, 2)}, "bandera": True}
-  - t: segundo en que empieza.
-  - zombies: cuántos de cada tipo. Un número fijo, o (mínimo, máximo) para que varíe en cada
-    partida. Salen MEZCLADOS (orden al azar) y cada uno por una fila al azar (repartidos: no
-    repite la fila del anterior y prefiere las filas por las que vinieron menos en esa oleada).
-    También vale una lista ["normal", ("cono", 2)] (orden fijo; ("tipo", fila) fija la fila):
-    la usa el tutorial, que necesita que el primer zombie venga siempre por el medio.
-  - duracion: segundos en los que se reparten los zombies de la oleada (por defecto, según
-    cuántos son: 1,5 s por zombie, 0,8 s en hordas).
-  - bandera: True -> horda grande: cartel "¡Se viene una horda!" y banderita en la barra.
-  - final: True -> oleada final: cartel "¡Oleada final!".
-
-"azar" del nivel (0 a 1, por defecto 0): cuánto cambia cada partida. Con más azar:
-  - los tiempos entre zombies son más irregulares y la oleada arranca unos segundos antes o después,
-  - algunos llegan en ráfaga (casi juntos, por filas distintas),
-  - en las oleadas comunes puede colarse un zombie "sorpresa" de los que ya aparecen en el nivel.
-
-"avisos" del nivel: lista de (segundo, texto) o (segundo, texto, sonido) para carteles extra.
-  El sonido es un nombre de ui/sonidos.py o un par ("primero", "segundo") que suenan seguidos.
-"""
 import random
 from settings import GRID_ROWS
 
-AVISO_ANTES = 3.0            # segundos antes de la horda en que aparece el cartel
+AVISO_ANTES = 3.0
 TXT_HORDA = "¡Se viene una horda!"
 TXT_FINAL = "¡Oleada final!"
-NO_SORPRESA = {"gigante", "garrison", "mini"}     # demasiado fuertes para colarse de sorpresa
+NO_SORPRESA = {"gigante", "garrison", "mini"}
 
 
 def tipos_de_oleada(oleada):
-    """Los tipos de zombie de una oleada (sin repetir, en el orden en que están escritos)."""
     z = oleada["zombies"]
     if isinstance(z, dict):
         return list(z)
@@ -46,9 +20,8 @@ def tipos_de_oleada(oleada):
 
 
 def armar_oleada(oleada, rnd, azar=0.0, sorpresas=()):
-    """[(tipo, fila o None)] de la oleada, ya mezclada. Los rangos se sortean acá."""
     z = oleada["zombies"]
-    if not isinstance(z, dict):                       # lista: orden fijo (tutorial)
+    if not isinstance(z, dict):
         return [(item, None) if isinstance(item, str) else (item[0], item[1]) for item in z]
     lista = []
     for tipo, cant in z.items():
@@ -71,15 +44,15 @@ class WaveManager:
             todos += tipos_de_oleada(w)
         sorpresas = sorted({t for t in todos if t not in NO_SORPRESA})
 
-        self.pending = []            # (segundo, tipo, fila o None, n.º de oleada)
+        self.pending = []
         notices = list(level.get("avisos", []))
-        self.flags = []              # segundos de las hordas con bandera (y la final)
-        self.final_t = None          # segundo en que arranca la oleada final (None: no tiene)
+        self.flags = []
+        self.final_t = None
         for n_oleada, w in enumerate(level["oleadas"]):
             horda = w.get("bandera") or w.get("final")
             zombies = armar_oleada(w, rnd, azar, sorpresas)
             t0 = w["t"]
-            if not horda and azar and n_oleada:            # las comunes arrancan un poco corridas
+            if not horda and azar and n_oleada:
                 t0 = max(1.0, t0 + rnd.uniform(-2.5, 2.5) * azar)
             for t, (kind, row) in zip(self._tiempos(w, len(zombies), rnd, azar, horda), zombies):
                 self.pending.append((t0 + t, kind, row, n_oleada))
@@ -97,11 +70,10 @@ class WaveManager:
         self.spawned = 0
         self.elapsed = 0.0
         self.last_row = None
-        self.filas_oleada = {}       # n.º de oleada -> [cuántos vinieron por cada fila]
+        self.filas_oleada = {}
 
     @staticmethod
     def _tiempos(oleada, n, rnd, azar, horda):
-        """Segundos (desde que arranca la oleada) en que sale cada zombie."""
         if n == 0:
             return []
         base = oleada.get("cada", 0.8 if horda else 1.5)
@@ -111,7 +83,7 @@ class WaveManager:
         for i in range(n):
             tiempos.append(t)
             if azar and rnd.random() < 0.35 * azar:
-                t += rnd.uniform(0.05, 0.3)                  # ráfaga: el siguiente sale casi junto
+                t += rnd.uniform(0.05, 0.3)
             else:
                 t += base * rnd.uniform(1 - 0.6 * azar, 1 + 0.6 * azar)
         return tiempos
@@ -119,14 +91,12 @@ class WaveManager:
     def _pick_row(self, row, n_oleada):
         if row is not None:
             return row
-        # Fila al azar, sin repetir la anterior y prefiriendo las menos usadas en esta oleada
         usadas = self.filas_oleada.setdefault(n_oleada, [0] * GRID_ROWS)
         opciones = [r for r in range(GRID_ROWS) if r != self.last_row]
         pesos = [1.0 / (1 + usadas[r]) ** 2 for r in opciones]
         return self.rnd.choices(opciones, weights=pesos)[0]
 
     def update(self, dt):
-        """Avanza el tiempo. Devuelve (zombies_a_crear, avisos_nuevos)."""
         self.elapsed += dt
         to_spawn = []
         while self.pending and self.pending[0][0] <= self.elapsed:
@@ -140,13 +110,11 @@ class WaveManager:
         notices = []
         while self.notices and self.notices[0][0] <= self.elapsed:
             aviso = self.notices.pop(0)
-            # (texto, sonido): el sonido es opcional (3er dato del aviso en el nivel)
             notices.append((aviso[1], aviso[2] if len(aviso) > 2 else None))
         return to_spawn, notices
 
     @property
     def en_final(self):
-        """True desde que arrancó la oleada final."""
         return self.final_t is not None and self.elapsed >= self.final_t
 
     @property
@@ -159,5 +127,4 @@ class WaveManager:
 
     @property
     def flag_marks(self):
-        """Posición (0..1) de cada bandera en la barra de progreso."""
         return [min(1.0, t / self.end_t) for t in self.flags]

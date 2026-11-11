@@ -1,18 +1,3 @@
-"""
-Menú principal con la intro estilo South Park en pixel art.
-
-Al arrancar:  la cabeza de Stan se acerca, caen las calles/cuerpos/cabezas de Cartman,
-Kyle, Stan y Kenny en la parada del bus, todo sincronizado con la canción. Cuando
-aterriza la cabeza de Cartman aparecen los botones (JUGAR / CATÁLOGO / OPCIONES / SALIR) y la
-canción sigue sonando de fondo, con el bus pasando y los chicos cabeceando al ritmo.
-Además, dos tablones chicos: LOGROS (abajo a la izquierda) y el nombre del jugador (arriba a la
-derecha), que abre la pantalla de cuentas (cambiar, crear, editar o borrar).
-
-Al volver al menú se guarda solo el progreso en la cuenta activa (cuentas.guardar_desde).
-
-Se puede saltear la intro con un clic, Enter, Espacio o Esc. Cuando se vuelve al menú
-(desde Opciones o desde una partida) no se repite la intro: queda el menú directo.
-"""
 import pygame
 import display
 import cuentas
@@ -26,15 +11,14 @@ from settings import MUSICA_DURACION as DURACION
 
 BTN_X = 805
 BTN_Y = [192, 270, 348, 426]
-BTN_W, BTN_H = 114, 24            # tamaño interno (se agranda xBTN_ESC en pantalla)
+BTN_W, BTN_H = 114, 24
 BTN_ESC = 3
-CHICO_W, CHICO_H = BTN_W // 2, 14    # LOGROS y el del jugador: la mitad de ancho (14 de alto para que el texto respire)
-T_BOTON = 0.16                    # retraso entre un botón y el siguiente al aparecer
-EMPIEZA_SIN_INTRO = 3.4           # segundo de la canción desde el que suena si se vuelve al menú
+CHICO_W, CHICO_H = BTN_W // 2, 14
+T_BOTON = 0.16
+EMPIEZA_SIN_INTRO = 3.4
 
 
 def draw_menu_background(surface):
-    """Fondo de franjas de césped (lo usa la pantalla de opciones)."""
     surface.fill(COLORS["cesped_2"])
     for i in range(0, SCREEN_W, 80):
         if (i // 80) % 2 == 0:
@@ -49,20 +33,19 @@ class MenuScene(Scene):
         self.canvas = pygame.Surface((A.W, A.H))
         self.escalado = pygame.Surface((A.W * A.ESCALA, A.H * A.ESCALA))
         self.intro = not getattr(game, "intro_done", False)
-        self.shift = 0.0                      # cuánto se adelantó la intro al saltearla
+        self.shift = 0.0
         self.sel = 0
         self._img = {}
-        cuentas.guardar_desde(game)           # al volver al menú se guarda el progreso de la cuenta
+        cuentas.guardar_desde(game)
         self.botones = [("JUGAR", self.jugar), ("CATÁLOGO", self.catalogo),
                         ("OPCIONES", self.opciones), ("SALIR", self.salir)]
-        self.n_grandes = len(self.botones)    # los de la columna; después van los dos chicos
+        self.n_grandes = len(self.botones)
         self.i_logros = len(self.botones)
         self.botones.append(("LOGROS", self.logros))
         self.i_cuenta = len(self.botones)
         self.botones.append((cuentas.nombre_activa().upper() or "JUGADOR", self.abrir_cuentas))
         self._destellos = [button.Destello() for _ in self.botones]
 
-        # Música: arranca con la intro; si se vuelve al menú sigue sonando o arranca sin la intro
         if self.intro:
             self.mt = 0.0
             musica.reproducir(0.0)
@@ -71,14 +54,10 @@ class MenuScene(Scene):
         else:
             self.mt = EMPIEZA_SIN_INTRO
             musica.reproducir(EMPIEZA_SIN_INTRO)
-        self.vt = self.mt if self.intro else 99.0   # tiempo de la coreografía
+        self.vt = self.mt if self.intro else 99.0
         self.t_menu = A.T_MENU if self.intro else -10.0
 
-    # ------------------------------------------------------------------
-    # Acciones
-    # ------------------------------------------------------------------
     def jugar(self):
-        # La música sigue en el mapa; se apaga recién al entrar a un nivel
         from scenes.mapa import MapaScene
         self.game.change_scene(MapaScene(self.game))
 
@@ -105,7 +84,6 @@ class MenuScene(Scene):
         self.botones[i][1]()
 
     def _apretar(self, i):
-        """El tablón se hunde, saltan astillas y a los 0,1 s se hace la acción."""
         if not button.ocupado():
             button.apretar(self._rect_boton(i), BTN_ESC, lambda: self._activar(i), ("menu", i))
 
@@ -113,13 +91,9 @@ class MenuScene(Scene):
         return self.vt >= self.t_menu + 0.1
 
     def _saltar(self):
-        """Salta al final de la intro (los chicos ya armados y los botones a la vista)."""
         if self.vt < A.T_MENU + 0.5:
             self.shift = A.T_MENU + 0.5 - self.mt
 
-    # ------------------------------------------------------------------
-    # Eventos
-    # ------------------------------------------------------------------
     def _chico(self, i):
         return i >= self.n_grandes
 
@@ -163,11 +137,7 @@ class MenuScene(Scene):
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._apretar(self.sel)
 
-    # ------------------------------------------------------------------
-    # Tiempo
-    # ------------------------------------------------------------------
     def update(self, dt):
-        # Reloj de la canción: avanza con dt y se va corrigiendo con el reloj del audio
         self.mt += dt
         ref = musica.tiempo()
         if ref is not None:
@@ -182,26 +152,20 @@ class MenuScene(Scene):
             self.game.intro_done = True
 
 
-    # ------------------------------------------------------------------
-    # Dibujo
-    # ------------------------------------------------------------------
     def _beat(self):
-        """1 durante el primer tramo de cada pulso de la canción (los chicos bajan la cabeza al ritmo)."""
         fase = ((self.mt % DURACION) - A.PULSO_FASE) / A.PULSO % 1.0
         return 1 if fase < 0.28 else 0
 
     def _extras(self, world):
         t = min(self.vt, 99.0)
-        if t >= 1.3:                                         # cartel de la parada del bus
+        if t >= 1.3:
             world.blit(A.build_cartel_parada(), (46, A.FEET - 66))
-        if t >= 1.3:                                         # nubes
+        if t >= 1.3:
             for ancho, y, v, x0 in ((66, 12, 5.0, 40), (46, 34, 8.0, 210), (38, 20, 11.0, 330)):
                 x = (x0 + v * self.mt) % (A.W + 2 * ancho) - ancho
                 world.blit(A.build_nube(ancho), (int(x), y))
 
     def _bus(self, world):
-        """El bus escolar cruza la calle POR DELANTE de los chicos (y del cartel de la parada) cada
-        ~16 s; la primera vez, a los 4,8 s. Se dibuja después de los chicos para taparlos."""
         tb = self.mt - (A.T_MENU + 1.5)
         if tb >= 0:
             x = A.W + 6 - (tb % 16.0) * 62
@@ -226,11 +190,9 @@ class MenuScene(Scene):
         pygame.transform.scale(self.canvas, self.escalado.get_size(), self.escalado)
         surface.blit(self.escalado, (0, 0))
 
-        # Título y botones (se deslizan hacia adentro cuando termina de caer la cabeza de Cartman)
         tm = vt - self.t_menu
         if tm > 0:
             u = A.ease_out(tm / 0.5)
-            # Cartel colgante: las sogas llegan hasta arriba de la pantalla
             titulo = A.colgante_escalado("BIELSA GARDEN", 172, 34, 2, self.mt, cuerda=18)
             surface.blit(titulo, titulo.get_rect(midbottom=(385, 104 + 51 - int(220 * (1 - u)))))
             for i, (txt, _) in enumerate(self.botones):
@@ -246,18 +208,12 @@ class MenuScene(Scene):
                                    self._destellos[i].fase(estado == "hover"))
                 r = img.get_rect(center=(BTN_X + int(520 * (1 - ui)) - (10 if hover else 0), self._y(i)))
                 surface.blit(img, r)
-                if hover:                                          # flechita al lado del tablón elegido
+                if hover:
                     draw_pixel_text(surface, ">", (255, 220, 60), 4, center=(r.x - 22, r.centery), outline=(60, 40, 10))
-            if tm > 1.2:
-                draw_pixel_text(surface, "FLECHAS: ELEGIR    ENTER: ACEPTAR", (255, 255, 255), 2,
-                                center=(SCREEN_W // 2, 24), outline=(30, 40, 70))
         elif self.intro and vt < A.T_MENU + 2:
             pass
-        if self.intro and vt < A.T_CARTMAN - 0.2:
-            draw_pixel_text(surface, "CLIC PARA SALTEAR", (200, 200, 200), 2, center=(SCREEN_W - 120, SCREEN_H - 20))
 
     def _dibujar_chico(self, surface, i, txt, estado, hover, ui):
-        """LOGROS entra desde la izquierda; el del jugador, desde la derecha (con "JUGADOR" abajo)."""
         r0 = self._rect_boton(i)
         img = self._cartel(txt, r0.w // BTN_ESC, CHICO_H, 1, estado, self._destellos[i].fase(estado == "hover"))
         if i == self.i_logros:
@@ -268,7 +224,5 @@ class MenuScene(Scene):
         else:
             r = r0.move(int(400 * (1 - ui)) - (6 if hover else 0), 0)
             surface.blit(img, r)
-            draw_pixel_text(surface, "JUGADOR", (255, 255, 255), 1, outline=(30, 40, 70),
-                            midtop=(r.centerx, r.bottom + 2))
             if hover:
                 draw_pixel_text(surface, ">", (255, 220, 60), 3, center=(r.x - 16, r.centery), outline=(60, 40, 10))

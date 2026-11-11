@@ -1,11 +1,3 @@
-"""
-Pantalla para escribir el nombre de una cuenta (cuentas.py). Tres usos:
-
-  "primera": no hay ninguna cuenta (primera vez, o se borró la última). Bielsa pide el
-             nombre; no se puede volver atrás. Al aceptar se crea la cuenta y se va al menú.
-  "nueva":   desde Cuentas > NUEVA CUENTA. Al aceptar se crea, queda activa y se va al menú.
-  "editar":  desde Cuentas > EDITAR. Al aceptar se renombra y se vuelve a Cuentas.
-"""
 import pygame
 import cuentas
 import logros
@@ -58,7 +50,7 @@ class NombreScene(Scene):
             from scenes.cuentas import CuentasScene
             self.game.change_scene(CuentasScene(self.game))
             return
-        cuentas.guardar_desde(self.game)          # lo de la cuenta anterior (si había) queda guardado
+        cuentas.guardar_desde(self.game)
         logros.guardar()
         cuentas.crear(nombre)
         logros.recargar()
@@ -78,7 +70,7 @@ class NombreScene(Scene):
             return
         if self.campo.handle_event(event):
             if event.type == pygame.TEXTINPUT or event.key == pygame.K_BACKSPACE:
-                self.error = None                 # al escribir se borra el error anterior
+                self.error = None
             return
         for b in self.botones:
             if b.handle_event(event):
@@ -94,7 +86,6 @@ class NombreScene(Scene):
         surface.blit(titulo, titulo.get_rect(midtop=(SCREEN_W // 2, 0)))
         surface.blit(self.panel_img, self.panel)
 
-        # Bielsa pregunta (su cara y la frase al lado)
         x = self.panel.x + 30
         surface.blit(icono(BIELSA, 96), (x, self.panel.y + 28))
         lineas = wrap(self.pregunta, 2, self.panel.w - 190)
@@ -112,5 +103,3 @@ class NombreScene(Scene):
                             center=(SCREEN_W // 2, self.campo.rect.bottom + 22))
         for b in self.botones:
             b.draw(surface)
-        ayuda = "ENTER: ACEPTAR" if self.modo == "primera" else "ENTER: ACEPTAR    ESC: VOLVER"
-        draw_pixel_text(surface, ayuda, (255, 255, 255), 2, outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 14))

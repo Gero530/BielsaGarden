@@ -1,11 +1,3 @@
-"""
-Pantalla de logros (menú principal > LOGROS). Lista con scroll: cada logro es un tablón con el
-ícono del personaje a la izquierda, el nombre al lado y abajo la descripción con el progreso.
-Los pendientes se ven en gris; los completados, a color y con la fecha.
-
-Los logros no dependen de la partida (ver logros.py). Rueda del mouse, flechas o arrastrar la
-barra de la derecha para recorrer la lista.
-"""
 import pygame
 import display
 import logros
@@ -20,10 +12,10 @@ from ui.widgets import _hueco
 OSCURO = (30, 18, 6)
 CREMA = (255, 240, 200)
 DORADO = (255, 214, 64)
-VISTA = pygame.Rect(56, 100, 866, 412)       # zona visible de la lista
-TARJETA_W = 828                              # ancho de cada tablón (múltiplo de 3)
+VISTA = pygame.Rect(56, 100, 866, 412)
+TARJETA_W = 828
 ICONO = 84
-TEXTO_X = 24 + ICONO + 22                    # dónde empieza el texto dentro del tablón
+TEXTO_X = 24 + ICONO + 22
 TEXTO_W = TARJETA_W - TEXTO_X - 24
 SEPARACION = 12
 PASO_RUEDA = 60
@@ -43,7 +35,6 @@ def _texto_progreso(logro):
 
 
 def _tarjeta(logro):
-    """El tablón de un logro ya dibujado (a color o en gris)."""
     hecho = logros.completado(logro["id"])
     nombre = wrap(logro["nombre"].upper(), 2, TEXTO_W)
     desc = wrap(logro["descripcion"], 2, TEXTO_W)
@@ -52,11 +43,9 @@ def _tarjeta(logro):
     alto += -alto % 3
     s = pygame.Surface((TARJETA_W, alto), pygame.SRCALPHA)
     s.blit(tablon("", TARJETA_W // 3, alto // 3, 3), (0, 0))
-    # Ícono en un hueco tallado
     caja = pygame.Rect(18, (alto - ICONO - 12) // 2, ICONO + 12, ICONO + 12)
     s.blit(_hueco(caja.w, caja.h), caja)
     s.blit(icono(logro, ICONO), (caja.x + 6, caja.y + 6))
-    # Nombre y descripción
     y = 18
     for linea in nombre:
         draw_pixel_text(s, linea, DORADO, 2, outline=OSCURO, topleft=(TEXTO_X, y))
@@ -66,7 +55,6 @@ def _tarjeta(logro):
         draw_pixel_text(s, linea, CREMA, 2, outline=OSCURO, topleft=(TEXTO_X, y))
         y += 20
     y += 6
-    # Progreso: barra tallada + texto (o la fecha si ya está)
     actual, meta = logros.progreso(logro)
     if hecho:
         draw_pixel_text(s, f"¡COMPLETADO!  {logros.fecha(logro['id']) or ''}", (140, 240, 110), 2,
@@ -83,7 +71,7 @@ def _tarjeta(logro):
                             midleft=(barra.right + 14, barra.centery))
         else:
             draw_pixel_text(s, _texto_progreso(logro), CREMA, 2, outline=OSCURO, topleft=(TEXTO_X, y))
-    if not hecho:                                       # pendiente: todo en gris
+    if not hecho:
         s = pygame.transform.grayscale(s)
         s.fill((170, 170, 170, 255), special_flags=pygame.BLEND_RGBA_MULT)
     return s
@@ -93,7 +81,6 @@ class LogrosScene(Scene):
     def __init__(self, game):
         super().__init__(game)
         self.t = 0.0
-        # Toda la lista se dibuja una vez en una superficie alta; después solo se corre
         tarjetas = [_tarjeta(l) for l in logros.LOGROS]
         alto = sum(t.get_height() for t in tarjetas) + SEPARACION * (len(tarjetas) - 1)
         self.lista = pygame.Surface((TARJETA_W, alto), pygame.SRCALPHA)
@@ -104,7 +91,7 @@ class LogrosScene(Scene):
         self.scroll = 0.0
         self.max_scroll = max(0, alto - VISTA.h)
         self.barra = pygame.Rect(VISTA.right - 24, VISTA.y, 24, VISTA.h)
-        self.arrastrando = None           # desde dónde se agarró la perilla (y del mouse, scroll)
+        self.arrastrando = None
         self.btn_volver = CartelButton("VOLVER", (SCREEN_W // 2, 552), self.volver, size=(70, 15))
 
     def volver(self):
@@ -141,7 +128,7 @@ class LogrosScene(Scene):
         if self.max_scroll:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.barra.collidepoint(event.pos):
                 perilla, recorrido = self._perilla_rect()
-                if not perilla.collidepoint(event.pos):          # clic en la barra: salta ahí
+                if not perilla.collidepoint(event.pos):
                     u = (event.pos[1] - self.barra.y - perilla.h / 2) / max(1, recorrido)
                     self.scroll = max(0.0, min(1.0, u)) * self.max_scroll
                 self.arrastrando = (event.pos[1], self.scroll)
@@ -176,5 +163,3 @@ class LogrosScene(Scene):
             surface.blit(tablon("", perilla.w // 3, perilla.h // 3, 3, estado=estado), perilla)
 
         self.btn_volver.draw(surface)
-        draw_pixel_text(surface, "RUEDA / FLECHAS: MOVER    ESC: VOLVER", (255, 255, 255), 2,
-                        outline=(30, 40, 70), center=(SCREEN_W // 2, SCREEN_H - 12))

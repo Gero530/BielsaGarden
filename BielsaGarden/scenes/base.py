@@ -1,5 +1,4 @@
 class Scene:
-    """Clase base de todas las pantallas."""
 
     def __init__(self, game):
         self.game = game

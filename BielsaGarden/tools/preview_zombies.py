@@ -1,11 +1,3 @@
-"""
-Hoja de vista previa de los zombies generados (cada tira agrandada x4, una abajo de la otra,
-con el nombre al lado).
-
-    python tools/preview_zombies.py [carpeta_con_las_tiras] [salida.png]
-
-Por defecto lee y escribe en assets/sprites/zombies_generados/.
-"""
 import os
 import sys
 

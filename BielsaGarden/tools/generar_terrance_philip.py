@@ -1,15 +1,9 @@
-"""
-Arma los sprites de Terrance y Philip a partir de los dibujos originales (tiras de 17x31).
-Uso: python3 generar_terrance_philip.py <carpeta_con_los_4_png> <carpeta_de_salida>
-Genera: terrance_idle/caminar, philip_idle/caminar, philip_sin_idle/caminar (Philip sin cono,
-con la cabeza de Terrance pero el pelo rubio) y cono_caido.png (el cono suelto, para cuando se le cae).
-"""
 import sys, os
 from PIL import Image
 
 FW, FH = 17, 31
 ROJO, TEAL = (208, 2, 27), (29, 189, 169)
-PELO_NEGRO, RUBIO = (33, 31, 29), (225, 219, 10)   # el pelo de Terrance (negro) y el de Philip (rubio)
+PELO_NEGRO, RUBIO = (33, 31, 29), (225, 219, 10)
 CONO = {(212, 85, 0), (242, 155, 24), (255, 102, 0), (255, 255, 255), (0, 0, 0)}
 
 
@@ -31,7 +25,6 @@ def fila_camisa(f, color):
 
 
 def pelo_rubio(f):
-    """Pinta de rubio el pelo (los píxeles negros de las 2 filas de arriba de la cabeza)."""
     y0 = next(y for y in range(FH) if any(f.getpixel((x, y))[3] for x in range(FW)))
     for y in (y0, y0 + 1):
         for x in range(FW):
@@ -41,8 +34,6 @@ def pelo_rubio(f):
 
 
 def philip_sin_cono(ph, te):
-    """Philip sin cono: se queda con su cuerpo y se le pone la cabeza de Terrance, con pelo rubio
-    (en la serie Philip es rubio y Terrance tiene el pelo negro)."""
     y_p, y_t = fila_camisa(ph, TEAL), fila_camisa(te, ROJO)
     out = ph.copy()
     for y in range(y_p):
@@ -68,7 +59,6 @@ def main(src, dst):
         im.save(os.path.join(dst, n + ".png"))
     for nombre, ph, te in (("philip_sin_idle", ph_i, te_i), ("philip_sin_caminar", ph_c, te_c)):
         tira([philip_sin_cono(p, t) for p, t in zip(frames(ph), frames(te))]).save(os.path.join(dst, nombre + ".png"))
-    # cono suelto: los píxeles del cono (arriba de la cara) del primer frame de Philip
     f = frames(ph_i)[0]
     y_p = fila_camisa(f, TEAL)
     cono = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))

@@ -1,19 +1,3 @@
-"""
-Genera las tiras de sprites del Sr. Garrison en su rueda (el zombie que reemplaza al tractor) a
-partir del dibujo de Santi: assets/zombies/propios/garrison_fuente.png (46x45).
-
-No se redibuja nada: el Sr. Garrison y el manubrio salen tal cual del dibujo. Lo que se anima es:
-  - la RUEDA: el dibujo original es un aro gris liso; acá se le pinta un dibujo de la cubierta
-    (tacos claros y oscuros) que gira alrededor del centro, así se nota que rueda hacia adelante;
-  - el SR. GARRISON: rebota un píxel dentro de la rueda al avanzar y se tira hacia adelante al atacar.
-
-    python tools/generar_garrison.py
-
-Salida (assets/zombies/propios/), mirando a la IZQUIERDA como los demás zombies:
-    zombie_garrison_caminar.png    8 frames 56x48  (la cubierta da 60 grados: el ciclo cierra justo)
-    zombie_garrison_atacar.png     6 frames 56x48  (la rueda patina en el lugar y empuja)
-La rueda queda centrada en el frame (x=28) y apoyada en la última fila.
-"""
 import math
 import os
 from collections import deque
@@ -21,28 +5,25 @@ from PIL import Image
 
 AQUI = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "zombies", "propios")
 FW, FH = 56, 48
-OX, OY = 5, 4                        # dónde cae el dibujo de 46x45 dentro del frame (rueda centrada, apoyada abajo)
-CENTRO = (23.0, 22.5)                # centro de la rueda en el dibujo original (en bordes de píxel)
-GOMA = (89, 86, 82)                  # gris de la cubierta en el dibujo original
-TACO_A = (66, 64, 62)                # taco oscuro
-TACO_B = (146, 143, 133)             # taco claro
-PERIODO = 60.0                       # grados que dura un par taco oscuro + taco claro (6 pares en la vuelta)
+OX, OY = 5, 4
+CENTRO = (23.0, 22.5)
+GOMA = (89, 86, 82)
+TACO_A = (66, 64, 62)
+TACO_B = (146, 143, 133)
+PERIODO = 60.0
 POLVO = [(176, 146, 104, 255), (140, 112, 78, 255)]
 
-CAMINAR_PASO = 7.5                   # grados que gira la cubierta por frame: 8 frames = 60 = un período exacto
-CAMINAR_REBOTE = (0, 0, 1, 1, 0, 0, 1, 1)   # px que sube el Sr. Garrison dentro de la rueda
-ATACAR_PASO = 10.0                   # 6 frames * 10 = 60: gira más rápido, patinando
-ATACAR_ADELANTE = (0, 1, 2, 3, 2, 1)         # px que se tira toda la rueda hacia adelante (izquierda)
-ATACAR_GARRISON = (0, 0, 1, 2, 1, 0)         # px extra que se inclina el Sr. Garrison sobre el manubrio
+CAMINAR_PASO = 7.5
+CAMINAR_REBOTE = (0, 0, 1, 1, 0, 0, 1, 1)
+ATACAR_PASO = 10.0
+ATACAR_ADELANTE = (0, 1, 2, 3, 2, 1)
+ATACAR_GARRISON = (0, 0, 1, 2, 1, 0)
 ATACAR_REBOTE = (0, 1, 1, 0, 1, 0)
 
 
 def separar(img):
-    """Devuelve (rueda, garrison): dos listas de (x, y, color). La rueda es la goma gris más el
-    contorno negro que toca el exterior; todo lo demás (Sr. Garrison, brazo, manubrio) es garrison."""
     w, h = img.size
     px = img.load()
-    # exterior = transparente conectado con el borde
     fuera = set()
     cola = deque((x, y) for x in range(w) for y in range(h) if (x in (0, w - 1) or y in (0, h - 1)) and px[x, y][3] == 0)
     fuera.update(cola)
@@ -69,9 +50,7 @@ def separar(img):
 
 
 def tono(x, y, giro):
-    """Color de la cubierta en el píxel (x, y) cuando la rueda giró `giro` grados (la parte de arriba
-    va hacia la izquierda: rueda hacia adelante)."""
-    ang = math.degrees(math.atan2(-(y + 0.5 - CENTRO[1]), x + 0.5 - CENTRO[0]))   # 0 = derecha, antihorario
+    ang = math.degrees(math.atan2(-(y + 0.5 - CENTRO[1]), x + 0.5 - CENTRO[0]))
     return TACO_A if ((ang - giro) % PERIODO) < PERIODO / 2 else TACO_B
 
 
@@ -87,7 +66,6 @@ def frame(rueda, garrison, giro, sube=0, dx_rueda=0, dx_garr=0, polvo=()):
         if c[:3] == GOMA:
             c = tono(x, y, giro) + (255,)
         poner(x + OX + dx_rueda, y + OY, c)
-    # donde el Sr. Garrison se levanta, el piso de la rueda queda a la vista: se rellena con la cubierta
     ocupado = {(x, y) for x, y, _ in rueda}
     for x, y, c in garrison:
         if y >= 36 and sube and (x, y) not in ocupado:
@@ -107,7 +85,6 @@ def tira(frames):
 
 
 def polvo_ataque(i):
-    """Un poco de tierra que levanta la rueda al patinar (adelante-abajo, a la izquierda)."""
     base = {0: [], 1: [(0, 0)], 2: [(0, 0), (-2, -1)], 3: [(0, 0), (-2, -1), (-3, 1)], 4: [(-2, -1), (-3, 0)], 5: [(-3, 1)]}[i]
     return [(1 + dx - ATACAR_ADELANTE[i] // 2 + (k % 2) * 2, 46 + dy, POLVO[k % 2]) for k, (dx, dy) in enumerate(base)]
 

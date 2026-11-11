@@ -1,25 +1,3 @@
-"""
-Genera los frames del Sr. Mackey (reemplaza al zombie gigante) y del Sr. Nelson (reemplaza al
-mini zombie) a partir de los dibujos de assets/zombies/mackey_nelson_fuente/:
-
-  mackey_caminando.png   2 frames de 20x38 (de frente / de perfil mirando a la izquierda)
-  mrmackey_idle.png      2 frames de 20x38 (de frente, respira)
-  srnelson_idle.png      3 frames de 24x27 (2 de frente + 1 de perfil mirando a la derecha)
-
-Salida en assets/zombies/propios/ (los pies quedan en la última fila de cada frame):
-
-  zombie_mackey_caminar.png        8 frames 36x64  Mackey caminando con Nelson sobre la cabeza
-  zombie_mackey_sin_caminar.png    8 frames 36x64  Mackey caminando solo
-  zombie_mackey_golpe.png          6 frames 36x64  pisotón con Nelson arriba (aplasta la planta)
-  zombie_mackey_golpe_sin.png      6 frames 36x64  pisotón solo
-  zombie_mackey_lanzar.png         6 frames 36x64  agarra a Nelson y lo revolea (lo suelta en el frame 3)
-  zombie_nelson_caminar.png        8 frames 20x28  Nelson caminando (mirando a la izquierda)
-  zombie_nelson_atacar.png         6 frames 20x28  Nelson mordiendo
-
-Los dos miran a la izquierda. Los frames se ven x2 en el juego.
-
-Uso:  python tools/generar_mackey_nelson.py
-"""
 import math
 import os
 from PIL import Image
@@ -36,12 +14,12 @@ AZUL_PANT = (63, 63, 116, 255)
 ZAPATO = (34, 32, 52, 255)
 POLVO = (200, 190, 170, 255)
 
-MW, MH = 36, 64          # frame de Mackey
-CX = 18                  # columna del cuerpo de Mackey dentro del frame
-PIES = MH - 1            # fila de los pies
-M_OX = CX - 10           # el dibujo de Mackey tiene el cuerpo en la columna 10
-M_OY = PIES - 37         # y los pies en la fila 37
-NW, NH = 20, 28          # frame de Nelson (mini)
+MW, MH = 36, 64
+CX = 18
+PIES = MH - 1
+M_OX = CX - 10
+M_OY = PIES - 37
+NW, NH = 20, 28
 
 
 def cargar(nombre):
@@ -57,7 +35,6 @@ def tira(frames):
 
 
 def pegar(dst, src, ox, oy):
-    """Pega src sobre dst respetando la transparencia (todo o nada: es pixel art)."""
     ps, pd = src.load(), dst.load()
     for y in range(src.height):
         for x in range(src.width):
@@ -80,8 +57,6 @@ def linea(p0, p1):
 
 
 def miembro(img, puntos, color, punta=None, punta_n=0):
-    """Dibuja un brazo o una pierna: línea de 1 px con contorno negro. Las últimas punta_n celdas
-    van de color `punta` (mano o zapato)."""
     celdas = []
     for a, b in zip(puntos, puntos[1:]):
         for c in linea(a, b):
@@ -96,9 +71,7 @@ def miembro(img, puntos, color, punta=None, punta_n=0):
         punto(img, x, y, c)
 
 
-# ------------------------------------------------------------------ Mackey
 def mackey_cuerpo():
-    """Cabeza y torso de perfil (filas 0-25 del dibujo), sin la mano que traía dibujada."""
     src = cargar("mackey_caminando.png").crop((20, 0, 40, 38))
     cuerpo = src.crop((0, 0, 20, 26))
     for x in range(20):
@@ -108,18 +81,14 @@ def mackey_cuerpo():
 
 
 def nelson_perfil():
-    """Nelson de perfil mirando a la IZQUIERDA (el dibujo original mira a la derecha)."""
     p = cargar("srnelson_idle.png").crop((48, 0, 72, 27))
     return p.transpose(Image.FLIP_LEFT_RIGHT)
 
 
 def pierna(img, hx, hy, dx_pie, largo, color=AZUL_PANT, rodilla=None):
-    """Pierna desde la cadera (hx, hy) hasta el piso; el pie se corre dx_pie. Con `rodilla`
-    (x, y) la pierna se dobla (pisotón)."""
     pie = (hx + dx_pie, hy + largo)
     pts = [(hx, hy), rodilla, pie] if rodilla else [(hx, hy), pie]
     miembro(img, pts, color)
-    # zapato: apunta hacia adelante (izquierda)
     for dx in (-2, -1, 0):
         punto(img, pie[0] + dx, pie[1], ZAPATO)
     punto(img, pie[0] - 3, pie[1], NEGRO)
@@ -130,19 +99,12 @@ def pierna(img, hx, hy, dx_pie, largo, color=AZUL_PANT, rodilla=None):
 
 def mackey_frame(dy=0, dx=0, pierna_f=0, pierna_t=0, brazos=None, nelson=None, extra=None,
                  rodilla_f=None, alzar_f=0):
-    """Un frame completo de Mackey (36x64).
-    dy/dx: corrimiento del torso y la cabeza (rebote / inclinación). pierna_f/pierna_t: cuánto
-    se adelanta el pie de adelante y se atrasa el de atrás. brazos: lista de brazos; cada uno es una
-    polilínea [hombro, (codo), mano] en coordenadas del dibujo de Mackey. nelson: (img, ox, oy) en coordenadas del frame.
-    rodilla_f: rodilla de la pierna de adelante (la dobla). alzar_f: sube el pie de adelante."""
     f = Image.new("RGBA", (MW, MH), (0, 0, 0, 0))
     cadera = (10 + M_OX, 26 + M_OY + dy)
     largo = PIES - 1 - cadera[1]
-    # pierna de atrás, pierna de adelante
     pierna(f, cadera[0] + 0, cadera[1], -pierna_t, largo)
     pierna(f, cadera[0] + 0, cadera[1], pierna_f, largo - alzar_f, rodilla=rodilla_f)
     pegar(f, mackey_cuerpo(), M_OX + dx, M_OY + dy)
-    # Nelson (encima o en las manos)
     if nelson is not None:
         pegar(f, *nelson)
     for brazo in (brazos or []):
@@ -154,30 +116,27 @@ def mackey_frame(dy=0, dx=0, pierna_f=0, pierna_t=0, brazos=None, nelson=None, e
 
 
 def nelson_sobre_cabeza(dy=0, dx=0, subir=0):
-    """Nelson parado sobre la cabeza de Mackey (sigue su rebote)."""
     n = nelson_perfil()
-    ox = CX - 11 + 1 + dx          # el cuerpo de Nelson (de perfil) queda sobre el centro de la cabeza
-    oy = M_OY + 2 + dy - 23 - subir  # su fila 23 (pies) apoya sobre la fila 1-2 de la cabeza
+    ox = CX - 11 + 1 + dx
+    oy = M_OY + 2 + dy - 23 - subir
     return (n, ox, oy)
 
 
-SW = [0, 2, 3, 2, 0, -2, -3, -2]       # cuánto se abren las piernas en cada frame de caminar
-REBOTE = [-1, 0, 0, 0, -1, 0, 0, 0]    # sube un pixel cuando las piernas se cruzan
+SW = [0, 2, 3, 2, 0, -2, -3, -2]
+REBOTE = [-1, 0, 0, 0, -1, 0, 0, 0]
 
 
 def mackey_caminar(con_nelson):
     frames = []
     for i in range(8):
         s, dy = SW[i], REBOTE[i]
-        brazo = [(10, 21), (10 - round(s * 0.7), 25)]     # el brazo se balancea al revés que las piernas
+        brazo = [(10, 21), (10 - round(s * 0.7), 25)]
         nel = nelson_sobre_cabeza(dy) if con_nelson else None
         frames.append(mackey_frame(dy=dy, pierna_f=-s, pierna_t=-s, brazos=[brazo], nelson=nel))
     return tira(frames)
 
 
 def mackey_golpe(con_nelson):
-    """Pisotón: levanta la pierna de adelante, se inclina atrás y la clava (la planta muere al final)."""
-    # (dy, dx, alzar, rodilla, dx_pie)
     poses = [
         (0, 0, 0, None, 0),
         (0, 0, 2, (7 + M_OX, 29 + M_OY), -2),
@@ -204,44 +163,32 @@ def mackey_golpe(con_nelson):
 
 
 def mackey_lanzar():
-    """Agarra a Nelson de la cabeza y lo revolea hacia adelante (izquierda). Frames 0-2 con
-    Nelson, 3-5 sin él (el código lo suelta al empezar el frame 3)."""
     n = nelson_perfil()
-    base_y = M_OY + 2 - 23          # oy de Nelson parado sobre la cabeza
+    base_y = M_OY + 2 - 23
 
-    def nel(cx, subir):             # Nelson con su centro en la columna cx del dibujo de Mackey
+    def nel(cx, subir):
         return (n, cx + M_OX - 11, base_y - subir)
 
     frames = [
-        # 0: sube el brazo por delante de la cara y lo agarra de los pies
         mackey_frame(brazos=[[(9, 19), (0, 17), (1, 3)]], nelson=nel(7, 1)),
-        # 1: lo levanta
         mackey_frame(dy=-1, brazos=[[(9, 19), (0, 16), (1, -3)]], nelson=nel(5, 7)),
-        # 2: toma envión: se echa para atrás y lo lleva detrás de la cabeza
         mackey_frame(dy=-1, dx=1, pierna_t=2, pierna_f=-1,
                      brazos=[[(10, 19), (21, 16), (20, 0)]], nelson=nel(19, 4)),
-        # 3: lo suelta: el brazo sale disparado hacia adelante
         mackey_frame(dx=-1, pierna_f=-3, pierna_t=2, brazos=[[(10, 19), (3, 14), (-5, 9)]]),
-        # 4: sigue el movimiento
         mackey_frame(dy=1, dx=-1, pierna_f=-3, pierna_t=2, brazos=[[(10, 19), (2, 19), (-6, 20)]]),
-        # 5: se endereza
         mackey_frame(pierna_f=-1, pierna_t=1, brazos=[[(10, 21), (9, 25)]]),
     ]
     return tira(frames)
 
 
-# ------------------------------------------------------------------ Nelson
 def nelson_frame(dy=0, dx_pie=0, empuje=0, dx_cab=0):
-    """Nelson de perfil mirando a la izquierda en un frame de 20x28. empuje: lo que se tira
-    hacia adelante al morder (la cabeza más que el torso)."""
-    p = nelson_perfil()                      # 24x27; filas 4-23 tienen dibujo, pies en la 23
+    p = nelson_perfil()
     f = Image.new("RGBA", (NW, NH), (0, 0, 0, 0))
-    ox, oy = 10 - 12, NH - 1 - 23            # el centro de su cuerpo (columna 12) va a la columna 10
-    cab = p.crop((0, 0, 24, 18))             # cabeza (filas 0-17)
-    tor = p.crop((0, 18, 24, 22))            # torso con la mano (filas 18-21)
+    ox, oy = 10 - 12, NH - 1 - 23
+    cab = p.crop((0, 0, 24, 18))
+    tor = p.crop((0, 18, 24, 22))
     pegar(f, tor, ox - empuje // 2, oy + 18 + dy)
     pegar(f, cab, ox - empuje + dx_cab, oy + dy)
-    # piernas: dos patitas que se abren y se cierran
     hx, hy = 10, oy + 22 + dy
     for lado, c in ((1, -dx_pie), (0, dx_pie)):
         x = hx + c + (0 if lado else 0)
@@ -264,7 +211,6 @@ def nelson_atacar():
     return tira([nelson_frame(dy=0, dx_pie=0, empuje=l) for l in lung])
 
 
-# ------------------------------------------------------------------ main
 def main():
     os.makedirs(SALIDA, exist_ok=True)
     salidas = {

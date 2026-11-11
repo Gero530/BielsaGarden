@@ -1,10 +1,9 @@
-"""Pantalla de carga: "PRESENTANDO..." y el nombre del juego mientras se preparan los gráficos y el audio."""
 import pygame
 from settings import SCREEN_W, SCREEN_H
 from scenes.base import Scene
 from ui.pixel_font import draw_pixel_text, text_width
 
-T_TOTAL = 3.6          # duración mínima de la pantalla (s)
+T_TOTAL = 3.6
 
 
 class LoadingScene(Scene):
@@ -15,7 +14,6 @@ class LoadingScene(Scene):
         self.listo = False
 
     def _precargar(self):
-        """Prepara todo lo pesado ahora, así la intro arranca fluida y sincronizada con la música."""
         from ui import intro_art as A, musica
         A.build_background()
         A.load_kids()
@@ -29,13 +27,12 @@ class LoadingScene(Scene):
         self.cargado = True
 
     def handle_event(self, event):
-        # Se puede saltear con clic o cualquier tecla (una vez que terminó de cargar)
         if self.cargado and event.type in (pygame.MOUSEBUTTONDOWN, pygame.KEYDOWN):
             self.t = max(self.t, T_TOTAL)
 
     def update(self, dt):
         self.t += dt
-        if not self.cargado and self.t > 0.2:        # esperamos un frame para que se vea la pantalla
+        if not self.cargado and self.t > 0.2:
             self._precargar()
         if self.cargado and self.t >= T_TOTAL and not self.listo:
             self.listo = True
@@ -43,14 +40,13 @@ class LoadingScene(Scene):
             if cuentas.hay_cuentas():
                 from scenes.menu import MenuScene
                 self.game.change_scene(MenuScene(self.game))
-            else:                                    # primera vez: Bielsa pide el nombre
+            else:
                 from scenes.nombre import NombreScene
                 self.game.change_scene(NombreScene(self.game, "primera"))
 
     def draw(self, surface):
         surface.fill((0, 0, 0))
         cx = SCREEN_W // 2
-        # 1) PRESENTANDO..., se escribe letra por letra
         texto = "PRESENTANDO"
         n = int(max(0.0, self.t - 0.3) * 11)
         visible = texto[:n]
@@ -60,7 +56,6 @@ class LoadingScene(Scene):
             puntos = "." * (1 + int(self.t * 3) % 3)
             draw_pixel_text(surface, puntos, (230, 230, 230), 4,
                             midleft=(cx + text_width(texto, 4) // 2 + 8, 250))
-        # 2) Nombre del juego y barra de carga
         if self.t > 1.9:
             draw_pixel_text(surface, "BIELSA GARDEN", (255, 214, 64), 8, center=(cx, 360), outline=(120, 70, 10))
             barra = pygame.Rect(0, 0, 420, 18)

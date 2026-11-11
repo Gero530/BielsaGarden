@@ -1,11 +1,3 @@
-"""
-Plantas. Cada tipo hereda de Plant y sobreescribe update() y, si cambia de\nanimación según su estado, sprite_state().
-Para agregar una planta nueva:
-  1. Agregá sus datos en settings.PLANT_DATA
-  2. Creá la clase acá con su `key`
-  3. Registrala en PLANT_CLASSES
-  4. Aparece sola en la pantalla de equipo (y en data/catalogo.py sumale nombre y descripción)
-"""
 import math
 import random
 import pygame
@@ -22,7 +14,7 @@ import logros
 
 class Plant:
     key = None
-    hipnotiza = False      # True: el zombie que la muerde queda hipnotizado (Toallin)
+    hipnotiza = False
 
     def __init__(self, row, col, grid):
         data = PLANT_DATA[self.key]
@@ -34,12 +26,12 @@ class Plant:
         self.rect = grid.cell_rect(row, col)
         self.alive = True
         self.hit_flash = 0.0
-        self.flash_cd = 0.0        # evita que el destello quede fijo mientras la muerden
-        self.t = random.random()   # desfase de animación
+        self.flash_cd = 0.0
+        self.t = random.random()
 
     def take_damage(self, amount):
         self.hp -= amount
-        if self.flash_cd <= 0:          # un destello por "mordisco", no en cada frame
+        if self.flash_cd <= 0:
             self.hit_flash = 0.08
             self.flash_cd = 0.35
         if self.hp <= 0:
@@ -53,14 +45,12 @@ class Plant:
             self.flash_cd -= dt
 
     def sprite_state(self):
-        """(clave_de_sprite, tiempo) a mostrar ahora. Las subclases lo cambian."""
         return self.key, self.t
 
     def draw(self, surface):
         key, t = self.sprite_state()
         if draw_sprite(surface, key, self.rect.center, 1.0, t, flash=self.hit_flash > 0):
             return
-        # Sin sprite: dibujo con formas + destello circular
         draw_plant_icon(surface, self.key, self.rect.center, 1.0, self)
         if self.hit_flash > 0:
             flash = pygame.Surface(self.rect.size, pygame.SRCALPHA)
@@ -74,14 +64,13 @@ class Sunflower(Plant):
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
         self.timer = self.data["primer_sol"]
-        self.estado = "normal"     # normal -> golpe (rayo) -> cantando (hasta que muera el alien)
+        self.estado = "normal"
         self.est_t = 0.0
 
     def sonda(self, delay=0.0):
-        """Le cae el rayo: deja de producir y se pone a cantar."""
         if self.estado == "normal":
             self.estado = "golpe"
-            self.est_t = -delay        # negativo = el rayo todavía no llegó
+            self.est_t = -delay
 
     @property
     def deshabilitado(self):
@@ -101,10 +90,10 @@ class Sunflower(Plant):
             if self.estado == "golpe" and self.est_t >= anim_duration("girasol_sonda"):
                 self.estado = "cantando"
                 self.est_t = 0.0
-            if not world.hay_aliens_activos():     # murió el alien: vuelve a cocinar
+            if not world.hay_aliens_activos():
                 self.estado = "normal"
                 self.timer = CHEF_REACTIVA
-            return                                  # deshabilitado: no produce soles
+            return
         self.timer -= dt
         if self.timer <= 0:
             self.timer = self.data["intervalo_sol"]
@@ -113,23 +102,18 @@ class Sunflower(Plant):
 
 
 class Peashooter(Plant):
-    """
-    Stan. Tira bolas de nieve que hacen daño y ralentizan al zombie (como el
-    lanzaguisantes de hielo). Quieto con stan_idle; cuando aparece un zombie en
-    su fila se queda en pose de tiro (stan_disparo) y lanza cada `cadencia` s.
-    """
     key = "lanzaguisantes"
-    ANIM_ALERTA = "lanzaguisantes_alerta"    # primer frame de stan_disparo: bola en la mano
-    ANIM_DISPARO = "lanzaguisantes_disparo"  # stan_disparo completo
-    FRAME_SALIDA = 3   # frame de la animación en que sale la bola (0 = primero)
-    BOCA = (39, 19)    # de dónde sale la bola respecto al centro de la celda (su mano)
+    ANIM_ALERTA = "lanzaguisantes_alerta"
+    ANIM_DISPARO = "lanzaguisantes_disparo"
+    FRAME_SALIDA = 3
+    BOCA = (39, 19)
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
-        self.timer = 0.6          # pequeño delay antes del primer disparo
-        self.shoot_t = None       # tiempo dentro de la animación de disparo (None = sin tirar)
-        self.pea_pending = False  # la bola todavía no salió en este disparo
-        self.alert = False        # hay un zombie en la fila
+        self.timer = 0.6
+        self.shoot_t = None
+        self.pea_pending = False
+        self.alert = False
 
     def sprite_state(self):
         if self.shoot_t is not None:
@@ -145,7 +129,6 @@ class Peashooter(Plant):
                      self.row, self.data["dano"]))
 
     def has_target(self, world):
-        """Solo dispara si hay un zombie en su fila, delante y dentro de la pantalla."""
         for z in world.zombies:
             if z.targetable and z.row == self.row and self.rect.centerx < z.x < SCREEN_W:
                 return True
@@ -155,7 +138,6 @@ class Peashooter(Plant):
         super().update(dt, world)
         self.alert = self.has_target(world)
 
-        # Animación de disparo en curso
         if self.shoot_t is not None:
             self.shoot_t += dt
             fps = SPRITES[self.ANIM_DISPARO]["fps"]
@@ -169,28 +151,24 @@ class Peashooter(Plant):
         if self.timer <= 0 and self.alert and self.shoot_t is None:
             self.timer = self.data["cadencia"]
             if has_sprite(self.ANIM_DISPARO):
-                self.shoot_t = 0.0  # arranca la animación; la bola sale en FRAME_SALIDA
+                self.shoot_t = 0.0
                 self.pea_pending = True
             else:
-                self.spawn_pea(world)  # sin sprite: dispara al instante
+                self.spawn_pea(world)
 
 
 class WallNut(Plant):
-    """
-    Butters. Muro con mucha vida: quieto muestra butters_idle y, mientras los
-    zombies lo están mordiendo, butters_comido (llorando).
-    """
     key = "nuez"
     ANIM_COMIDO = "nuez_comido"
-    MARGEN_MORDIDA = 0.2    # segundos sin mordiscos para volver a la pose quieta
+    MARGEN_MORDIDA = 0.2
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
-        self.eaten_t = 0.0      # > 0 mientras lo están comiendo
+        self.eaten_t = 0.0
 
     def take_damage(self, amount):
         super().take_damage(amount)
-        self.eaten_t = self.MARGEN_MORDIDA   # los zombies lo dañan en cada frame que muerden
+        self.eaten_t = self.MARGEN_MORDIDA
 
     def update(self, dt, world):
         super().update(dt, world)
@@ -204,24 +182,19 @@ class WallNut(Plant):
 
 
 class Catapult(Plant):
-    """
-    Kyle. Parado de frente mientras no hay enemigos. Cuando aparece un zombie en su
-    fila se da vuelta a la derecha y patea a Ike, que sale volando en arco y cae
-    sobre el zombie. Hace el mismo daño que el guisante.
-    """
     key = "kyle"
-    ANIM_PERFIL = "kyle_perfil"      # de perfil, listo para patear
-    ANIM_PATADA = "kyle_patada"      # gira, patea, sigue la patada y vuelve
-    FRAME_SALIDA = 2                 # frame de la patada en que sale Ike (0 = primero)
-    BOCA = (47, 20)                  # de dónde sale Ike respecto al centro de la celda (el pie)
+    ANIM_PERFIL = "kyle_perfil"
+    ANIM_PATADA = "kyle_patada"
+    FRAME_SALIDA = 2
+    BOCA = (47, 20)
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
         self.grid = grid
         self.timer = 0.6
-        self.shoot_t = None          # tiempo dentro de la patada (None = sin patear)
+        self.shoot_t = None
         self.ike_pending = False
-        self.alert = False           # hay un zombie en la fila: se queda de perfil
+        self.alert = False
 
     def sprite_state(self):
         if self.shoot_t is not None:
@@ -231,7 +204,6 @@ class Catapult(Plant):
         return self.key, self.t
 
     def find_target(self, world):
-        """El zombie enemigo más cercano en su fila (delante y dentro de la pantalla)."""
         best = None
         for z in world.zombies:
             if z.targetable and z.row == self.row and self.rect.centerx < z.x < SCREEN_W:
@@ -241,7 +213,7 @@ class Catapult(Plant):
 
     def kick(self, world):
         target = self.find_target(world)
-        if target is None:           # el zombie murió mientras pateaba
+        if target is None:
             return
         sonidos.reproducir("disparo")
         world.projectiles.append(
@@ -272,27 +244,19 @@ class Catapult(Plant):
 
 
 class Kenny(Plant):
-    """
-    Como la cereza explosiva: al plantarlo se infla y explota enseguida, dañando
-    un área de 3x3 casillas centrada en él. Después aparecen las ratas y se
-    llevan lo que quedó (solo decoración, la casilla queda libre).
-    A los "revive" segundos vuelve a aparecer en la misma casilla (si sigue libre). El Kenny
-    revivido espera quieto hasta que un zombie entra en su área de 3x3 y recién ahí explota.
-    Revive una sola vez: cuando el revivido explota, desaparece para siempre.
-    """
     key = "kenny"
-    FRAME_EXPLOSION = 4          # frame de la animación en que explota (0 = primero)
-    DURACION_EXPLOSION = 0.15    # cuánto se ve el estallido antes de que lleguen las ratas
+    FRAME_EXPLOSION = 4
+    DURACION_EXPLOSION = 0.15
 
     def __init__(self, row, col, grid, revivido=False):
         super().__init__(row, col, grid)
         self.age = 0.0
         self.exploded = False
         self.revivido = revivido
-        self.esperando = revivido    # revivido: espera a que un zombie se acerque
+        self.esperando = revivido
 
     def take_damage(self, amount):
-        pass                     # explota antes de que lo coman
+        pass
 
     def sprite_state(self):
         return self.key, (0.0 if self.esperando else self.age)
@@ -306,14 +270,13 @@ class Kenny(Plant):
             and area.left <= z.x <= area.right
 
     def explode(self, world):
-        """Daña a todos los zombies de las 3 filas y 3 columnas alrededor de Kenny."""
         area = self.area()
         sonidos.reproducir("explosion")
         sonidos.reproducir("kenny")
         muertos = 0
         for z in world.zombies:
             if self.en_area(z, area):
-                z.take_damage(self.data["dano"], frontal=False, fuente="kenny")   # la puerta no la frena
+                z.take_damage(self.data["dano"], frontal=False, fuente="kenny")
                 muertos += not z.alive
         logros.maximo("kenny_simultaneas", muertos)
         world.effects.append(Flash(area.clip(world.grid.rect)))
@@ -334,12 +297,11 @@ class Kenny(Plant):
         if self.exploded and self.age >= t_boom + self.DURACION_EXPLOSION:
             self.alive = False
             world.effects.append(SpriteEffect("kenny_ratas", self.rect.center))
-            if not self.revivido:    # una sola vuelta por planta
+            if not self.revivido:
                 world.effects.append(RevivirKenny(self.row, self.col, self.data["revive"]))
 
 
 class RevivirKenny:
-    """Efecto invisible: cuenta los segundos y, si la casilla sigue libre, vuelve a poner a Kenny."""
 
     def __init__(self, row, col, segundos):
         self.row, self.col = row, col
@@ -358,27 +320,15 @@ class RevivirKenny:
 
 
 class Toallin(Plant):
-    """
-    Como la hipnoseta: se queda fumando. El primer zombie que lo muerde se lo
-    come y queda hipnotizado (ver Zombie.update): se da vuelta y ataca a los
-    otros zombies.
-    """
     key = "toallin"
     hipnotiza = True
 
 
 class Magnet(Plant):
-    """
-    Imán (como el Magnetoseta). Cuando un zombie con un objeto de metal (el balde
-    de la cubeta) entra en su alcance, levanta el imán, se lo arranca y el balde
-    vuela hasta las puntas. Se queda con el balde pegado (que se va deshaciendo)
-    mientras recarga; después vuelve a estar listo. El cono no es de metal.
-    Estados: "listo" -> "atrae" -> (vuela el balde) -> "cargado" -> "listo"
-    """
     key = "iman"
     ANIM_ATRAE = "iman_atrae"
     ANIM_CARGADO = "iman_cargado"
-    PUNTAS = (40, 28)    # dónde queda pegado el balde respecto al centro de la celda
+    PUNTAS = (40, 28)
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
@@ -386,10 +336,9 @@ class Magnet(Plant):
         self.state_t = 0.0
         self.target = None
         self.recharge = 0.0
-        self.carga = "balde"       # qué lleva pegado: "balde", "pooh" o "armadura" (la de Chef)
+        self.carga = "balde"
 
     def find_target(self, world):
-        """El zombie con metal más cercano dentro del alcance (en cualquier fila)."""
         cx, cy = self.rect.center
         best, best_d = None, self.data["alcance"]
         for z in world.zombies:
@@ -402,7 +351,6 @@ class Magnet(Plant):
         return best
 
     def catch_metal(self, objeto="balde"):
-        """Llamado por FlyingMetal cuando el objeto (balde o Pooh) llega a las puntas del imán."""
         self.carga = objeto
         self.state = "cargado"
         self.recharge = self.data["recarga_iman"]
@@ -422,8 +370,8 @@ class Magnet(Plant):
                     sonidos.reproducir("iman")
                     logros.sumar("santi_defensas")
                     world.effects.append(FlyingMetal(start, self, self.target.metal_objeto))
-                    self.target = None          # queda esperando a que llegue el balde
-                else:                           # murió o lo perdió en el medio: vuelve a buscar
+                    self.target = None
+                else:
                     self.state, self.target = "listo", None
         elif self.state == "cargado":
             self.recharge -= dt
@@ -434,7 +382,6 @@ class Magnet(Plant):
         if self.state == "atrae":
             return self.ANIM_ATRAE, self.state_t
         if self.state == "cargado" and self.carga != "pooh":
-            # 3 etapas del balde (entero, mordido, casi deshecho) según cuánto falta
             u = 1 - self.recharge / self.data["recarga_iman"]
             anim = "iman_cargado_vader" if self.carga == "armadura" else self.ANIM_CARGADO
             return anim, float(min(2, int(u * 3)))
@@ -443,7 +390,6 @@ class Magnet(Plant):
     def draw(self, surface):
         super().draw(surface)
         if self.state == "cargado" and self.carga == "pooh":
-            # Pooh pegado en las puntas (el sprite del imán solo trae el balde); se va desvaneciendo
             frames = get_frames("pooh", 1)
             if frames:
                 u = 1 - self.recharge / self.data["recarga_iman"]
@@ -454,14 +400,10 @@ class Magnet(Plant):
 
 
 class Picante(Plant):
-    """
-    Como el Jalapeño pero en CRUZ: al plantarlo se infla y explota, quemando toda su
-    fila y toda su columna. Después desaparece.
-    """
     key = "picante"
     ANIM_FUEGO = "picante_fuego"
     ANIM_EXPLOTA = "picante_explota"
-    FRAME_DANO = 1               # frame de picante_explota (el 16 de la tira) en que quema la cruz
+    FRAME_DANO = 1
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
@@ -469,11 +411,10 @@ class Picante(Plant):
         self.exploto = False
 
     def take_damage(self, amount):
-        pass                     # explota antes de que lo coman
+        pass
 
     @property
     def encendido(self):
-        """Segundos que tarda en encenderse (frames 1 a 14)."""
         return anim_duration(self.key) or 0.6
 
     def sprite_state(self):
@@ -489,12 +430,11 @@ class Picante(Plant):
             if not z.alive or z.hypno or z.airborne:
                 continue
             en_fila = z.row == self.row and g.rect.left - 20 <= z.x <= SCREEN_W
-            en_col = col_rect.left - 20 < z.x < col_rect.right + 20     # el cuerpo toca la columna
+            en_col = col_rect.left - 20 < z.x < col_rect.right + 20
             if en_fila or en_col:
                 z.take_damage(self.data["dano"], frontal=False, fuente="picante")
                 muertos += not z.alive
         logros.maximo("picante_simultaneas", muertos)
-        # En su propia casilla va la explosión del sprite; el fuego, en el resto de la cruz
         cells = [(self.row, c) for c in range(g.cols) if c != self.col] + \
                 [(r, self.col) for r in range(g.rows) if r != self.row]
         if has_sprite(self.ANIM_FUEGO):
@@ -518,17 +458,10 @@ class Picante(Plant):
 
 
 class Aplastadora(Plant):
-    """
-    Como la Calabaza pero reutilizable. Si hay un zombie en la casilla de enfrente (y esa
-    casilla no tiene planta), se agacha, salta y cae encima: mata a TODOS los zombies de esa
-    casilla, sea cual sea. Se queda en la casilla nueva (la vieja queda libre) y entra en
-    enfriamiento; después puede volver a saltar.
-    Estados: listo -> prepara -> salto -> aterriza -> listo (con enfriamiento)
-    """
     key = "aplastadora"
-    ANIM_SALTO = "aplastadora_salto"   # frames: 0 quieto, 1-2 se agacha, 3 salta, 4 en el aire, 5 cae, 6 aplasta, 7 se recupera
+    ANIM_SALTO = "aplastadora_salto"
     ANIM_CANSADA = "aplastadora_cansada"
-    ATERRIZA = 0.5                     # segundos que se ve aplastando y recuperándose (frames 6 y 7)
+    ATERRIZA = 0.5
 
     def __init__(self, row, col, grid):
         super().__init__(row, col, grid)
@@ -537,7 +470,7 @@ class Aplastadora(Plant):
         self.cooldown = 0.5
         self.from_center = self.rect.center
         self.target_col = None
-        self.cansada = False             # en recarga después de un salto
+        self.cansada = False
 
     def sprite_state(self):
         if self.cansada and has_sprite(self.ANIM_CANSADA):
@@ -545,10 +478,10 @@ class Aplastadora(Plant):
         return self.key, self.t
 
     def take_damage(self, amount):
-        if self.state == "listo":       # en el aire no la pueden morder
+        if self.state == "listo":
             super().take_damage(amount)
 
-    ALCANCE_PROPIA = 24     # px a la derecha de su casilla donde se para el zombie que la muerde
+    ALCANCE_PROPIA = 24
 
     def zombie_in(self, world, c, extra=0):
         r = world.grid.cell_rect(self.row, c)
@@ -556,8 +489,6 @@ class Aplastadora(Plant):
                    and z.row == self.row and r.left <= z.x <= r.right + extra for z in world.zombies)
 
     def pick_target(self, world):
-        """Columna a la que salta: la de enfrente si está libre y tiene un zombie. Si no tiene
-        adonde saltar (última columna o planta adelante), aplasta su propia casilla."""
         g = world.grid
         c = self.col + 1
         if c < g.cols and g.is_free(self.row, c):
@@ -576,14 +507,13 @@ class Aplastadora(Plant):
                 self.target_col = self.pick_target(world)
                 if self.target_col is not None:
                     self.state, self.st = "prepara", 0.0
-                    sonidos.reproducir("gero_hmm")          # lo mira al rival y se enoja
+                    sonidos.reproducir("gero_hmm")
         elif self.state == "prepara" and self.st >= self.data["preparacion"]:
             c = self.target_col
-            if c == self.col:                       # salta en el lugar
+            if c == self.col:
                 self.from_center = self.rect.center
                 self.state, self.st = "salto", 0.0
             elif c < g.cols and g.is_free(self.row, c):
-                # Se muda ya en la grilla (así nadie planta ahí mientras vuela); la casilla vieja queda libre
                 self.from_center = self.rect.center
                 g.remove(self.row, self.col)
                 self.col = c
@@ -599,7 +529,7 @@ class Aplastadora(Plant):
                 if z.alive and not z.hypno and not z.underground and not z.airborne \
                         and z.row == self.row and r.left - 10 <= z.x <= r.right + extra:
                     z.kill(fuente="aplastadora")
-            sonidos.reproducir("gero_impacto")              # cae y aplasta
+            sonidos.reproducir("gero_impacto")
             self.state, self.st = "aterriza", 0.0
         elif self.state == "aterriza" and self.st >= self.ATERRIZA:
             self.state = "listo"
@@ -610,15 +540,15 @@ class Aplastadora(Plant):
         if self.state == "listo":
             return super().draw(surface)
         cx, cy = self.rect.center
-        if self.state == "prepara":            # frames 1 a 3 de la tira: quieto y se agacha
+        if self.state == "prepara":
             frame = min(2, int(self.st / self.data["preparacion"] * 3))
-        elif self.state == "salto":            # 4 a 6: salta, en el aire, cae (el código lo lleva de casilla)
+        elif self.state == "salto":
             u = min(1.0, self.st / self.data["salto"])
             frame = 3 + min(2, int(u * 3))
-            if self.from_center != self.rect.center:      # en su propia casilla salta sin moverse
+            if self.from_center != self.rect.center:
                 cx = int(self.from_center[0] + (cx - self.from_center[0]) * u)
                 cy = int(cy - math.sin(math.pi * u) * 90)
-        else:                                  # 7 aplasta (ahí ya hizo el daño), 8 se recupera
+        else:
             frame = 6 if self.st < self.ATERRIZA / 2 else 7
         if not draw_sprite(surface, self.ANIM_SALTO, (cx, cy), 1.0, frame=frame):
             pygame.draw.ellipse(surface, (70, 170, 60), (cx - 30, cy - 20, 60, 50))
@@ -632,12 +562,7 @@ def create_plant(key, row, col, grid):
     return PLANT_CLASSES[key](row, col, grid)
 
 
-# ----------------------------------------------------------------------
-# Dibujo con formas simples (reemplazable por sprites más adelante).
-# Se usa tanto en el tablero como en las cartas del HUD.
-# ----------------------------------------------------------------------
 def draw_plant_icon(surface, key, center, scale=1.0, plant=None):
-    # Si hay sprite en assets/ se usa ese; si no, el dibujo con formas de abajo
     fijo = SPRITES.get(key, {}).get("icono") if plant is None else None
     if draw_sprite(surface, key, center, scale, None if plant is None else plant.t, frame=fijo):
         return
@@ -679,7 +604,6 @@ def draw_plant_icon(surface, key, center, scale=1.0, plant=None):
         pygame.draw.circle(surface, (255, 255, 255), P(10, -8), int(7 * s))
         pygame.draw.circle(surface, (20, 20, 20), P(-7, -7), max(1, int(3 * s)))
         pygame.draw.circle(surface, (20, 20, 20), P(11, -7), max(1, int(3 * s)))
-        # Grietas según el daño recibido
         if frac < 0.66:
             pygame.draw.lines(surface, (70, 40, 15), False, [P(-14, -24), P(-8, -14), P(-14, -4)], 2)
         if frac < 0.33:

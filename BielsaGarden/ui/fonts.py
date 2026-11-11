@@ -1,4 +1,3 @@
-"""Caché de fuentes para no crearlas en cada frame."""
 import pygame
 
 _cache = {}
