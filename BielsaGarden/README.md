@@ -43,13 +43,13 @@ python main.py
 | Normal | 200 | — |
 | Cono | 200 | 370 |
 | Cubeta | 200 | 1100 |
-| Puerta | 200 | 1100 de escudo frontal (Ike y las explosiones la saltean; el Imán se la saca) |
+| Puerta (Mickey con Pooh) | 200 | 1100 de escudo frontal que pone Winnie the Pooh (Ike y las explosiones lo saltean; el Imán se lo lleva). Sin Pooh queda Mickey solo. Sprites: tools/generar_mickey.py |
 | Diario | 200 | 150 de escudo; sin diario se enoja y corre |
-| Pértiga | 340 | — Corre y salta la primera planta |
+| Murciélago (antes Pértiga; clave `pertiga`) | 340 | — Corre a saltitos, salta la primera planta volando de panza (lucha libre), cae al piso, se levanta y camina lento. Sprites: tools/generar_murcielago.py |
 | Escalera | 340 | — Apoya una escalera en la primera planta; la usan todos |
-| Tractor | 1300 | — Lento, muerde fuerte |
+| Sr. Garrison | 1300 | — Lento, muerde fuerte |
 | Bungee | 200 | — Cae del cielo en una casilla al azar (marca roja antes) |
-| Bailarín | 340 | — Invoca hasta 4 zombies a su alrededor |
+| Cangrejo bailarín (rojo) | 340 | — Invoca hasta 4 cangrejos invocados (marrones) a su alrededor |
 | Excavador | 300 | — Va bajo tierra, sale junto a la casa y come hacia la derecha |
 | Gigante | 3000 | — Aplasta plantas de un golpe; con poca vida tira al mini zombie (150) |
 
@@ -66,7 +66,7 @@ Todos los números están en `settings.py` (`PLANT_DATA` y `ZOMBIE_DATA`).
 | 4 | El lago | Pértiga, escalera | 0,5 |
 | 5 | El parque | Bailarín, excavador | 0,65 |
 | 6 | El centro comercial | Bungee, alien | 0,8 |
-| 7 | El bosque | Tractor, gigante | 1 |
+| 7 | El bosque | Sr. Garrison, gigante | 1 |
 
 Las oleadas están en `levels/*.py` (formato explicado en `world/wave_manager.py`). Cada oleada dice **cuántos** zombies de cada tipo vienen (`{"normal": 3, "cono": (1, 2)}`; un par es un rango que se sortea). En cada partida salen **mezclados** y por **filas al azar** (repartidos entre las 5 filas, sin repetir la del anterior). El `"azar"` del nivel hace que las partidas cambien más: tiempos irregulares, ráfagas de zombies casi juntos y, en las oleadas comunes, algún zombie sorpresa de los que ya aparecen en el nivel. Las hordas con bandera y la oleada final tienen cartel. Cada fila tiene un cortacésped de un solo uso: Timmy en su silla de ruedas, que grita "¡TIMMY!" y barre la fila cuando un zombie llega al borde del césped.
 Se gana al eliminar todos los zombies enemigos (los hipnotizados no cuentan); se pierde si uno llega a la casa.
@@ -162,6 +162,10 @@ levels/
 | `proyectiles/ike_idle.png` | Ike de frente (todavía sin usar) | 2 | — |
 | `zombies/zombie_normal_caminar.png` | Zombie caminando (frames de 32×48). Cono y cubeta usan el mismo cuerpo con el accesorio encima | 5 | 6 |
 
+Terrance (zombie normal) y Philip (zombie con cono) tienen sprites propios en `zombies/`
+(`terrance_*`, `philip_*`, `philip_sin_*`; 17×31, se ven x3). Caminan y comen a saltitos con la misma
+tira de 4 frames; la de 2 frames (`*_idle`) es para el catálogo. Los arma `tools/generar_terrance_philip.py`.
+
 Mientras muerde, el zombie usa el primer frame con un cabeceo hacia adelante. Si después dibujás una
 animación de comer, agregala como `zombie_normal_comer` y la conecto.
 
@@ -217,4 +221,4 @@ Botón LOGROS abajo a la izquierda del menú. Son 13 logros y son **de la cuenta
 | `scenes/logros.py` | Pantalla con la lista (rueda, flechas o barra para desplazarse) |
 | `ui/aviso_logro.py` | Íconos (sprites de los personajes) y cartel de logro desbloqueado |
 
-Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todo lo que se juega con la cuenta; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el tractor y el gigante no).
+Cómo se cuenta cada uno: las muertes por personaje salen de `Zombie.muerto_por` (cada planta pasa `fuente=` al hacer daño); "a la vez" es cuántos mata una misma explosión; la energía es la que se junta con clic, sumando todo lo que se juega con la cuenta; Timmy cuenta si sale durante la oleada final y después se gana el nivel; Butters cuenta al ganar un nivel con Butters vivo en el césped; Toallin pide hipnotizar cada tipo de zombie que aparece en los niveles y que se puede hipnotizar (el Sr. Garrison y el gigante no).

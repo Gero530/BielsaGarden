@@ -66,7 +66,7 @@ def etiqueta(key, zombie):
     """Nombre corto bajo el retrato: "CARTMAN", "CONO", "PÉRTIGA"..."""
     nombre = (ZOMBIES if zombie else PERSONAJES)[key]["nombre"]
     if zombie:
-        for prefijo in ("Zombie con ", "Zombie del ", "Zombie "):
+        for prefijo in ("Zombie con ", "Zombie del ", "Zombie ", "Cangrejo "):
             if nombre.startswith(prefijo) and len(nombre) > len(prefijo):
                 nombre = nombre[len(prefijo):]
                 break

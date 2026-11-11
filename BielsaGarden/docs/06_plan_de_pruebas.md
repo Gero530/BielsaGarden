@@ -62,7 +62,7 @@ python tools/pruebas_simuladas.py
 | ZO-05 | Salto de la pértiga | Butters en (2,4), pértiga en (2,8); 12 s. | La pasa por arriba sin morderla, pierde la pértiga y camina a 18. | Pasó; Butters intacto; sin pértiga; velocidad 18. | Pasa |
 | ZO-06 | Pértiga frente a una escalera (caso raro) | Butters en (2,4) con una escalera puesta, pértiga en (2,8). | Salta con la pértiga (no trepa la escalera). | Saltó con la pértiga. | Pasa |
 | ZO-07 | Escalera compartida | Butters en (2,3), zombie con escalera en (2,6); 12 s; luego un normal en (2,5). | La escalera queda puesta y el normal pasa por arriba sin morder. | Escalera puesta; el normal la pasó; Butters sin mordidas. | Pasa |
-| ZO-08 | Tractor frente a Toallin (caso raro) | Toallin en (2,4), tractor pegado; 3 s. | Se come a Toallin sin quedar hipnotizado. | Toallin comido; tractor no hipnotizado. | Pasa |
+| ZO-08 | Sr. Garrison frente a Toallin (caso raro) | Toallin en (2,4), Sr. Garrison pegado; 3 s. | Se come a Toallin sin quedar hipnotizado. | Toallin comido; Sr. Garrison no hipnotizado. | Pasa |
 | ZO-09 | Caída del bungee | Crear 200 bungees y registrar su columna; dejar caer uno. | Columnas de 2 a 8; al caer pasa a "suelo". | Columnas [2…8]; fase "suelo". | Pasa |
 | ZO-10 | Invocación del bailarín | Bailarín en (2,5); 2,5 s. | Invoca 4 zombies (adelante, atrás, arriba y abajo). | 5 zombies en el campo (1 + 4). | Pasa |
 | ZO-11 | Recorrido completo del excavador | Stan en (2,0), excavador en (2,8); dejar correr hasta que se vaya. | Bajo tierra no recibe daño; sale en la columna 0, come la planta de atrás y se va por la derecha. | Intacto bajo tierra; salió; comió a Stan; se fue. | Pasa |

@@ -29,7 +29,7 @@ from settings import GRID_ROWS
 AVISO_ANTES = 3.0            # segundos antes de la horda en que aparece el cartel
 TXT_HORDA = "¡Se viene una horda!"
 TXT_FINAL = "¡Oleada final!"
-NO_SORPRESA = {"gigante", "tractor", "mini"}     # demasiado fuertes para colarse de sorpresa
+NO_SORPRESA = {"gigante", "garrison", "mini"}     # demasiado fuertes para colarse de sorpresa
 
 
 def tipos_de_oleada(oleada):

@@ -20,6 +20,7 @@ from ui.pixel_font import draw_pixel_text
 from scenes.catalogo import draw_tooltip, stats_planta
 from ui import intro_art as A, musica
 from ui.sprites import SPRITES, has_sprite
+from ui import sonidos
 
 POR_FILA = 5
 ZANCHO = 540                    # ancho del tablón "Vienen" (px de pantalla)
@@ -65,8 +66,11 @@ def acomodar_zombies(zombies, ancho_max):
     con fila = [(zombie, ancho), ...]. El ancho le descuenta el margen vacío del cuadro."""
     filas, fila, usado = [], [], 0
     for z in zombies:
-        key = z.sprite_key if has_sprite(z.sprite_key) else "zombie_normal"
-        w, h = SPRITES[key]["frame_w"] * 2 - 8, SPRITES[key]["frame_h"] * 2
+        key = z.icono_key if z.icono_key and has_sprite(z.icono_key) else (
+            z.sprite_key if has_sprite(z.sprite_key) else "zombie_normal")
+        f = max(1, round(2 * SPRITES[key].get("mult", 1.0)))
+        aj = SPRITES[key].get("ajuste", 1.0)
+        w, h = int(SPRITES[key]["frame_w"] * f * aj) - 8, int(SPRITES[key]["frame_h"] * f * aj)
         if fila and usado + w > ancho_max:
             filas.append(fila); fila, usado = [], 0
         fila.append((z, w, h)); usado += w
@@ -166,10 +170,12 @@ class EquipoScene(Scene):
         for i, r in enumerate(self.lugares):
             if r.collidepoint(event.pos) and i < len(self.equipo):
                 self.equipo.pop(i)
+                sonidos.reproducir("seleccionar")
                 return
         for c in self.cartas:
             if c.rect.collidepoint(event.pos) and c.key not in self.equipo and len(self.equipo) < self.max:
                 self.equipo.append(c.key)
+                sonidos.reproducir("seleccionar")
                 return
 
     def update(self, dt):

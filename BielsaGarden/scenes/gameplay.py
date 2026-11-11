@@ -181,6 +181,10 @@ class GameplayScene(Scene):
         cantando = any(p.key == "girasol" and p.deshabilitado for p in self.grid.plants())
         sonidos.canto(cantando)
 
+    def actualizar_minando(self):
+        """El ruido de cavar suena en bucle mientras algún Pip siga bajo tierra (hasta que sale, le sacan el pico o explota)."""
+        sonidos.minando(any(z.alive and z.key == "excavador" and z.fase == "tierra" for z in self.zombies))
+
     def actualizar_mastica(self, dt):
         """El ruido de masticar suena en bucle mientras algún zombie vivo esté comiendo."""
         if any(z.alive and z.eating for z in self.zombies):
@@ -372,6 +376,7 @@ class GameplayScene(Scene):
         self.grid.cleanup()
         self.actualizar_canto()
         self.actualizar_mastica(dt)
+        self.actualizar_minando()
         before = len(self.zombies)
         for z in self.zombies:
             if not z.alive and not z.hypno and z.muerto_por:
@@ -421,6 +426,7 @@ class GameplayScene(Scene):
                 logros.sumar("butters_sobrevive")
         sonidos.canto(False)
         sonidos.masticar(False)
+        sonidos.minando(False)
         musica.partida_parar(500)
         from scenes.result import ResultScene
         self.banner = None

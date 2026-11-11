@@ -86,7 +86,7 @@ Cada requerimiento indica el caso de uso del que surge ([02_casos_de_uso.md](02_
 
 - Un tutorial guiado y tres niveles, con desbloqueo progresivo.
 - Nueve personajes: Chef Cartman, Stan, Butters, Kyle, Kenny, Toallin, Santi, Jesús y Gero.
-- Catorce tipos de zombie: normal, cono, balde, puerta, diario, pértiga, escalera, tractor, bungee, bailarín, excavador, gigante, mini zombie y alien.
+- Catorce tipos de zombie: normal, cono, balde, puerta, diario, pértiga, escalera, Sr. Garrison, bungee, bailarín, excavador, gigante, mini zombie y alien.
 - Mapa de niveles, catálogo, pantalla de equipo, pausa y pantalla de resultado.
 - Velocidad x1, x2 y x3.
 - Diálogos de Bielsa con retratos.

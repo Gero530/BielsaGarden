@@ -8,7 +8,7 @@ Registro de niveles, en el orden del mapa (el primero arranca desbloqueado).
   Nivel 4   el lago               + pértiga, escalera
   Nivel 5   el parque             + bailarín, excavador
   Nivel 6   el centro comercial   + bungee, alien
-  Nivel 7   el bosque             + tractor, gigante
+  Nivel 7   el bosque             + Sr. Garrison, gigante
 
 Para sumar uno: creá levels/level_8.py con su LEVEL (con un "id" nuevo), agregalo acá
 y sumá su botón en data/mapa.py.

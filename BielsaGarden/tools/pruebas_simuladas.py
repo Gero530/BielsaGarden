@@ -192,6 +192,28 @@ def _():
     return "escudo: %d, dibujo: %s" % (z.shield, z.sprite_state()[0]), z.shield == 0
 
 
+@caso("PL-09b", "Mickey con Pooh: el Imán se lleva a Pooh y lo deja pegado; Mickey sigue caminando solo")
+def _():
+    sc = escena()
+    m = planta(sc, "iman", 2, 3)
+    z = zombie(sc, "puerta", 2, 5)
+    x0 = z.x
+    correr(sc, 2.5)
+    return "escudo: %d, imán: %s con %s, Mickey avanzó %d px" % (z.shield, m.state, m.carga, x0 - z.x), \
+        z.shield == 0 and m.state == "cargado" and m.carga == "pooh" and z.x < x0 and z.sprite_state()[0] == "zombie_puerta_sin"
+
+
+@caso("ZO-03b", "Mickey con Pooh: a tiros Pooh se rompe (aparece el efecto) y queda Mickey solo con su vida intacta")
+def _():
+    sc = escena()
+    z = zombie(sc, "puerta", 2, 7)
+    z.take_damage(ZOMBIE_DATA["puerta"]["escudo"])
+    correr(sc, 0.1)
+    efecto = any(type(e).__name__ == "PoohSeVa" for e in sc.effects)
+    return "escudo: %d, vida: %d, efecto de Pooh: %s, dibujo: %s" % (z.shield, z.hp, efecto, z.sprite_state()[0]), \
+        z.shield == 0 and z.hp == ZOMBIE_DATA["puerta"]["vida"] and efecto and z.sprite_state()[0] == "zombie_puerta_sin"
+
+
 @caso("PL-10", "Santi le saca el pico al excavador bajo tierra: sale a la superficie")
 def _():
     sc = escena()
@@ -298,6 +320,22 @@ def _():
         z.x < b.rect.left, b.hp == 4000, not z.pole, z.speed), z.x < b.rect.left and b.hp == 4000 and not z.pole
 
 
+@caso("ZO-05b", "Murciélago: se agacha, vuela, cae de panza, queda en el piso, se levanta y camina a 18 px/s")
+def _():
+    sc = escena()
+    b = planta(sc, "nuez", 2, 4)
+    z = zombie(sc, "pertiga", 2, 8)
+    estados = []
+    for _ in range(int(14 / DT)):
+        sc.update(DT)
+        k = z.sprite_state()[0]
+        if not estados or estados[-1] != k:
+            estados.append(k)
+    ok = estados == ["murcielago", "murcielago_salto", "murcielago_panzazo", "murcielago_sin"] \
+        and b.hp == 4000 and z.x < b.rect.left and not z.pole and 14 <= z.speed <= 20
+    return "estados: %s; Butters intacto: %s; velocidad %.0f" % (" > ".join(estados), b.hp == 4000, z.speed), ok
+
+
 @caso("ZO-06", "Pértiga que llega a una planta con escalera la salta igual (no trepa)")
 def _():
     sc = escena()
@@ -327,13 +365,13 @@ def _():
         puesta, paso, b.hp == hp0), puesta and paso and b.hp == hp0
 
 
-@caso("ZO-08", "Tractor: no lo hipnotiza Toallin (se lo come) y no usa escaleras")
+@caso("ZO-08", "Sr. Garrison: no lo hipnotiza Toallin (se lo come) y no usa escaleras")
 def _():
     sc = escena()
     planta(sc, "toallin", 2, 4)
-    z = zombie(sc, "tractor", 2, x=sc.grid.cell_rect(2, 5).left + 30)
+    z = zombie(sc, "garrison", 2, x=sc.grid.cell_rect(2, 5).left + 30)
     correr(sc, 3)
-    return "Toallin comido: %s; tractor hipnotizado: %s" % (sc.grid.get(2, 4) is None, z.hypno), \
+    return "Toallin comido: %s; Sr. Garrison hipnotizado: %s" % (sc.grid.get(2, 4) is None, z.hypno), \
         sc.grid.get(2, 4) is None and not z.hypno
 
 

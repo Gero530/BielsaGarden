@@ -27,7 +27,7 @@ def _tipos_hipnotizables():
     """Tipos de zombie que aparecen en los niveles y que Toallin puede hipnotizar."""
     from entities.zombies import ZOMBIE_CLASSES
     from world.wave_manager import tipos_de_oleada
-    tipos = {"normal"}                      # el bailarín invoca normales
+    tipos = {"cangrejo_invocado"}           # el cangrejo bailarín invoca cangrejos marrones
     for lv in LEVELS:
         for w in lv.get("oleadas", []):
             tipos.update(tipos_de_oleada(w))
