@@ -18,6 +18,9 @@ MUSICA_PARTIDA = [
     ("musica/uncle_fucka.mp3", 0.7),
     ("musica/kyles_mom.mp3", 0.4),
 ]
+# Fin de nivel (los genera tools/generar_jingles.py): (archivo, volumen)
+MUSICA_VICTORIA = ("musica/victoria.wav", 0.55)     # en bucle mientras se ve la pantalla de victoria
+MUSICA_DERROTA = ("musica/derrota.wav", 0.7)        # una vez, en la pantalla de derrota
 MUSICA_DURACION = 26.28      # segundos que dura la canción (después vuelve a empezar)
 
 # --- Efectos de sonido (assets/sonidos/, ver ui/sonidos.py) ---

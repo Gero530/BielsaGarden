@@ -83,6 +83,7 @@ scenes/
   menu.py            Pantalla de inicio
   gameplay.py        Partida: une grilla, entidades, HUD, recursos y fin de nivel
   result.py          Pantalla de victoria / derrota (pixel art)
+  final.py           "¡Felicidades! Juego completado": todos los personajes juntos (al ganar el último nivel)
   mapa.py            Mapa de niveles (desbloqueo, candados)
   equipo.py          Elegí tu equipo antes de cada nivel (máximo EQUIPO_MAX de settings.py)
   catalogo.py        Catálogo (almanaque): grilla de retratos animados + ficha con frase de Bielsa; los zombies no vistos van en silueta
@@ -94,6 +95,7 @@ data/
 tools/
   generar_placeholders.py   Crea los sprites placeholder de assets/sprites/nuevos/ (no pisa los existentes)
   mapa_pueblo.py            Dibuja el mapa del pueblo nevado en pixel art (assets/mapa/pueblo_pixel.png); qué mapa se usa: data/mapa.py
+  generar_jingles.py        Genera la música de fin de nivel (assets/musica/victoria.wav y derrota.wav) en estilo chiptune
 
 world/
   grid.py            Grilla 5x9: celdas, colocación de plantas, dibujo del césped
@@ -200,6 +202,10 @@ El jugador tiene una cuenta con su nombre, y en ella se guardan su progreso (niv
 - Nombres de hasta 12 letras, sin repetir; hasta 6 cuentas (`MAX_NOMBRE` y `MAX_CUENTAS` en `cuentas.py`).
 - **Guardado automático**: al ganar un nivel, al volver al menú, al cambiar de cuenta y al cerrar el juego.
 - **Migración**: la primera cuenta que se crea hereda lo de la versión anterior (`logros.json` y la partida de `partidas.json` con más niveles), si esos archivos existen. Después se pueden borrar.
+
+## Dificultad (Opciones > Juego)
+
+Para cada personaje se puede subir o bajar su daño, vida, costo y recarga, en porcentaje del valor original (25 %, 50 %, 75 %, 100 %, 125 %, 150 %, 200 % o 300 %). Al lado de cada porcentaje se ve el valor que queda. Daño solo lo tienen Stan, Kyle, Kenny y Jesús. Los cambios se aplican con Aplicar (también desde la pausa) y se guardan en `config.json` (clave "juego"). RESTABLECER vuelve todo al 100 % y TODOS AL lleva todo (de todos los personajes) al porcentaje que elijas. La lógica está en `ajustes.py`: reescribe `PLANT_DATA` a partir de los valores originales de `settings.py`, que no se modifican.
 
 ## Sonido
 

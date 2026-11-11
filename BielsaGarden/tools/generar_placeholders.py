@@ -153,18 +153,27 @@ def aplastadora_salto():
 
 
 def cartman_festejo():
-    """4 frames de 32x40: tu Cartman (plantas/cartman_idle.png) saltando con los brazos arriba."""
+    """8 frames de 40x46: tu Cartman (plantas/cartman_idle.png, el frame 0 entero) saltando con los
+    brazos arriba, con su sombra en el piso. Hay lugar de sobra a los costados y arriba, así los
+    guantes y la cabeza no se cortan contra el borde del frame."""
     hoja = pygame.image.load(os.path.join(ASSETS, "plantas", "cartman_idle.png")).convert_alpha()
-    cartman = hoja.subsurface((1, 0, 25, 23)).copy()
+    cartman = hoja.subsurface((0, 0, 26, 24)).copy()
+    W, H, PISO = 40, 46, 44
+    # (altura del salto, cuánto suben los brazos): agachado, sube, arriba de todo, baja
+    pasos = [(0, 0), (3, 2), (7, 3), (10, 4), (11, 4), (10, 4), (7, 3), (3, 2)]
     out = []
-    for dy in (0, -3, -5, -3):
-        s = nuevo(32, 40)
-        by = 40 - 23 - 1 + dy
-        for x0, x1 in ((5, 1), (26, 30)):                                      # brazos arriba
-            pygame.draw.line(s, (200, 40, 40), (x0, by + 17), (x1, by + 10), 2)
-            s.fill(AMARILLO, (x1 - 1, by + 8, 3, 3))                              # guantes
-        s.blit(cartman, (3, by))
-        out.append(contorno(s))
+    for alto, brazos in pasos:
+        s = nuevo(W, H)
+        x, y = (W - 26) // 2, PISO - 24 - alto
+        for hombro, mano in (((x + 4, y + 16), (x - 3, y + 7 - brazos)),
+                             ((x + 21, y + 16), (x + 28, y + 7 - brazos))):
+            pygame.draw.line(s, (200, 40, 40), hombro, mano, 2)
+            s.fill(AMARILLO, (mano[0] - 1, mano[1] - 2, 3, 3))                   # guantes
+        s.blit(cartman, (x, y))
+        s = contorno(s)
+        sombra = max(10, 22 - alto)                                              # más chica cuanto más alto
+        pygame.draw.ellipse(s, (0, 0, 0, 70), (W // 2 - sombra // 2, PISO - 1, sombra, 3))
+        out.append(s)
     return tira(out)
 
 

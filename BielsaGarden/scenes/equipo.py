@@ -18,7 +18,7 @@ from ui.hud import SeedCard, CARD_W, CARD_H, dither
 from ui.button import CartelButton, tablon
 from ui.pixel_font import draw_pixel_text
 from scenes.catalogo import draw_tooltip, stats_planta
-from ui import intro_art as A
+from ui import intro_art as A, musica
 from ui.sprites import SPRITES, has_sprite
 from ui import sonidos
 
@@ -136,12 +136,19 @@ class EquipoScene(Scene):
         self.volver_btn = CartelButton("VOLVER", (self.panel_rect.x + 106, 548), self.volver, size=(70, 15))
         self.aviso = 0.0            # segundos que se muestra "elegí al menos uno"
 
+        # Mientras se arma el equipo suena la canción del menú (si se viene de la pantalla de
+        # victoria o derrota, arranca acá); se apaga recién al tocar ¡A JUGAR!
+        if not musica.sonando():
+            from scenes.menu import EMPIEZA_SIN_INTRO
+            musica.reproducir(EMPIEZA_SIN_INTRO)
+
     # ------------------------------------------------------------------
     def jugar(self):
         if not self.equipo:
             self.aviso = 1.5
             return
         self.game.equipo = list(self.equipo)
+        musica.desvanecer(500)                     # el nivel arranca con su propia música
         from scenes.gameplay import GameplayScene
         self.game.change_scene(GameplayScene(self.game, self.idx, plantas=list(self.equipo)))
 
