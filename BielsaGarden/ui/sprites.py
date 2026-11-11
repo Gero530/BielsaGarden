@@ -17,6 +17,9 @@ Para sumar un sprite nuevo, agregá una entrada en SPRITES:
   para centrar en la casilla a un personaje que quedó corrido dentro de su frame.
 - "mult": multiplica la escala de ESE sprite (1.5 -> x3 en pantalla en vez de x2).
   Agranda el dibujo por un entero exacto, sin deformarlo.
+- "ajuste": escala fraccionaria extra sobre el factor entero (factor = 2 * mult). Total = factor * ajuste
+  (ej: mult 1.5 y ajuste 5/6 -> x2,5). Se escala SIEMPRE desde el dibujo original, con vecino más cercano
+  (sin agregar ni inventar píxeles). Lo más limpio son los enteros (x2, x3) y los medios (x2,5, x3,5).
 - "dy_px": desplaza el sprite hacia abajo (en píxeles de pantalla) para que los pies
   queden a la altura de los de otros sprites más altos (ej: Cartman vs. lanzaguisantes).
 - "icon_dy": igual que dy_px pero para los íconos chicos de las cartas.
@@ -60,44 +63,122 @@ SPRITES = {
     # en el mismo lugar que el de los demás.
     "zombie_normal":               {"archivo": "zombies/propios/zombie_normal_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
     "zombie_normal_atacar":        {"archivo": "zombies/propios/zombie_normal_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_puerta":               {"archivo": "zombies/propios/zombie_puerta_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_puerta_atacar":        {"archivo": "zombies/propios/zombie_puerta_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_puerta_sin":           {"archivo": "zombies/propios/zombie_puerta_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_puerta_sin_atacar":    {"archivo": "zombies/propios/zombie_puerta_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_diario":               {"archivo": "zombies/propios/zombie_diario_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_diario_atacar":        {"archivo": "zombies/propios/zombie_diario_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_diario_enojado":       {"archivo": "zombies/propios/zombie_diario_enojado_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 12},
-    "zombie_diario_enojado_atacar": {"archivo": "zombies/propios/zombie_diario_enojado_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 12},
-    "zombie_escalera":             {"archivo": "zombies/propios/zombie_escalera_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_escalera_atacar":      {"archivo": "zombies/propios/zombie_escalera_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_escalera_colocar":     {"archivo": "zombies/propios/zombie_escalera_colocar.png", "frame_w": 31, "frame_h": 48, "fps": 6, "loop": False},
-    "zombie_escalera_sin":         {"archivo": "zombies/propios/zombie_escalera_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_escalera_sin_atacar":  {"archivo": "zombies/propios/zombie_escalera_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
+    # Terrance (zombie normal) y Philip (zombie cono): frames de 17x31 que se ven x3 (mult 1.5).
+    # Caminar = 4 frames (van a saltitos); idle = 2 frames (catálogo y pantalla de equipo).
+    # Al comer repiten el mismo salto en el lugar (las claves "_atacar" usan el mismo archivo).
+    # Philip pierde el cono al quedarse sin armadura: pasa a las claves "philip_sin*".
+    # Los genera tools/generar_terrance_philip.py a partir de los 4 dibujos originales.
+    "terrance":                    {"archivo": "zombies/terrance_caminar.png", "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "terrance_atacar":             {"archivo": "zombies/terrance_caminar.png", "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "terrance_idle":               {"archivo": "zombies/terrance_idle.png",    "frame_w": 17, "frame_h": 31, "fps": 3, "mult": 2.0},
+    "philip":                      {"archivo": "zombies/philip_caminar.png",   "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "philip_atacar":               {"archivo": "zombies/philip_caminar.png",   "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "philip_idle":                 {"archivo": "zombies/philip_idle.png",      "frame_w": 17, "frame_h": 31, "fps": 3, "mult": 2.0},
+    "philip_sin":                  {"archivo": "zombies/philip_sin_caminar.png", "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "philip_sin_atacar":           {"archivo": "zombies/philip_sin_caminar.png", "frame_w": 17, "frame_h": 31, "fps": 6, "mult": 2.0},
+    "philip_sin_idle":             {"archivo": "zombies/philip_sin_idle.png",  "frame_w": 17, "frame_h": 31, "fps": 3, "mult": 2.0},
+    # Chef (reemplaza al zombie con balde): Darth Vader -> sin casco -> zombie herido sin armadura.
+    # Caminar = 4 frames de saltito de frente; idle = 2 frames (catálogo). Frames de 30x46 (x2).
+    # Los genera tools/generar_chef.py a partir de tools/chef_fuente/.
+    "chef_vader":              {"archivo": "zombies/chef_vader_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_vader_atacar":       {"archivo": "zombies/chef_vader_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_vader_idle":         {"archivo": "zombies/chef_vader_idle.png",    "frame_w": 30, "frame_h": 46, "fps": 3, "mult": 1.5},
+    "chef_sin_casco":          {"archivo": "zombies/chef_sin_casco_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_sin_casco_atacar":   {"archivo": "zombies/chef_sin_casco_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_sin_casco_idle":     {"archivo": "zombies/chef_sin_casco_idle.png",    "frame_w": 30, "frame_h": 46, "fps": 3, "mult": 1.5},
+    "chef_zombie":             {"archivo": "zombies/chef_zombie_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_zombie_atacar":      {"archivo": "zombies/chef_zombie_caminar.png", "frame_w": 30, "frame_h": 46, "fps": 6, "mult": 1.5},
+    "chef_zombie_idle":        {"archivo": "zombies/chef_zombie_idle.png",    "frame_w": 30, "frame_h": 46, "fps": 3, "mult": 1.5},
+    # El cono de Philip cuando se le cae (1 frame de 8x8)
+    "cono_caido":                  {"archivo": "zombies/cono_caido.png", "frame_w": 8, "frame_h": 8, "fps": 1, "mult": 1.5},
+    # Zombie puerta = Mickey con Winnie the Pooh en el brazo (Pooh hace de "puerta"; sin Pooh es Mickey solo).
+    # Los genera tools/generar_mickey.py a partir de zombies/propios/mickey_fuente.png. Frames 56x36 x3.
+    "zombie_puerta":               {"archivo": "zombies/propios/zombie_mickey_caminar.png", "frame_w": 56, "frame_h": 36, "fps": 8, "mult": 1.5},
+    "zombie_puerta_atacar":        {"archivo": "zombies/propios/zombie_mickey_atacar.png", "frame_w": 56, "frame_h": 36, "fps": 10, "mult": 1.5},
+    "zombie_puerta_sin":           {"archivo": "zombies/propios/zombie_mickey_sin_caminar.png", "frame_w": 56, "frame_h": 36, "fps": 8, "mult": 1.5},
+    "zombie_puerta_sin_atacar":    {"archivo": "zombies/propios/zombie_mickey_sin_atacar.png", "frame_w": 56, "frame_h": 36, "fps": 10, "mult": 1.5},
+    # Pooh suelto: lo que el Imán le arranca a Mickey
+    "pooh":                        {"archivo": "zombies/propios/pooh.png", "frame_w": 16, "frame_h": 24, "fps": 1},
+    # Zombie del diario = Gerald (el padre de Kyle, versión delfín). Frames 32x40 x3 (mult 1.5).
+    # Los genera tools/generar_gerald.py a partir de zombies/gerald_fuente/. gerald_idle: 2 frames 40x40 (catálogo).
+    "gerald_idle":                 {"archivo": "zombies/gerald_idle.png", "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5},
+    "zombie_diario":               {"archivo": "zombies/propios/zombie_diario_caminar.png", "frame_w": 32, "frame_h": 40, "fps": 6, "mult": 1.5},
+    "zombie_diario_atacar":        {"archivo": "zombies/propios/zombie_diario_atacar.png", "frame_w": 32, "frame_h": 40, "fps": 8, "mult": 1.5},
+    "zombie_diario_enojado":       {"archivo": "zombies/propios/zombie_diario_enojado_caminar.png", "frame_w": 32, "frame_h": 40, "fps": 12, "mult": 1.5},
+    "zombie_diario_enojado_atacar": {"archivo": "zombies/propios/zombie_diario_enojado_atacar.png", "frame_w": 32, "frame_h": 40, "fps": 12, "mult": 1.5},
+    # Zombie con escalera = Trent Boyette (frames 56x44, se ven x3). Los genera tools/generar_trent.py
+    # a partir de zombies/trent_fuente/. trent_idle (catálogo y pantalla de equipo): 2 frames de 24x27.
+    "trent_idle":                  {"archivo": "zombies/trent_idle.png", "frame_w": 24, "frame_h": 27, "fps": 2, "mult": 2.0, "ajuste": 5 / 8},
+    "zombie_escalera":             {"archivo": "zombies/propios/zombie_escalera_caminar.png", "frame_w": 56, "frame_h": 44, "mult": 1.5, "fps": 8, "ajuste": 5 / 6},
+    "zombie_escalera_atacar":      {"archivo": "zombies/propios/zombie_escalera_atacar.png", "frame_w": 56, "frame_h": 44, "mult": 1.5, "fps": 10, "ajuste": 5 / 6},
+    "zombie_escalera_colocar":     {"archivo": "zombies/propios/zombie_escalera_colocar.png", "frame_w": 56, "frame_h": 44, "mult": 1.5, "fps": 6, "loop": False, "ajuste": 5 / 6},
+    "zombie_escalera_sin":         {"archivo": "zombies/propios/zombie_escalera_sin_caminar.png", "frame_w": 56, "frame_h": 44, "mult": 1.5, "fps": 8, "ajuste": 5 / 6},
+    "zombie_escalera_sin_atacar":  {"archivo": "zombies/propios/zombie_escalera_sin_atacar.png", "frame_w": 56, "frame_h": 44, "mult": 1.5, "fps": 10, "ajuste": 5 / 6},
+    # El Murciélago (reemplaza al zombie con pértiga; la clave del zombie sigue siendo "pertiga" en settings y niveles).
+    # Frames 44x40 que se ven x3 (mult 1.5), mirando a la izquierda. Los genera tools/generar_murcielago.py
+    # a partir de assets/zombies/murcielago_fuente/. Las claves "zombie_pertiga*" de abajo quedan de respaldo (sin uso).
+    # correr: 4 frames de saltitos | atacar: 6 | salto: 5 (el código elige el frame: se agacha, despega, vuela de panza,
+    # cae en picada) | panzazo: 5 (el código elige el frame: panzazo con polvo, en el piso, levanta la cabeza, se apoya,
+    # se para) | caminar: 4 (lento, después del salto) | idle: 2 frames de frente (catálogo y pantalla de equipo)
+    "murcielago":                  {"archivo": "zombies/murcielago_correr.png", "frame_w": 44, "frame_h": 40, "fps": 8, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_atacar":           {"archivo": "zombies/murcielago_atacar.png", "frame_w": 44, "frame_h": 40, "fps": 10, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_salto":            {"archivo": "zombies/murcielago_salto.png", "frame_w": 44, "frame_h": 40, "fps": 1, "loop": False, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_panzazo":          {"archivo": "zombies/murcielago_panzazo.png", "frame_w": 44, "frame_h": 40, "fps": 1, "loop": False, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_sin":              {"archivo": "zombies/murcielago_caminar.png", "frame_w": 44, "frame_h": 40, "fps": 5, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_sin_atacar":       {"archivo": "zombies/murcielago_atacar.png", "frame_w": 44, "frame_h": 40, "fps": 10, "mult": 1.5, "ajuste": 7 / 6},
+    "murcielago_idle":             {"archivo": "zombies/murcielago_idle.png", "frame_w": 30, "frame_h": 32, "fps": 2, "mult": 1.5, "ajuste": 7 / 6},
     "zombie_pertiga":              {"archivo": "zombies/propios/zombie_pertiga_caminar.png", "frame_w": 48, "frame_h": 48, "fps": 10, "dx": -8.5},
     "zombie_pertiga_atacar":       {"archivo": "zombies/propios/zombie_pertiga_atacar.png", "frame_w": 48, "frame_h": 48, "fps": 10, "dx": -8.5},
     "zombie_pertiga_salto":        {"archivo": "zombies/propios/zombie_pertiga_salto.png", "frame_w": 48, "frame_h": 48, "fps": 7, "dx": -8.5, "loop": False},
     "zombie_pertiga_sin":          {"archivo": "zombies/propios/zombie_pertiga_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
     "zombie_pertiga_sin_atacar":   {"archivo": "zombies/propios/zombie_pertiga_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_excavador":            {"archivo": "zombies/propios/zombie_excavador_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_excavador_atacar":     {"archivo": "zombies/propios/zombie_excavador_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_excavador_sin":        {"archivo": "zombies/propios/zombie_excavador_sin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_excavador_sin_atacar": {"archivo": "zombies/propios/zombie_excavador_sin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_excavador_tierra":     {"archivo": "zombies/propios/zombie_excavador_tierra.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_bailarin":             {"archivo": "zombies/propios/zombie_bailarin_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_bailarin_atacar":      {"archivo": "zombies/propios/zombie_bailarin_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
-    "zombie_bailarin_baile":       {"archivo": "zombies/propios/zombie_bailarin_baile.png", "frame_w": 31, "frame_h": 48, "fps": 8},
+    # Excavador = Pip (Philip Pirrup). Los genera tools/generar_pip.py a partir de zombies/pip_fuente/.
+    # Perfil mirando a la DERECHA (frames 28x26, se ven x4). Con y sin pico usa los mismos dibujos
+    # (el pico solo se ve bajo tierra, en zombie_excavador_tierra, que sigue siendo el del minero).
+    # pip_idle (catálogo y pantalla de equipo): Pip de frente, 2 frames de 24x25.
+    "pip_idle":                    {"archivo": "zombies/pip_idle.png", "frame_w": 24, "frame_h": 25, "fps": 2, "mult": 1.5},
+    "zombie_excavador":            {"archivo": "zombies/propios/pip_caminar.png", "frame_w": 28, "frame_h": 26, "fps": 5, "mult": 1.5},
+    "zombie_excavador_atacar":     {"archivo": "zombies/propios/pip_atacar.png", "frame_w": 28, "frame_h": 26, "fps": 10, "mult": 1.5},
+    "zombie_excavador_sin":        {"archivo": "zombies/propios/pip_caminar.png", "frame_w": 28, "frame_h": 26, "fps": 5, "mult": 1.5},
+    "zombie_excavador_sin_atacar": {"archivo": "zombies/propios/pip_atacar.png", "frame_w": 28, "frame_h": 26, "fps": 10, "mult": 1.5},
+    "zombie_excavador_tierra":     {"archivo": "zombies/propios/zombie_excavador_tierra.png", "frame_w": 31, "frame_h": 48, "fps": 8},   # el montículo del minero: no cambia
+    # Gente cangrejo (Crab People). Los genera tools/generar_cangrejos.py a partir de cangrejos_fuente.png.
+    # Cangrejo rojo = el bailarín; cangrejo marrón = los 4 que invoca. Frames 31x48.
+    "cangrejo_bailarin":           {"archivo": "zombies/propios/cangrejo_rojo_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8, "mult": 1.5},
+    "cangrejo_bailarin_atacar":    {"archivo": "zombies/propios/cangrejo_rojo_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10, "mult": 1.5},
+    "cangrejo_bailarin_baile":     {"archivo": "zombies/propios/cangrejo_rojo_baile.png", "frame_w": 31, "frame_h": 48, "fps": 8, "mult": 1.5},
+    "cangrejo_invocado":           {"archivo": "zombies/propios/cangrejo_marron_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8, "mult": 1.5},
+    "cangrejo_invocado_atacar":    {"archivo": "zombies/propios/cangrejo_marron_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10, "mult": 1.5},
+    # (los sprites anteriores del bailarín, zombie_bailarin_*.png, quedan en la carpeta de respaldo)
     "zombie_bungee":               {"archivo": "zombies/propios/zombie_bungee_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
     "zombie_bungee_atacar":        {"archivo": "zombies/propios/zombie_bungee_atacar.png", "frame_w": 31, "frame_h": 48, "fps": 10},
     "zombie_bungee_bajar":         {"archivo": "zombies/propios/zombie_bungee_bajar.png", "frame_w": 31, "frame_h": 48, "fps": 8},
-    "zombie_mini":                 {"archivo": "zombies/propios/zombie_mini_caminar.png", "frame_w": 20, "frame_h": 32, "fps": 10},
-    "zombie_mini_atacar":          {"archivo": "zombies/propios/zombie_mini_atacar.png", "frame_w": 20, "frame_h": 32, "fps": 12},
-    "zombie_gigante":              {"archivo": "zombies/propios/zombie_gigante_caminar.png", "frame_w": 44, "frame_h": 64, "fps": 6},
-    "zombie_gigante_sin":          {"archivo": "zombies/propios/zombie_gigante_sin_caminar.png", "frame_w": 44, "frame_h": 64, "fps": 6},
-    "zombie_gigante_golpe":        {"archivo": "zombies/propios/zombie_gigante_golpe.png", "frame_w": 44, "frame_h": 64, "fps": 6, "loop": False},
-    "zombie_gigante_golpe_sin":    {"archivo": "zombies/propios/zombie_gigante_golpe_sin.png", "frame_w": 44, "frame_h": 64, "fps": 6, "loop": False},
-    "zombie_gigante_lanzar":       {"archivo": "zombies/propios/zombie_gigante_lanzar.png", "frame_w": 44, "frame_h": 64, "fps": 8, "loop": False},
-    "zombie_tractor":              {"archivo": "zombies/propios/zombie_tractor_caminar.png", "frame_w": 56, "frame_h": 48, "fps": 10},
-    "zombie_tractor_atacar":       {"archivo": "zombies/propios/zombie_tractor_atacar.png", "frame_w": 56, "frame_h": 48, "fps": 12},
+    # Randy Marsh (reemplaza al zombie bungee; la clave interna sigue siendo "bungee"). Los genera
+    # tools/generar_randy.py a partir de assets/zombies/randy_fuente/randy.png. Mira a la izquierda.
+    # Según la vida pasa de Spider-Man completo -> solo máscara -> ropa normal. Frames de 21x38.
+    "randy_spider":           {"archivo": "zombies/propios/randy_spider_caminar.png",  "frame_w": 21, "frame_h": 38, "fps": 8, "mult": 1.5},
+    "randy_spider_atacar":    {"archivo": "zombies/propios/randy_spider_atacar.png",   "frame_w": 21, "frame_h": 38, "fps": 10, "mult": 1.5},
+    "randy_mascara":          {"archivo": "zombies/propios/randy_mascara_caminar.png", "frame_w": 21, "frame_h": 38, "fps": 8, "mult": 1.5},
+    "randy_mascara_atacar":   {"archivo": "zombies/propios/randy_mascara_atacar.png",  "frame_w": 21, "frame_h": 38, "fps": 10, "mult": 1.5},
+    "randy_normal":           {"archivo": "zombies/propios/randy_normal_caminar.png",  "frame_w": 21, "frame_h": 38, "fps": 8, "mult": 1.5},
+    "randy_normal_atacar":    {"archivo": "zombies/propios/randy_normal_atacar.png",   "frame_w": 21, "frame_h": 38, "fps": 10, "mult": 1.5},
+    # De frente para el catálogo: normal -> máscara -> Spider-Man, 3 s cada uno (fps = 1/3), en bucle
+    "randy_frente":           {"archivo": "zombies/propios/randy_frente.png",          "frame_w": 21, "frame_h": 38, "fps": 1 / 3, "mult": 1.5},
+    # Sr. Nelson (el mini) y Sr. Mackey (el gigante): reemplazan a los zombies de leñador/elfo. Miran a la
+    # izquierda. Los genera tools/generar_mackey_nelson.py a partir de assets/zombies/mackey_nelson_fuente/.
+    # Los zombies anteriores quedan en assets/zombies/propios/zombie_gigante_*.png y zombie_mini_*.png (sin uso).
+    "zombie_mini":                 {"archivo": "zombies/propios/zombie_nelson_caminar.png", "frame_w": 20, "frame_h": 28, "fps": 10, "ajuste": 1.75},
+    "zombie_mini_atacar":          {"archivo": "zombies/propios/zombie_nelson_atacar.png", "frame_w": 20, "frame_h": 28, "fps": 12, "ajuste": 1.75},
+    "zombie_gigante":              {"archivo": "zombies/propios/zombie_mackey_caminar.png", "frame_w": 36, "frame_h": 64, "fps": 6},
+    "zombie_gigante_sin":          {"archivo": "zombies/propios/zombie_mackey_sin_caminar.png", "frame_w": 36, "frame_h": 64, "fps": 6},
+    "zombie_gigante_golpe":        {"archivo": "zombies/propios/zombie_mackey_golpe.png", "frame_w": 36, "frame_h": 64, "fps": 6, "loop": False},
+    "zombie_gigante_golpe_sin":    {"archivo": "zombies/propios/zombie_mackey_golpe_sin.png", "frame_w": 36, "frame_h": 64, "fps": 6, "loop": False},
+    "zombie_gigante_lanzar":       {"archivo": "zombies/propios/zombie_mackey_lanzar.png", "frame_w": 36, "frame_h": 64, "fps": 8, "loop": False},
+    # Íconos de catálogo y de la pantalla de equipo (de frente, respiran)
+    "mrmackey_idle":               {"archivo": "zombies/mrmackey_idle.png", "frame_w": 20, "frame_h": 38, "fps": 2, "mult": 1.5},
+    "srnelson_idle":               {"archivo": "zombies/srnelson_idle.png", "frame_w": 24, "frame_h": 27, "fps": 2, "frames": [0, 1], "mult": 1.5},
+    "zombie_garrison":             {"archivo": "zombies/propios/zombie_garrison_caminar.png", "frame_w": 56, "frame_h": 48, "fps": 10},
+    "zombie_garrison_atacar":      {"archivo": "zombies/propios/zombie_garrison_atacar.png", "frame_w": 56, "frame_h": 48, "fps": 12},
     # Alien y Cartman con la sonda (de Santi)
     "alien":                 {"archivo": "zombies/alien_caminar.png", "frame_w": 31, "frame_h": 48, "fps": 6},
     "alien_boton":           {"archivo": "zombies/alien_boton.png",   "frame_w": 31, "frame_h": 48, "fps": 6, "loop": False},
@@ -110,6 +191,8 @@ SPRITES = {
     "iman":                   {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 4, "frames": [0, 1, 2], "seq": [0, 0, 0, 0, 0, 2, 0, 0, 0, 1], "dx": -3, "mult": 1.5, "dy_px": 4, "icon_dy": -4},
     "iman_atrae":             {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 10, "frames": [3, 4, 5], "loop": False, "dx": -3, "mult": 1.5, "dy_px": 4},
     "iman_cargado":           {"archivo": "plantas/iman_completo.png",         "frame_w": 40, "frame_h": 40, "fps": 1, "frames": [6, 7, 8], "loop": False, "dx": -3, "mult": 1.5, "dy_px": 4},
+    # Lo mismo con la armadura de Chef pegada (en negro). Lo genera tools/generar_chef.py
+    "iman_cargado_vader":     {"archivo": "plantas/iman_cargado_vader.png",         "frame_w": 40, "frame_h": 40, "fps": 1, "loop": False, "dx": -3, "mult": 1.5, "dy_px": 4},
     # Timmy (podadora). Por ahora un solo frame; el movimiento lo agrega world/lawnmower.py.
     # Si dibujás tiras animadas, cambiá "archivo" (y "fps") de estas dos claves.
     "podadora":               {"archivo": "podadora/timmy_idle.png",           "frame_w": 40, "frame_h": 40, "fps": 4, "mult": 1.5, "dy_px": 4},
@@ -139,7 +222,7 @@ SPRITES = {
     "aplastadora_salto":      {"archivo": "plantas/aplastadora_salto.png",   "frame_w": 40, "frame_h": 40, "fps": 1, "mult": 1.5, "dy_px": 4},
     "aplastadora_cansada":    {"archivo": "plantas/aplastadora_cansada.png", "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4},
     # Cartman festejando en la pantalla de victoria: 4 frames 32x40 (salta con los brazos arriba)
-    "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 32, "frame_h": 40, "fps": 6, "mult": 1.5},
+    "cartman_festejo":        {"archivo": "sprites/nuevos/cartman_festejo.png",   "frame_w": 40, "frame_h": 46, "fps": 12, "mult": 1.5},
     # PC Principal: 2 frames 40x40 (respira)
     "principal":              {"archivo": "sprites/nuevos/principal.png",         "frame_w": 40, "frame_h": 40, "fps": 2, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
     # Mr. Hankey: 2 frames 40x40, dibujado abajo del frame (va en el piso)
@@ -147,11 +230,12 @@ SPRITES = {
     # Mr. Mackey: 6 frames 40x40 de charla (una sola vez); al terminar congela a los zombies
     "mackey":                 {"archivo": "sprites/nuevos/mackey.png",            "frame_w": 40, "frame_h": 40, "fps": 6, "loop": False, "mult": 1.5, "dy_px": 4, "icon_dy": -2},
     # Objetos y estados de zombies que siguen con el placeholder (assets/sprites/nuevos)
-    "escalera":               {"archivo": "zombies/propios/escalera_puesta.png",      "frame_w": 20, "frame_h": 40, "fps": 1},   # 1 frame, apoyada sobre la planta
+    "escalera":               {"archivo": "zombies/propios/escalera_puesta.png",      "frame_w": 15, "frame_h": 35, "fps": 1, "mult": 1.5, "ajuste": 5 / 6},   # 1 frame, apoyada sobre la planta
     "bungee_marca":           {"archivo": "sprites/nuevos/bungee_marca.png",          "frame_w": 24, "frame_h": 12, "fps": 4},   # 2 frames, aviso en el piso
 }
 
 _cache = {}   # (clave, factor) -> lista de frames escalados
+_base = {}    # clave -> frames SIN escalar (el original, nunca se pisa)
 
 
 def _load_frames(key):
@@ -174,17 +258,21 @@ def _load_frames(key):
 
 
 def get_frames(key, factor):
-    """Frames de `key` escalados por un factor entero (1 = tamaño de dibujo)."""
+    """Frames de `key` escalados por `factor` (1 = tamaño de dibujo). Siempre se escala desde el
+    dibujo original, una sola vez (antes, los sprites con "ajuste" se escalaban dos veces)."""
     if key not in SPRITES:
         return None
     ck = (key, factor)
     if ck not in _cache:
-        base = _cache.get((key, 1)) or _load_frames(key)
+        base = _base.get(key) or _load_frames(key)
         if base is None:
             return None
-        _cache[(key, 1)] = base
-        if factor != 1:
-            _cache[ck] = [pygame.transform.scale(f, (f.get_width() * factor, f.get_height() * factor)) for f in base]
+        _base[key] = base
+        aj = SPRITES[key].get("ajuste", 1.0)   # escala fraccionaria extra (ej: 5/6 sobre el x3 = x2,5)
+        if factor != 1 or aj != 1.0:
+            _cache[ck] = [pygame.transform.scale(f, (round(f.get_width() * factor * aj), round(f.get_height() * factor * aj))) for f in base]
+        else:
+            _cache[ck] = base
     return _cache[ck]
 
 

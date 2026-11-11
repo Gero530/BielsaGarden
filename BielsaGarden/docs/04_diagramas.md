@@ -198,7 +198,7 @@ classDiagram
     class NewspaperZombie
     class PoleZombie
     class LadderZombie
-    class TractorZombie
+    class GarrisonZombie
     class BungeeZombie
     class DancerZombie
     class DiggerZombie
@@ -238,7 +238,7 @@ classDiagram
     Zombie <|-- NewspaperZombie
     Zombie <|-- PoleZombie
     Zombie <|-- LadderZombie
-    Zombie <|-- TractorZombie
+    Zombie <|-- GarrisonZombie
     Zombie <|-- BungeeZombie
     Zombie <|-- DancerZombie
     Zombie <|-- DiggerZombie

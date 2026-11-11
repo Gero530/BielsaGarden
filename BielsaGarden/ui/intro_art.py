@@ -228,6 +228,20 @@ TABLON_PAL = {
 TABLON_SOMBRA = (0, 0, 0, 90)
 
 
+def _lugar_texto(img, ancho, top, ph, esc):
+    """Dónde va el texto en el tablón. Se centra en la cara de la madera (sin el borde) lo que
+    se ve: las letras (7 filas) más la luz tallada de abajo (1 fila más). La fila de la tilde
+    (Á, É...) no cuenta: sube al margen de arriba en vez de empujar las letras contra el borde
+    de abajo. Si sobra una fila impar, va abajo."""
+    cara_y, cara_h = top + 1, ph - 2                 # filas entre el borde de arriba y el de abajo
+    bloque = 8 * esc                                 # 7 de letra + 1 de luz
+    tilde = img.get_height() - 7 * esc               # fila de más arriba si hay tildes
+    r = img.get_rect()
+    r.centerx = ancho // 2
+    r.top = cara_y + max(0, cara_h - bloque) // 2 - tilde
+    return r
+
+
 def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, color_texto=None):
     """Tablón de madera de 3 tonos con letras talladas (en píxeles de dibujo; se agranda afuera).
     estado: "normal" (apoyado, con sombra abajo), "hover" (más claro y levantado 1 píxel),
@@ -251,7 +265,7 @@ def build_cartel(texto, ancho, alto, escala_texto, hover=False, estado=None, col
     s.fill(osc, (inner.x, inner.bottom - 1, inner.w, 1)); s.fill(osc, (inner.right - 1, inner.y, 1, inner.h))
     # Franja del texto: las vetas no pasan por ahí (no tachan las letras)
     img = pixel_text(texto, color_texto or letra, escala_texto) if texto else None
-    tr = img.get_rect(center=(ancho // 2, top + ph // 2 + 1)) if img else pygame.Rect(0, 0, 0, 0)
+    tr = _lugar_texto(img, ancho, top, ph, escala_texto) if img else pygame.Rect(0, 0, 0, 0)
     franja = range(tr.top - 1, tr.bottom + escala_texto + 1) if img else range(0)
     rnd = random.Random(ancho * 31 + alto * 7)
     for y in range(inner.y + 3, inner.bottom - 2, 3):           # vetas cortas
@@ -337,9 +351,10 @@ def colgante_escalado(texto, ancho, alto, escala_texto, t, esc=ESCALA, cuerda=8,
 _vivo = {}
 
 
-def fondo_vivo(t):
+def fondo_vivo(t, bus=True):
     """El paisaje del menú (montañas, nieve y la calle) con nubes que pasan y el bus que cruza
-    cada ~16 s (sin la parada: asomaba detrás de los paneles). Devuelve la imagen agrandada x ESCALA."""
+    cada ~16 s (sin la parada: asomaba detrás de los paneles). bus=False: sin el bus (cuando hay
+    personajes parados en la vereda). Devuelve la imagen agrandada x ESCALA."""
     if not _vivo:
         _vivo["mundo"] = pygame.Surface((W, H))
         _vivo["pantalla"] = pygame.Surface((W * ESCALA, H * ESCALA))
@@ -350,7 +365,7 @@ def fondo_vivo(t):
         x = (x0 + v * t) % (W + 2 * ancho) - ancho
         m.blit(build_nube(ancho), (int(x), y))
     tb = t - 2.0
-    if tb >= 0:
+    if bus and tb >= 0:
         x = W + 6 - (tb % 16.0) * 62
         if x > -190:
             m.blit(build_bus(), (int(x), FEET + 14 - 46))

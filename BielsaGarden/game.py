@@ -9,7 +9,10 @@ se encarga de escalarla a la resolución/pantalla completa elegida.
 """
 import pygame
 import display
-from ui import button
+import cuentas
+import ajustes
+import logros
+from ui import button, audio, aviso_logro
 from settings import SCREEN_W, SCREEN_H, FPS, TITLE
 
 CORTINA = 0.3          # segundos que tarda la cortina de cartulina en cruzar la pantalla
@@ -21,6 +24,8 @@ class Game:
         pygame.init()
         pygame.display.set_caption(TITLE)
         display.load_config()
+        audio.cargar()
+        ajustes.cargar()                      # dificultad de Opciones > Juego (reescribe PLANT_DATA)
         display.apply()
         self.screen = pygame.Surface((SCREEN_W, SCREEN_H)).convert()
         self.clock = pygame.time.Clock()
@@ -29,15 +34,16 @@ class Game:
 
         self.cortina = None               # transición entre pantallas en curso
         self.intro_done = False     # la intro del menú se ve una sola vez por ejecución
-        # Ids de niveles ganados. Solo en memoria: cada vez que se abre el juego arranca vacío
-        # (solo el tutorial disponible).
+        # Ids de niveles ganados de la cuenta activa (cuentas.py los guarda en cuentas.json)
         self.progreso = set()
+        cuentas.cargar_en(self)               # se entra con la última cuenta activa (si hay)
 
         # Import aquí para evitar imports circulares (las escenas importan Game)
         from scenes.loading import LoadingScene
         self.change_scene(LoadingScene(self))
 
     def change_scene(self, new_scene):
+        logros.guardar()                    # el progreso de los logros se guarda al cambiar de pantalla
         if self.scene is not None:          # la primera escena no tiene transición
             self.cortina = [self.screen.copy(), 0.0]
         self.scene = new_scene
@@ -74,6 +80,10 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.quit()
+                elif event.type in (pygame.WINDOWFOCUSLOST, pygame.WINDOWMINIMIZED):
+                    audio.set_foco(False)        # silencia si está marcado "en segundo plano"
+                elif event.type == pygame.WINDOWFOCUSGAINED:
+                    audio.set_foco(True)
                 else:
                     self.scene.handle_event(display.convert_event(event))
 
@@ -82,6 +92,9 @@ class Game:
             self.scene.draw(self.screen)
             self.dibujar_cortina(dt)
             button.dibujar_efectos(self.screen)
+            aviso_logro.dibujar(self.screen, dt)
             display.present(self.screen)
 
+        cuentas.guardar_desde(self)           # al cerrar el juego se guarda el progreso de la cuenta
+        logros.guardar()
         pygame.quit()

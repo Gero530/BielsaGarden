@@ -15,8 +15,9 @@ from entities.projectiles import Snowball, Ike
 from entities.effects import SpriteEffect, Flash, FlyingMetal, FloatingText
 from data.catalogo import FRASE_KENNY_EXPLOTA, FRASES_AL_PLANTAR
 from entities.sun import Sun
-from ui.sprites import draw_sprite, has_sprite, anim_duration, SPRITES
+from ui.sprites import draw_sprite, has_sprite, anim_duration, get_frames, SPRITES
 from ui import sonidos
+import logros
 
 
 class Plant:
@@ -309,9 +310,12 @@ class Kenny(Plant):
         area = self.area()
         sonidos.reproducir("explosion")
         sonidos.reproducir("kenny")
+        muertos = 0
         for z in world.zombies:
             if self.en_area(z, area):
-                z.take_damage(self.data["dano"], frontal=False)   # explosión: la puerta no la frena
+                z.take_damage(self.data["dano"], frontal=False, fuente="kenny")   # la puerta no la frena
+                muertos += not z.alive
+        logros.maximo("kenny_simultaneas", muertos)
         world.effects.append(Flash(area.clip(world.grid.rect)))
         world.effects.append(FloatingText(FRASE_KENNY_EXPLOTA, (self.rect.centerx, self.rect.top + 10)))
 
@@ -382,6 +386,7 @@ class Magnet(Plant):
         self.state_t = 0.0
         self.target = None
         self.recharge = 0.0
+        self.carga = "balde"       # qué lleva pegado: "balde", "pooh" o "armadura" (la de Chef)
 
     def find_target(self, world):
         """El zombie con metal más cercano dentro del alcance (en cualquier fila)."""
@@ -396,8 +401,9 @@ class Magnet(Plant):
                 best, best_d = z, d
         return best
 
-    def catch_metal(self):
-        """Llamado por FlyingMetal cuando el balde llega a las puntas del imán."""
+    def catch_metal(self, objeto="balde"):
+        """Llamado por FlyingMetal cuando el objeto (balde o Pooh) llega a las puntas del imán."""
+        self.carga = objeto
         self.state = "cargado"
         self.recharge = self.data["recarga_iman"]
 
@@ -414,7 +420,8 @@ class Magnet(Plant):
                     start = self.target.metal_pos()
                     self.target.remove_metal()
                     sonidos.reproducir("iman")
-                    world.effects.append(FlyingMetal(start, self))
+                    logros.sumar("santi_defensas")
+                    world.effects.append(FlyingMetal(start, self, self.target.metal_objeto))
                     self.target = None          # queda esperando a que llegue el balde
                 else:                           # murió o lo perdió en el medio: vuelve a buscar
                     self.state, self.target = "listo", None
@@ -426,11 +433,24 @@ class Magnet(Plant):
     def sprite_state(self):
         if self.state == "atrae":
             return self.ANIM_ATRAE, self.state_t
-        if self.state == "cargado":
+        if self.state == "cargado" and self.carga != "pooh":
             # 3 etapas del balde (entero, mordido, casi deshecho) según cuánto falta
             u = 1 - self.recharge / self.data["recarga_iman"]
-            return self.ANIM_CARGADO, float(min(2, int(u * 3)))
+            anim = "iman_cargado_vader" if self.carga == "armadura" else self.ANIM_CARGADO
+            return anim, float(min(2, int(u * 3)))
         return self.key, self.t
+
+    def draw(self, surface):
+        super().draw(surface)
+        if self.state == "cargado" and self.carga == "pooh":
+            # Pooh pegado en las puntas (el sprite del imán solo trae el balde); se va desvaneciendo
+            frames = get_frames("pooh", 1)
+            if frames:
+                u = 1 - self.recharge / self.data["recarga_iman"]
+                img = frames[0].copy()
+                img.fill((255, 255, 255, (255, 190, 110)[min(2, int(u * 3))]), special_flags=pygame.BLEND_RGBA_MULT)
+                cx, cy = self.rect.center
+                surface.blit(img, img.get_rect(center=(cx + self.PUNTAS[0], cy + self.PUNTAS[1])))
 
 
 class Picante(Plant):
@@ -464,13 +484,16 @@ class Picante(Plant):
     def explode(self, world):
         g = world.grid
         col_rect = g.cell_rect(0, self.col)
+        muertos = 0
         for z in world.zombies:
             if not z.alive or z.hypno or z.airborne:
                 continue
             en_fila = z.row == self.row and g.rect.left - 20 <= z.x <= SCREEN_W
             en_col = col_rect.left - 20 < z.x < col_rect.right + 20     # el cuerpo toca la columna
             if en_fila or en_col:
-                z.take_damage(self.data["dano"], frontal=False)
+                z.take_damage(self.data["dano"], frontal=False, fuente="picante")
+                muertos += not z.alive
+        logros.maximo("picante_simultaneas", muertos)
         # En su propia casilla va la explosión del sprite; el fuego, en el resto de la cruz
         cells = [(self.row, c) for c in range(g.cols) if c != self.col] + \
                 [(r, self.col) for r in range(g.rows) if r != self.row]
@@ -553,6 +576,7 @@ class Aplastadora(Plant):
                 self.target_col = self.pick_target(world)
                 if self.target_col is not None:
                     self.state, self.st = "prepara", 0.0
+                    sonidos.reproducir("gero_hmm")          # lo mira al rival y se enoja
         elif self.state == "prepara" and self.st >= self.data["preparacion"]:
             c = self.target_col
             if c == self.col:                       # salta en el lugar
@@ -574,7 +598,8 @@ class Aplastadora(Plant):
             for z in world.zombies:
                 if z.alive and not z.hypno and not z.underground and not z.airborne \
                         and z.row == self.row and r.left - 10 <= z.x <= r.right + extra:
-                    z.kill()
+                    z.kill(fuente="aplastadora")
+            sonidos.reproducir("gero_impacto")              # cae y aplasta
             self.state, self.st = "aterriza", 0.0
         elif self.state == "aterriza" and self.st >= self.ATERRIZA:
             self.state = "listo"

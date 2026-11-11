@@ -18,6 +18,9 @@ MUSICA_PARTIDA = [
     ("musica/uncle_fucka.mp3", 0.7),
     ("musica/kyles_mom.mp3", 0.4),
 ]
+# Fin de nivel (los genera tools/generar_jingles.py): (archivo, volumen)
+MUSICA_VICTORIA = ("musica/victoria.wav", 0.55)     # en bucle mientras se ve la pantalla de victoria
+MUSICA_DERROTA = ("musica/derrota.wav", 0.7)        # una vez, en la pantalla de derrota
 MUSICA_DURACION = 26.28      # segundos que dura la canción (después vuelve a empezar)
 
 # --- Efectos de sonido (assets/sonidos/, ver ui/sonidos.py) ---
@@ -169,16 +172,20 @@ ZOMBIE_DATA = {
     # Diario: el diario absorbe todo; al perderlo se enoja (frenado un momento) y corre
     "diario":   {"vida": 200, "escudo": 150, "velocidad": 18, "dps": 100,
                  "velocidad_enojado": 48, "dps_enojado": 150, "enojo": 1.0},
-    # Pértiga: corre, salta la primera planta y después camina normal
-    "pertiga":  {"vida": 340, "velocidad": 38, "dps": 100, "velocidad_despues": 18, "salto": 0.9},
+    # Pértiga (ahora el Murciélago): corre a saltitos, salta la primera planta (se agacha "agacha" s, vuela "salto" s
+    # a "altura" px y cae de panza), queda "panzazo" s en el piso, tarda "levantarse" s en pararse y camina lento
+    "pertiga":  {"vida": 340, "velocidad": 38, "dps": 100, "velocidad_despues": 18, "salto": 0.9,
+                 "agacha": 0.15, "altura": 80, "panzazo": 0.5, "levantarse": 0.4},
     # Escalera: al llegar a la primera planta le apoya la escalera (tarda "apoyar" s) y la pasa por arriba
     "escalera": {"vida": 340, "velocidad": 30, "dps": 100, "velocidad_despues": 18, "apoyar": 1.0},
-    # Tractor: tanque lento que hace mucho daño
-    "tractor":  {"vida": 1300, "velocidad": 11, "dps": 400},
+    # Sr. Garrison (en su rueda): tanque lento que hace mucho daño
+    "garrison": {"vida": 1300, "velocidad": 11, "dps": 400},
     # Cae del cielo en una casilla al azar (desde la 3ra columna): "aviso" s de marca antes de caer
     "bungee":   {"vida": 200, "velocidad": 18, "dps": 100, "aviso": 2.5, "caida": 0.5, "col_minima": 2},
-    # Bailarín: cada "cada" s frena "baile" s e invoca hasta 4 zombies normales a su alrededor
+    # Cangrejo bailarín (rojo): cada "cada" s frena "baile" s e invoca hasta 4 cangrejos marrones a su alrededor
     "bailarin": {"vida": 340, "velocidad": 18, "dps": 100, "cada": 15.0, "baile": 1.5},
+    # Cangrejo invocado (marrón): lo invoca el cangrejo bailarín; mismos números que el zombie normal
+    "cangrejo_invocado": {"vida": 200, "armadura": 0, "velocidad": 18, "dps": 100},
     # Excavador: va bajo tierra (no lo tocan los disparos), sale en la 1ra columna y come hacia la derecha
     "excavador": {"vida": 300, "velocidad": 26, "dps": 100, "velocidad_despues": 18, "salir": 0.7},
     # Gigante: aplasta plantas de un golpe; con menos de "lanza_mini" de vida tira al mini zombie

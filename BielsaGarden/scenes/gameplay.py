@@ -5,6 +5,8 @@ y las condiciones de victoria/derrota.
 import random
 import pygame
 import display
+import cuentas
+import logros
 from settings import SCREEN_W, SCREEN_H, COLORS, GRID_X, HOUSE_X, PLANT_DATA
 from settings import BRAINS_INTERVALO, RUIDO_ZOMBIE_INTERVALO
 from scenes.base import Scene
@@ -57,13 +59,15 @@ class GameplayScene(Scene):
         self.selected = None          # key de planta, "pala" o None
         self.paused = False
         self.velocidad = getattr(game, "velocidad", 1)    # x1 / x2 / x3, se recuerda entre niveles
-        acciones = (("CONTINUAR", self.toggle_pausa), ("VOLVER AL MAPA", self.ir_mapa),
-                    ("MENÚ PRINCIPAL", self.ir_menu))
+        acciones = (("CONTINUAR", self.toggle_pausa), ("OPCIONES", self.ir_opciones),
+                    ("VOLVER AL MAPA", self.ir_mapa), ("MENÚ PRINCIPAL", self.ir_menu))
         ancho = max(ancho_tablon(t, 96) for t, _ in acciones)
-        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 316 + i * 58), fn, size=(ancho, 15))
+        self.pausa_btns = [CartelButton(t, (SCREEN_W // 2, 262 + i * 58), fn, size=(ancho, 15))
                            for i, (t, fn) in enumerate(acciones)]
         self.banner = None            # (texto, segundos_restantes)
         self.kills = 0
+        self.timmy_en_final = False   # Timmy salió durante la oleada final (logro)
+        self.vistos = logros.conjunto("zombies_vistos")   # zombies ya descubiertos (catálogo)
         self.frases_dichas = set()    # frases que salen una sola vez por nivel (ej. Cartman)
         self.time = 0.0
         self.end_delay = None         # pequeña pausa antes de mostrar victoria
@@ -155,6 +159,7 @@ class GameplayScene(Scene):
                 s.alive = False
                 self.sun += s.value
                 self.juntados += 1
+                logros.sumar("energia", s.value)
                 sonidos.reproducir("carne")
                 return True
         return False
@@ -175,6 +180,10 @@ class GameplayScene(Scene):
     def actualizar_canto(self):
         cantando = any(p.key == "girasol" and p.deshabilitado for p in self.grid.plants())
         sonidos.canto(cantando)
+
+    def actualizar_minando(self):
+        """El ruido de cavar suena en bucle mientras algún Pip siga bajo tierra (hasta que sale, le sacan el pico o explota)."""
+        sonidos.minando(any(z.alive and z.key == "excavador" and z.fase == "tierra" for z in self.zombies))
 
     def actualizar_mastica(self, dt):
         """El ruido de masticar suena en bucle mientras algún zombie vivo esté comiendo."""
@@ -256,7 +265,11 @@ class GameplayScene(Scene):
 
     def ir_menu(self):
         from scenes.menu import MenuScene
-        self.game.change_scene(MenuScene(self.game))
+        self.game.change_scene(MenuScene(self.game))         # el menú guarda el progreso de la cuenta
+
+    def ir_opciones(self):
+        from scenes.options import OptionsScene
+        self.game.change_scene(OptionsScene(self.game, volver_a=self))
 
     def toggle_select(self, key):
         if key != "pala":
@@ -352,11 +365,22 @@ class GameplayScene(Scene):
         for s in self.suns:
             s.update(dt)
 
+        # Zombies que aparecen por primera vez: se descubren en el catálogo (también los que
+        # invocan el bailarín o tira el gigante)
+        for z in self.zombies:
+            if z.key not in self.vistos:
+                self.vistos.add(z.key)
+                logros.agregar("zombies_vistos", z.key)
+
         # Limpieza
         self.grid.cleanup()
         self.actualizar_canto()
         self.actualizar_mastica(dt)
+        self.actualizar_minando()
         before = len(self.zombies)
+        for z in self.zombies:
+            if not z.alive and not z.hypno and z.muerto_por:
+                logros.sumar("muertes_" + z.muerto_por)        # muertes por personaje (logros)
         self.zombies = [z for z in self.zombies if z.alive]
         self.kills += before - len(self.zombies)
         self.projectiles = [p for p in self.projectiles if p.alive]
@@ -389,11 +413,20 @@ class GameplayScene(Scene):
         return getattr(self, "_result", None)
 
     def finish(self, victory):
+        if self.result is not None:          # ya terminó: no volver a contar la victoria (logros, cuenta)
+            return
         self._result = victory
         if victory:
             self.game.progreso.add(self.level["id"])     # desbloquea el siguiente en el mapa
+            cuentas.guardar_desde(self.game)            # el nivel ganado queda en la cuenta
+            logros.agregar("niveles", self.level["id"])
+            if self.timmy_en_final:
+                logros.sumar("timmy_final")
+            if any(p.key == "nuez" and p.alive for p in self.grid.plants()):
+                logros.sumar("butters_sobrevive")
         sonidos.canto(False)
         sonidos.masticar(False)
+        sonidos.minando(False)
         musica.partida_parar(500)
         from scenes.result import ResultScene
         self.banner = None
@@ -402,8 +435,12 @@ class GameplayScene(Scene):
         self.draw(snapshot, show_cursor=False)
         stats = {"kills": self.kills, "time": self.time}
         # Primero el diálogo de victoria/derrota (si hay) y al cerrarlo, la pantalla de resultado
-        self.al_cerrar_dialogo = lambda: self.game.change_scene(
-            ResultScene(self.game, victory, self.level_index, snapshot, stats))
+        if victory and self.level_index == len(LEVELS) - 1:     # ganó el último: juego completado
+            from scenes.final import FinalScene
+            self.al_cerrar_dialogo = lambda: self.game.change_scene(FinalScene(self.game))
+        else:
+            self.al_cerrar_dialogo = lambda: self.game.change_scene(
+                ResultScene(self.game, victory, self.level_index, snapshot, stats))
         self.dialogo = self.crear_dialogo("victoria" if victory else "derrota")
         if not self.dialogo:
             self.al_cerrar_dialogo()
@@ -480,9 +517,8 @@ class GameplayScene(Scene):
         if self.paused:
             surface.blit(dither((SCREEN_W, SCREEN_H), 2), (0, 0))
             # Cartel colgante (las sogas bajan desde arriba de la pantalla)
-            cartel = A.colgante_escalado("PAUSA", 0, 24, 3, pygame.time.get_ticks() / 1000, cuerda=44)
+            cartel = A.colgante_escalado("PAUSA", 0, 22, 2, pygame.time.get_ticks() / 1000, cuerda=40)
             surface.blit(cartel, cartel.get_rect(midtop=(SCREEN_W // 2, 0)))
-            draw_pixel_text(surface, "P / ESC PARA CONTINUAR", (255, 255, 255), 3, outline=(30, 20, 10), center=(SCREEN_W // 2, 236))
             for b in self.pausa_btns:
                 b.draw(surface)
 

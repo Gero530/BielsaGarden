@@ -253,7 +253,7 @@ Valores de `settings.py` (`PLANT_DATA`) y nombres de `data/catalogo.py`.
 | **Butters** | 50 | 20 s | 4000 | Muro. No ataca, pero aguanta mucho: un zombie común tarda unos 40 s en comérselo. Llora mientras lo muerden. |
 | **Kyle** | 100 | 7,5 s | 300 | Patea a Ike, que vuela en arco y cae sobre el zombie más cercano de su fila (20 de daño cada 1,4 s). Como cae desde arriba, le pega al cuerpo del zombie con puerta. |
 | **Kenny** | 150 | 35 s | — | Explota casi enseguida de plantado y hace 1800 de daño a los zombies de un área de 3 × 3 casillas a su alrededor. No daña a los hipnotizados. A los 30 s reaparece una sola vez en la misma casilla (si sigue libre), espera a que un zombie entre en su área y vuelve a explotar. |
-| **Toallin** | 75 | 30 s | 300 | El primer zombie que lo muerde se lo come y queda **hipnotizado**: se pone violeta, se da vuelta y ataca a los otros zombies. No funciona con el tractor ni con el gigante. |
+| **Toallin** | 75 | 30 s | 300 | El primer zombie que lo muerde se lo come y queda **hipnotizado**: se pone violeta, se da vuelta y ataca a los otros zombies. No funciona con el Sr. Garrison ni con el gigante. |
 | **Santi** | 100 | 7,5 s | 300 | Imán. Le arranca el objeto de metal al zombie más cercano dentro de su alcance (unas 3 casillas a la redonda, en cualquier fila): el balde, la puerta o el pico del excavador. Después queda 15 s con el objeto pegado antes de poder volver a usarlo. El cono no es de metal. |
 | **Jesús** | 125 | 35 s | — | Se enciende durante 1 s y explota en cruz: hace 350 de daño a todos los zombies de su fila y de su columna, y después desaparece. |
 | **Gero** | 150 | 25 s | 300 | Si hay un zombie en la casilla de enfrente (y está libre), se agacha, salta y aplasta a **todos** los zombies de esa casilla, sin importar su vida. Se queda en la casilla nueva y descansa 18 s antes de volver a saltar. Si no tiene adónde saltar, aplasta su propia casilla. En el aire no lo pueden morder. |
@@ -264,16 +264,16 @@ Valores de `settings.py` (`ZOMBIE_DATA`). La **vida total** suma cuerpo, armadur
 
 | Zombie | Vida total | Velocidad | Daño (por s) | Habilidad |
 |---|---|---|---|---|
-| **Zombie** (normal) | 200 | 18 (normal) | 100 | Camina y se come lo que tenga adelante. |
-| **Zombie con cono** | 570 (200 + 370 del cono) | 18 | 100 | El cono absorbe el daño antes que el cuerpo. |
+| **Terrance** (zombie normal) | 200 | 18 (normal) | 100 | Camina y se come lo que tenga adelante, siempre a saltitos. |
+| **Philip** (zombie con cono) | 570 (200 + 370 del cono) | 18 | 100 | El cono absorbe el daño antes que el cuerpo; cuando se rompe, se le cae. |
 | **Zombie con balde** | 1300 (200 + 1100 del balde) | 16 | 100 | Balde de metal: Santi se lo puede sacar. |
 | **Zombie con puerta** | 1300 (200 + 1100 de escudo) | 18 | 100 | La puerta frena lo que viene de frente (bolas de nieve). Ike (desde arriba) y las explosiones la saltean. Santi se la saca. |
 | **Zombie del diario** | 350 (200 + 150 del diario) | 18 | 100 | Si le rompen el diario, se enoja: se queda quieto 1 s y después corre a 48 y muerde 150 por segundo. |
-| **Zombie con pértiga** | 340 | 38 (rápida) | 100 | Corre y salta por encima de la primera planta que encuentra (aunque tenga una escalera). Después camina a 18. |
-| **Zombie con escalera** | 340 | 30 | 100 | Al llegar a la primera planta le apoya una escalera (1 s) y la pasa por arriba. La escalera queda puesta y la usan los demás zombies. Después camina a 18. |
-| **Zombie del tractor** | 1300 | 11 (lenta) | 400 | Tanque lento que muerde muy fuerte. No usa escaleras y Toallin no lo hipnotiza. |
-| **Zombie bungee** | 200 | 18 | 100 | Cae del cielo colgado de una soga en una casilla al azar, desde la tercera columna. Antes aparece una marca roja en el piso durante 2,5 s. Al aterrizar, camina y come. |
-| **Zombie bailarín** | 340 | 18 | 100 | Cada 15 s frena, baila 1,5 s e invoca hasta 4 zombies a su alrededor: adelante, atrás, arriba y abajo. |
+| **El murciélago** | 340 | 38 (rápida) | 100 | Corre a saltitos y salta por encima de la primera planta que encuentra (aunque tenga una escalera): vuela de panza como en la lucha libre y cae al piso. Se levanta y después camina a 18. |
+| **Trent Boyette** (zombie con escalera) | 340 | 30 | 100 | Al llegar a la primera planta le apoya una escalera (1 s) y la pasa por arriba. La escalera queda puesta y la usan los demás zombies. Después camina a 18. |
+| **Sr. Garrison** | 1300 | 11 (lenta) | 400 | Tanque lento que muerde muy fuerte, en su rueda gigante. No usa escaleras y Toallin no lo hipnotiza. |
+| **Randy** (zombie bungee) | 200 | 18 | 100 | Cae del cielo vestido de Spider-Man, colgado de una soga, en una casilla al azar, desde la tercera columna. Antes aparece una marca roja en el piso durante 2,5 s. Al aterrizar, camina y come; al recibir daño pierde el traje, luego la máscara. |
+| **Cangrejo bailarín** | 340 | 18 | 100 | Es el cangrejo rojo de la gente cangrejo. Cada 15 s frena, baila 1,5 s e invoca hasta 4 cangrejos invocados (marrones) a su alrededor: adelante, atrás, arriba y abajo. |
 | **Zombie excavador** | 300 | 26 | 100 | Avanza bajo tierra, donde no lo alcanzan los disparos. Sale en la primera columna, del lado de la casa, y come las plantas de atrás para adelante caminando hacia la derecha hasta irse de la pantalla. Si Santi le saca el pico, sale donde esté y sigue como un zombie normal. |
 | **Gigante** | 3000 | 10 (lenta) | Aplasta | Aplasta cualquier planta de un golpe (1 s). Con la mitad de vida revolea al mini zombie hacia el fondo de la fila, cerca de la casa. No usa escaleras y no se puede hipnotizar. |
 | **Mini zombie** | 150 | 24 (rápida) | 100 | Viaja en la espalda del gigante hasta que lo lanzan. |
@@ -292,7 +292,7 @@ Al abrir el juego solo está disponible el **Tutorial**. Ganar un nivel desbloqu
 | **Tutorial** | Invierno | 50 | Solo Chef Cartman y Stan | Normal | 5 | 1 (oleada final) |
 | **Nivel 1 — El jardín** | Día de sol | 100 | Equipo elegido (hasta 7) | Normal, cono, puerta, balde | 38 | 2 |
 | **Nivel 2 — La calle** | Otoño | 100 | Equipo elegido | Normal, cono, diario, pértiga, alien, excavador, escalera, balde, puerta | 52 | 3 |
-| **Nivel 3 — El centro** | Atardecer | 250 | Equipo elegido | Todos los anteriores más bailarín, bungee, tractor y gigante (con el mini) | 56 | 3 |
+| **Nivel 3 — El centro** | Atardecer | 250 | Equipo elegido | Todos los anteriores más bailarín, bungee, Sr. Garrison y gigante (con el mini) | 56 | 3 |
 
 En los niveles 1 a 3 se pueden elegir todos los personajes desde el principio.
 

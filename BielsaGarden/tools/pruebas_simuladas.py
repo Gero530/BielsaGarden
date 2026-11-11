@@ -14,10 +14,19 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 os.chdir(RAIZ)
 
+import tempfile
 import pygame
 import game as gm
-from settings import GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
+import cuentas
+# Las pruebas no tocan las cuentas del jugador: usan un archivo temporal, vacío al empezar
+# (sin cuenta activa, los logros se cuentan en memoria y no se guardan)
+cuentas.RUTA = os.path.join(tempfile.gettempdir(), "bielsa_pruebas_cuentas.json")
+if os.path.exists(cuentas.RUTA):
+    os.remove(cuentas.RUTA)
+cuentas.recargar()
+from settings import CELL_W, GRID_X, SCREEN_W, PLANT_DATA, ZOMBIE_DATA, CHEF_REACTIVA
 from scenes.gameplay import GameplayScene
+from levels import LEVELS
 from scenes.result import ResultScene
 from scenes.mapa import MapaScene
 from scenes.equipo import EquipoScene
@@ -26,6 +35,9 @@ from entities.zombies import create_zombie
 
 DT = 1 / 60
 G = gm.Game()
+import ajustes                       # las pruebas usan los valores originales (sin Opciones > Juego)
+ajustes.config.clear()
+ajustes.aplicar()
 RESULTADOS = []
 
 
@@ -180,6 +192,28 @@ def _():
     return "escudo: %d, dibujo: %s" % (z.shield, z.sprite_state()[0]), z.shield == 0
 
 
+@caso("PL-09b", "Mickey con Pooh: el Imán se lleva a Pooh y lo deja pegado; Mickey sigue caminando solo")
+def _():
+    sc = escena()
+    m = planta(sc, "iman", 2, 3)
+    z = zombie(sc, "puerta", 2, 5)
+    x0 = z.x
+    correr(sc, 2.5)
+    return "escudo: %d, imán: %s con %s, Mickey avanzó %d px" % (z.shield, m.state, m.carga, x0 - z.x), \
+        z.shield == 0 and m.state == "cargado" and m.carga == "pooh" and z.x < x0 and z.sprite_state()[0] == "zombie_puerta_sin"
+
+
+@caso("ZO-03b", "Mickey con Pooh: a tiros Pooh se rompe (aparece el efecto) y queda Mickey solo con su vida intacta")
+def _():
+    sc = escena()
+    z = zombie(sc, "puerta", 2, 7)
+    z.take_damage(ZOMBIE_DATA["puerta"]["escudo"])
+    correr(sc, 0.1)
+    efecto = any(type(e).__name__ == "PoohSeVa" for e in sc.effects)
+    return "escudo: %d, vida: %d, efecto de Pooh: %s, dibujo: %s" % (z.shield, z.hp, efecto, z.sprite_state()[0]), \
+        z.shield == 0 and z.hp == ZOMBIE_DATA["puerta"]["vida"] and efecto and z.sprite_state()[0] == "zombie_puerta_sin"
+
+
 @caso("PL-10", "Santi le saca el pico al excavador bajo tierra: sale a la superficie")
 def _():
     sc = escena()
@@ -286,6 +320,22 @@ def _():
         z.x < b.rect.left, b.hp == 4000, not z.pole, z.speed), z.x < b.rect.left and b.hp == 4000 and not z.pole
 
 
+@caso("ZO-05b", "Murciélago: se agacha, vuela, cae de panza, queda en el piso, se levanta y camina a 18 px/s")
+def _():
+    sc = escena()
+    b = planta(sc, "nuez", 2, 4)
+    z = zombie(sc, "pertiga", 2, 8)
+    estados = []
+    for _ in range(int(14 / DT)):
+        sc.update(DT)
+        k = z.sprite_state()[0]
+        if not estados or estados[-1] != k:
+            estados.append(k)
+    ok = estados == ["murcielago", "murcielago_salto", "murcielago_panzazo", "murcielago_sin"] \
+        and b.hp == 4000 and z.x < b.rect.left and not z.pole and 14 <= z.speed <= 20
+    return "estados: %s; Butters intacto: %s; velocidad %.0f" % (" > ".join(estados), b.hp == 4000, z.speed), ok
+
+
 @caso("ZO-06", "Pértiga que llega a una planta con escalera la salta igual (no trepa)")
 def _():
     sc = escena()
@@ -315,13 +365,13 @@ def _():
         puesta, paso, b.hp == hp0), puesta and paso and b.hp == hp0
 
 
-@caso("ZO-08", "Tractor: no lo hipnotiza Toallin (se lo come) y no usa escaleras")
+@caso("ZO-08", "Sr. Garrison: no lo hipnotiza Toallin (se lo come) y no usa escaleras")
 def _():
     sc = escena()
     planta(sc, "toallin", 2, 4)
-    z = zombie(sc, "tractor", 2, x=sc.grid.cell_rect(2, 5).left + 30)
+    z = zombie(sc, "garrison", 2, x=sc.grid.cell_rect(2, 5).left + 30)
     correr(sc, 3)
-    return "Toallin comido: %s; tractor hipnotizado: %s" % (sc.grid.get(2, 4) is None, z.hypno), \
+    return "Toallin comido: %s; Sr. Garrison hipnotizado: %s" % (sc.grid.get(2, 4) is None, z.hypno), \
         sc.grid.get(2, 4) is None and not z.hypno
 
 
@@ -370,7 +420,8 @@ def _():
     z.hp = z.max_hp * 0.4
     correr(sc, 2.0)
     minis = [m for m in sc.zombies if m.key == "mini"]
-    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + 170)
+    # El gigante lo tira al azar entre GRID_X + 30 y GRID_X + 2 casillas (zombies.py): ese es el rango
+    lugar = minis and (GRID_X + 20 <= minis[0].x <= GRID_X + CELL_W * 2 + 10)
     return ("Butters (4000) aplastado a los %.1f s; mini lanzado: %s; cae cerca de la casa: %s"
             % (t, bool(minis), bool(lugar))), t <= 1.6 and bool(minis) and bool(lugar) and not z.tiene_mini
 
@@ -547,11 +598,12 @@ def _():
     textos = lambda r: [b.text for b in r.botones] if hasattr(r, "botones") else [b.text for b in r.buttons]
     try:
         a = textos(ResultScene(G, True, 1))
-        b = textos(ResultScene(G, True, 3))
+        ultimo = len(LEVELS) - 1                     # el último nivel del juego (hoy, el 6)
+        b = textos(ResultScene(G, True, ultimo))
         c = textos(ResultScene(G, False, 1))
     except AttributeError:
         return "no se pudieron leer los botones", False
-    return "gana nivel 1: %s | gana nivel 3: %s | pierde: %s" % (a, b, c), \
+    return "gana nivel 1: %s | gana el último (%d): %s | pierde: %s" % (a, ultimo, b, c), \
         "SIGUIENTE NIVEL" in a and "SIGUIENTE NIVEL" not in b and "SIGUIENTE NIVEL" not in c
 
 

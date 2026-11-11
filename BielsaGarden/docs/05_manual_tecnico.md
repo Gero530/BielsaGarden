@@ -243,13 +243,14 @@ Tamaño de frame, cantidad de frames y fps tal como están en esta versión (med
 | Puerta | 31×48 | con puerta y sin puerta: caminar (8), atacar (6) |
 | Diario | 31×48 | normal y enojado: caminar (8), atacar (6) |
 | Escalera | 31×48 | con y sin escalera: caminar (8), atacar (6); colocar (6) |
-| Pértiga | 48×48 con pértiga, 31×48 sin | caminar (8), atacar (6), salto (6) |
+| Murciélago (clave `pertiga`) | 44×40 | correr (4), atacar (6), salto (5), panzazo (5), caminar (4), idle (2, 30×32) |
 | Excavador | 31×48 | con y sin pico: caminar (8), atacar (6); tierra (4) |
-| Bailarín | 31×48 | caminar (8), atacar (6), baile (8) |
+| Cangrejo bailarín (rojo) | 31×48 | caminar (8), atacar (6), baile (8) |
+| Cangrejo invocado (marrón) | 31×48 | caminar (8), atacar (6) |
 | Bungee | 31×48 | caminar (8), atacar (6), bajar (4) |
 | Mini zombie | 20×32 | caminar (8), atacar (6) |
 | Gigante | 44×64 | con y sin el mini: caminar (8), golpe (6); lanzar (6) |
-| Tractor | 56×48 | caminar (8), atacar (6) |
+| Sr. Garrison | 56×48 | caminar (8), atacar (6) |
 | Alien | 31×48 | caminar (5) y botón (8) en `assets/zombies/`; atacar (6) |
 
 **Otros**

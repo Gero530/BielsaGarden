@@ -1,7 +1,75 @@
 {
   "resolucion": [
-    1000,
-    600
+    1600,
+    900
   ],
-  "pantalla_completa": false
+  "pantalla_completa": false,
+  "sonido": {
+    "volumen": {
+      "general": 7,
+      "musica": 100,
+      "efectos": 100,
+      "personajes": 100,
+      "enemigos": 100
+    },
+    "silencio": {
+      "general": false,
+      "musica": false,
+      "efectos": false,
+      "personajes": false,
+      "enemigos": false
+    },
+    "silenciar_fondo": true
+  },
+  "juego": {
+    "girasol": {
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "lanzaguisantes": {
+      "dano": 25,
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "nuez": {
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "kyle": {
+      "dano": 25,
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "kenny": {
+      "dano": 25,
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "toallin": {
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "iman": {
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "picante": {
+      "dano": 25,
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    },
+    "aplastadora": {
+      "vida": 25,
+      "costo": 25,
+      "recarga": 25
+    }
+  }
 }
